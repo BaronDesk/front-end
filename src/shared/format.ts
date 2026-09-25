@@ -27,6 +27,19 @@ export function formatAgo(iso: string | null | undefined, now = Date.now()): str
   return seconds < 5 ? 'just now' : `${formatDuration(seconds)} ago`;
 }
 
+/** Both branches are in Tunisia: dinars, 3 decimals (millimes). */
+export const CURRENCY = 'DT';
+
+/** "12.500 DT". Only formats what the server sent; never computes money. */
+export function formatMoney(amount: number | null | undefined): string {
+  return amount === null || amount === undefined ? '—' : `${amount.toFixed(3)} ${CURRENCY}`;
+}
+
+/** "+10.000 DT" / "-3.000 DT" for ledger lines. */
+export function formatSignedMoney(amount: number): string {
+  return `${amount > 0 ? '+' : ''}${formatMoney(amount)}`;
+}
+
 /** Seconds since `iso`. For display of elapsed time only; never for money. */
 export function secondsSince(iso: string, now = Date.now()): number {
   return Math.max(0, (now - Date.parse(iso)) / 1000);

@@ -8,19 +8,33 @@ import { LoginForm } from '../shared/LoginForm';
 import { Placeholder } from '../shared/Placeholder';
 import { AdminLayout, AdminLoginLayout } from './AdminLayout';
 import { AlertsPage } from './alerts/AlertsPage';
+import { GamesPage } from './games/GamesPage';
 import { ADMIN_MENU } from './menu';
 import { AccessDenied } from './pages/AccessDenied';
+import { PlansPage } from './plans/PlansPage';
+import { ReservationsPage } from './reservations/ReservationsPage';
+import { SessionBillPage } from './sessions/SessionBillPage';
+import { SessionsPage } from './sessions/SessionsPage';
 import { LiveEventCounter } from './pages/LiveEventCounter';
 import { NotFound } from './pages/NotFound';
 import { EnrollmentPage } from './stations/EnrollmentPage';
 import { StationDetailPage } from './stations/StationDetailPage';
 import { StationsPage } from './stations/StationsPage';
+import { GamerProfilePage } from './users/GamerProfilePage';
+import { UsersPage } from './users/UsersPage';
+import { WalletPage } from './wallet/WalletPage';
 
 /** Built pages by menu path. Menu items not listed here are still placeholders. */
 const PAGES: Record<string, ReactNode> = {
   '/stations': <StationsPage />,
   '/enrollment': <EnrollmentPage />,
   '/alerts': <AlertsPage />,
+  '/users': <UsersPage />,
+  '/wallet': <WalletPage />,
+  '/plans': <PlansPage />,
+  '/games': <GamesPage />,
+  '/reservations': <ReservationsPage />,
+  '/sessions': <SessionsPage />,
 };
 
 // Hash routing (#/stations): works the same in the Vite dev server, behind
@@ -63,6 +77,15 @@ export function AdminApp() {
                   );
                 })}
                 <Route path="/stations/:id" element={<StationDetailPage />} />
+                <Route path="/sessions/:id" element={<SessionBillPage />} />
+                <Route
+                  path="/users/:id"
+                  element={
+                    <RequireRole min="MANAGER">
+                      <GamerProfilePage />
+                    </RequireRole>
+                  }
+                />
                 <Route path="/denied" element={<AccessDenied />} />
                 <Route path="*" element={<NotFound />} />
               </Route>
