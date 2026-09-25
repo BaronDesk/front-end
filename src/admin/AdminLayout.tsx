@@ -5,6 +5,8 @@ import { useAuth } from '../auth/AuthContext';
 import { hasRole, ROLE_LABEL } from '../auth/roles';
 import { ConnectionBanner, LiveTag } from '../shared/ConnectionBanner';
 import { MockBadge } from '../shared/MockBadge';
+import { AlertBanner } from './alerts/AlertBanner';
+import { AlertFeedProvider, useAlertFeed } from './alerts/AlertFeedContext';
 import { ADMIN_MENU } from './menu';
 import { useBranchName } from './useBranchName';
 
@@ -27,7 +29,16 @@ function Footer() {
 }
 
 export function AdminLayout() {
+  return (
+    <AlertFeedProvider>
+      <AdminShell />
+    </AlertFeedProvider>
+  );
+}
+
+function AdminShell() {
   const { user, logout } = useAuth();
+  const { openCount } = useAlertFeed();
   const branchName = useBranchName(user);
   const menu = ADMIN_MENU.filter((item) => !item.minRole || hasRole(user, item.minRole));
 
@@ -52,13 +63,17 @@ export function AdminLayout() {
         </a>
       </TopBar>
       <ConnectionBanner />
+      <AlertBanner />
 
       <div className="layout">
         <nav className="sidemenu">
           <ul>
             {menu.map((item) => (
               <li key={item.path}>
-                <NavLink to={item.path}>{item.label}</NavLink>
+                <NavLink to={item.path}>
+                  {item.label}
+                  {item.path === '/alerts' && openCount > 0 && <span className="menu-count"> ({openCount})</span>}
+                </NavLink>
               </li>
             ))}
           </ul>

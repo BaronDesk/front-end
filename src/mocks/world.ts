@@ -53,7 +53,8 @@ function flipFlaky(): void {
 }
 
 let alertCount = 0;
-function randomAlert(): void {
+/** Raise one alert on a random online station now (also a dev helper: barondesk.simulateAlert()). */
+export function randomAlert(): void {
   const candidates = liveStations();
   if (candidates.length === 0) return;
   const s = candidates[Math.floor(Math.random() * candidates.length)];

@@ -4,17 +4,20 @@ import type { RealtimeSource } from './types';
 
 declare global {
   interface Window {
-    /** Dev helpers, only with fake data: barondesk.simulateDrop(ms) tests the reconnect banner. */
-    barondesk?: { simulateDrop(ms?: number): void };
+    /**
+     * Dev helpers, only with fake data: barondesk.simulateDrop(ms) tests the
+     * reconnect banner, barondesk.simulateAlert() raises an alert now.
+     */
+    barondesk?: { simulateDrop(ms?: number): void; simulateAlert(): void };
   }
 }
 
 /** Fake source when /dashboard-io is mocked, the real Socket.IO client otherwise. */
 export async function createRealtime(): Promise<RealtimeSource> {
   if (isMocked('/dashboard-io')) {
-    const { createFakeRealtime } = await import('../mocks/realtime');
+    const [{ createFakeRealtime }, { randomAlert }] = await Promise.all([import('../mocks/realtime'), import('../mocks/world')]);
     const fake = createFakeRealtime();
-    if (import.meta.env.DEV) window.barondesk = { simulateDrop: (ms) => fake.simulateDrop(ms) };
+    if (import.meta.env.DEV) window.barondesk = { simulateDrop: (ms) => fake.simulateDrop(ms), simulateAlert: randomAlert };
     return fake;
   }
   const { createSocketRealtime } = await import('./socketRealtime');

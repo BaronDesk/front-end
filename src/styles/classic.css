@@ -172,6 +172,13 @@ p {
   font-weight: bold;
 }
 
+.sidemenu .menu-count {
+  color: var(--white);
+  background: var(--red);
+  font-weight: bold;
+  padding: 0 3px;
+}
+
 .sidemenu a.active::before {
   content: '» ';
 }
@@ -369,6 +376,42 @@ button:disabled {
 
 .banner a {
   color: var(--white);
+}
+
+.banner-alert {
+  background: var(--black);
+  color: var(--white);
+  border-bottom: 2px solid var(--red);
+}
+
+.banner-alert::before {
+  content: '! ';
+  color: var(--red);
+  background: var(--white);
+  padding: 0 5px;
+  margin-right: 6px;
+}
+
+.banner-actions {
+  float: right;
+  font-weight: normal;
+}
+
+.banner-alert .banner-actions a {
+  color: var(--gold);
+}
+
+.new-tag {
+  background: var(--red);
+  color: var(--white);
+  font-size: 10px;
+  font-weight: bold;
+  padding: 0 3px;
+  margin-left: 6px;
+}
+
+.row-muted td {
+  color: var(--muted);
 }
 
 .status-ok {

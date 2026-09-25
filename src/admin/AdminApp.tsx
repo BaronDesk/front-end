@@ -7,6 +7,7 @@ import { RealtimeProvider } from '../realtime/RealtimeContext';
 import { LoginForm } from '../shared/LoginForm';
 import { Placeholder } from '../shared/Placeholder';
 import { AdminLayout, AdminLoginLayout } from './AdminLayout';
+import { AlertsPage } from './alerts/AlertsPage';
 import { ADMIN_MENU } from './menu';
 import { AccessDenied } from './pages/AccessDenied';
 import { LiveEventCounter } from './pages/LiveEventCounter';
@@ -19,6 +20,7 @@ import { StationsPage } from './stations/StationsPage';
 const PAGES: Record<string, ReactNode> = {
   '/stations': <StationsPage />,
   '/enrollment': <EnrollmentPage />,
+  '/alerts': <AlertsPage />,
 };
 
 // Hash routing (#/stations): works the same in the Vite dev server, behind
