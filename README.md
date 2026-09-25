@@ -51,6 +51,15 @@ Restart `npm run dev` after changing them. Reload the page to reset the fake dat
 - The menu hides what the role can't use; opening such a page by URL shows **Access denied**. The server's `403` is still the real rule.
 - Real backend: its seed account is `hq-admin` / `change-me-immediately` (`back-end/prisma/seed.ts`). Run the seed first if the login is refused.
 
+## Live updates
+
+- After login the admin app connects to `/dashboard-io` (Socket.IO, token in `auth`). The top bar shows **LIVE**, **CONNECTING** or **OFFLINE**.
+- When the connection drops, a red bar says so and Socket.IO retries on its own. If the server refuses the token, the app refreshes it once and retries (then every 10 s).
+- Screens use `useRealtimeEvent('station_status', …)` to react to events and `useOnReconnect(refetch)` to reload their data after a reconnect.
+- With fake data, run `barondesk.simulateDrop(5000)` in the browser console to test the red bar.
+- `VITE_REAL_PREFIXES=/dashboard-io` uses the real socket while the rest stays fake. It needs a real login token, so add `/auth` too.
+- Git Bash rewrites a leading `/` in env values to a Windows path. Put the values in `.env.local`, or prefix the command with `MSYS_NO_PATHCONV=1`.
+
 ## Build and test
 
 ```sh

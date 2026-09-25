@@ -106,8 +106,9 @@ describe('commands and realtime', () => {
     tunis.on('command_result', (e) => tunisResults.push(e));
     tunis.on('station_status', (e) => tunisStatus.push(e));
     sousse.on('command_result', (e) => sousseResults.push(e));
-    tunis.connect(tunisToken);
-    sousse.connect(await login('staff.sousse'));
+    tunis.connect(() => tunisToken);
+    const sousseToken = await login('staff.sousse');
+    sousse.connect(() => sousseToken);
     await vi.advanceTimersByTimeAsync(400);
 
     const station = byName('TUN-05');
@@ -153,7 +154,8 @@ describe('commands and realtime', () => {
     const other: unknown[] = [];
     rt.on('session_update', (e) => got.push(e));
     rt.on('station_status', (e) => other.push(e));
-    rt.connect(await login('gamer2'));
+    const gamerToken = await login('gamer2');
+    rt.connect(() => gamerToken);
     await vi.advanceTimersByTimeAsync(400);
     tickSessions();
     expect(got.length).toBeGreaterThan(0);

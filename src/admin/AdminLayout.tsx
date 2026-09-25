@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router';
 
 import { useAuth } from '../auth/AuthContext';
 import { hasRole, ROLE_LABEL } from '../auth/roles';
+import { ConnectionBanner, LiveTag } from '../shared/ConnectionBanner';
 import { MockBadge } from '../shared/MockBadge';
 import { ADMIN_MENU } from './menu';
 import { useBranchName } from './useBranchName';
@@ -33,6 +34,8 @@ export function AdminLayout() {
   return (
     <>
       <TopBar>
+        <LiveTag />
+        <span className="sep">|</span>
         {/* Branch switcher for HQ: step 8. */}
         Branch: <b>{branchName}</b>
         <span className="sep">|</span>
@@ -48,6 +51,7 @@ export function AdminLayout() {
           Logout
         </a>
       </TopBar>
+      <ConnectionBanner />
 
       <div className="layout">
         <nav className="sidemenu">

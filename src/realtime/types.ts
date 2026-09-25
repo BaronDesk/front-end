@@ -4,12 +4,16 @@ export type ConnectionState = 'connecting' | 'connected' | 'disconnected';
 
 /**
  * What the screens listen to. Implemented by the fake source in src/mocks
- * (step 2) and by the Socket.IO client for /dashboard-io (step 4).
+ * and by the Socket.IO client for /dashboard-io (socketRealtime.ts).
  */
 export interface RealtimeSource {
-  connect(accessToken: string): void;
+  /**
+   * Open the connection. `getToken` is read on every (re)connect, so a
+   * token refreshed in the meantime is picked up.
+   */
+  connect(getToken: () => string | null): void;
   disconnect(): void;
-  /** Returns an unsubscribe function. */
+  /** Handlers stay registered across reconnects. Returns an unsubscribe function. */
   on<E extends DashboardEventName>(event: E, handler: (payload: DashboardEvents[E]) => void): () => void;
   /** Returns an unsubscribe function. */
   onState(handler: (state: ConnectionState) => void): () => void;

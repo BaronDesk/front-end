@@ -31,7 +31,7 @@ export interface FakeRealtime extends RealtimeSource {
 export function createFakeRealtime(): FakeRealtime {
   const handlers = new Map<DashboardEventName, Set<AnyHandler>>();
   const stateHandlers = new Set<(s: ConnectionState) => void>();
-  let token: string | null = null;
+  let getToken: (() => string | null) | null = null;
   let unsubscribeBus: (() => void) | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -42,7 +42,7 @@ export function createFakeRealtime(): FakeRealtime {
   function open(): void {
     setState('connecting');
     timer = setTimeout(() => {
-      const user = userFromToken(token);
+      const user = userFromToken(getToken?.() ?? null);
       if (!user) {
         console.warn('[mock realtime] connect refused: invalid token');
         setState('disconnected');
@@ -65,14 +65,14 @@ export function createFakeRealtime(): FakeRealtime {
   }
 
   return {
-    connect(accessToken) {
+    connect(tokenGetter) {
       close();
-      token = accessToken;
+      getToken = tokenGetter;
       open();
     },
     disconnect() {
       close();
-      token = null;
+      getToken = null;
       setState('disconnected');
     },
     on(event, handler) {
@@ -86,7 +86,7 @@ export function createFakeRealtime(): FakeRealtime {
       return () => stateHandlers.delete(handler);
     },
     simulateDrop(ms = 5000) {
-      if (!token) return;
+      if (!getToken) return;
       close();
       setState('disconnected');
       timer = setTimeout(open, ms);

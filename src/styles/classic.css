@@ -109,6 +109,24 @@ p {
   vertical-align: middle;
 }
 
+.live-tag {
+  font-size: 10px;
+  font-weight: bold;
+  padding: 0 4px;
+  border: 1px solid;
+}
+
+.live-on {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+.live-off {
+  color: var(--white);
+  background: var(--red);
+  border-color: var(--white);
+}
+
 .topbar .sep {
   color: var(--muted);
   margin: 0 6px;
