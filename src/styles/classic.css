@@ -223,6 +223,60 @@ table.grid tbody tr:nth-child(even) {
   background: var(--offwhite);
 }
 
+/* Key / value table on detail pages. */
+table.kv {
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+
+table.kv th,
+table.kv td {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  text-align: left;
+}
+
+table.kv th {
+  background: var(--offwhite);
+  width: 130px;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+code {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+}
+
+/* Row of buttons / filters above a table. */
+.toolbar {
+  margin: 0 0 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  background: var(--offwhite);
+}
+
+.toolbar label {
+  min-width: 0;
+  margin-right: 4px;
+}
+
+.sep-v {
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+  margin: 0 10px;
+  vertical-align: middle;
+}
+
+ul.notices {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
 /* ---------- Forms ---------- */
 
 fieldset {

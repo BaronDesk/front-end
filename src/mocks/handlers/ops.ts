@@ -62,6 +62,7 @@ function execute(cmd: CommandLog): { code: string; reason: string } | null {
     case 'SHUTDOWN': {
       const session = db.sessions.find((x) => x.id === s.sessionId);
       if (session) endSession(session, 'SHUTDOWN');
+      s.locked = true; // the agent boots back into the lock screen
       setOnline(s, false);
       setTimeout(() => setOnline(s, true), REBOOT_MS);
       return null;

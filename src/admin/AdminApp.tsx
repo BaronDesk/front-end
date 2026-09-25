@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router';
 
 import { AuthProvider } from '../auth/AuthContext';
@@ -10,6 +11,15 @@ import { ADMIN_MENU } from './menu';
 import { AccessDenied } from './pages/AccessDenied';
 import { LiveEventCounter } from './pages/LiveEventCounter';
 import { NotFound } from './pages/NotFound';
+import { EnrollmentPage } from './stations/EnrollmentPage';
+import { StationDetailPage } from './stations/StationDetailPage';
+import { StationsPage } from './stations/StationsPage';
+
+/** Built pages by menu path. Menu items not listed here are still placeholders. */
+const PAGES: Record<string, ReactNode> = {
+  '/stations': <StationsPage />,
+  '/enrollment': <EnrollmentPage />,
+};
 
 // Hash routing (#/stations): works the same in the Vite dev server, behind
 // Caddy's plain file_server, and inside the Electron window, with no
@@ -36,7 +46,7 @@ export function AdminApp() {
               <Route element={<AdminLayout />}>
                 <Route index element={<Navigate to="/stations" replace />} />
                 {ADMIN_MENU.map((item) => {
-                  const page = (
+                  const page = PAGES[item.path] ?? (
                     <>
                       <Placeholder title={item.label} step={item.step} />
                       <LiveEventCounter />
@@ -50,6 +60,7 @@ export function AdminApp() {
                     />
                   );
                 })}
+                <Route path="/stations/:id" element={<StationDetailPage />} />
                 <Route path="/denied" element={<AccessDenied />} />
                 <Route path="*" element={<NotFound />} />
               </Route>
