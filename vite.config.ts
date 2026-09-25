@@ -30,6 +30,9 @@ export default defineConfig(({ mode }) => {
           admin: resolve(__dirname, 'admin/index.html'),
           portal: resolve(__dirname, 'portal/index.html'),
         },
+        output: {
+          manualChunks: (id) => (id.includes('node_modules') ? 'vendor' : undefined),
+        },
       },
     },
     server: { port: 5173, proxy },

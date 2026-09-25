@@ -1,7 +1,10 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router';
 
+import { AuthProvider } from '../auth/AuthContext';
+import { RequireAuth, RequireRole } from '../auth/guards';
+import { LoginForm } from '../shared/LoginForm';
 import { Placeholder } from '../shared/Placeholder';
-import { AdminLayout } from './AdminLayout';
+import { AdminLayout, AdminLoginLayout } from './AdminLayout';
 import { ADMIN_MENU } from './menu';
 import { AccessDenied } from './pages/AccessDenied';
 import { NotFound } from './pages/NotFound';
@@ -11,22 +14,40 @@ import { NotFound } from './pages/NotFound';
 // server-side rewrite rules for deep links.
 export function AdminApp() {
   return (
-    <HashRouter>
-      <Routes>
-        <Route element={<AdminLayout />}>
-          <Route index element={<Navigate to="/stations" replace />} />
-          {ADMIN_MENU.map((item) => (
+    <AuthProvider app="admin">
+      <HashRouter>
+        <Routes>
+          <Route element={<AdminLoginLayout />}>
             <Route
-              key={item.path}
-              path={item.path}
-              element={<Placeholder title={item.label} step={item.step} />}
+              path="/login"
+              element={
+                <>
+                  <h1>Staff login</h1>
+                  <LoginForm legend="Log in to BaronDesk" mockHint="Try staff.tunis / password123." />
+                </>
+              }
             />
-          ))}
-          <Route path="/login" element={<Placeholder title="Login" step={3} />} />
-          <Route path="/denied" element={<AccessDenied />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </HashRouter>
+          </Route>
+
+          <Route element={<RequireAuth />}>
+            <Route element={<AdminLayout />}>
+              <Route index element={<Navigate to="/stations" replace />} />
+              {ADMIN_MENU.map((item) => {
+                const page = <Placeholder title={item.label} step={item.step} />;
+                return (
+                  <Route
+                    key={item.path}
+                    path={item.path}
+                    element={item.minRole ? <RequireRole min={item.minRole}>{page}</RequireRole> : page}
+                  />
+                );
+              })}
+              <Route path="/denied" element={<AccessDenied />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
+          </Route>
+        </Routes>
+      </HashRouter>
+    </AuthProvider>
   );
 }
