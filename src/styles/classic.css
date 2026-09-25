@@ -1,0 +1,343 @@
+/*
+ * BaronDesk classic theme: a plain 2011 web app.
+ * Palette from Graphic-Charter/Palette.txt. No UI library, no icons,
+ * no animations. Tables, forms and buttons only.
+ */
+
+:root {
+  --black: #0d0d0d;
+  --white: #ffffff;
+  --offwhite: #efe5d2;
+  --gold: #c28d39;
+  /* Charter gold is too light for small text on white; this darker shade
+     of the same hue is used for links and headings on white only. */
+  --gold-text: #8a6424;
+  --red: #710912;
+  --red-dark: #4a050b;
+  --border: #b9ab92;
+  --muted: #6b6254;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--white);
+  color: var(--black);
+  font-family: Tahoma, Verdana, Geneva, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+a {
+  color: var(--gold-text);
+}
+
+a:hover {
+  color: var(--red);
+}
+
+h1 {
+  font-size: 18px;
+  margin: 0 0 12px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--gold);
+}
+
+h2 {
+  font-size: 14px;
+  margin: 16px 0 8px;
+  color: var(--gold-text);
+}
+
+p {
+  margin: 0 0 8px;
+}
+
+/* ---------- Top bar ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--black);
+  color: var(--white);
+  padding: 6px 12px;
+  border-bottom: 3px solid var(--gold);
+}
+
+.topbar .brand {
+  color: var(--gold);
+  font-weight: bold;
+  font-size: 16px;
+  letter-spacing: 2px;
+  text-decoration: none;
+}
+
+.topbar .brand small {
+  color: var(--offwhite);
+  font-size: 11px;
+  font-weight: normal;
+  letter-spacing: 0;
+  margin-left: 8px;
+}
+
+.topbar .userbox {
+  font-size: 11px;
+}
+
+.topbar .userbox a {
+  color: var(--gold);
+}
+
+.topbar .sep {
+  color: var(--muted);
+  margin: 0 6px;
+}
+
+/* ---------- Admin layout: left menu + content ---------- */
+
+.layout {
+  display: flex;
+  min-height: calc(100vh - 70px);
+}
+
+.sidemenu {
+  width: 170px;
+  flex-shrink: 0;
+  background: var(--black);
+  border-right: 1px solid var(--black);
+  padding: 8px 0;
+}
+
+.sidemenu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidemenu a {
+  display: block;
+  padding: 5px 12px;
+  color: var(--offwhite);
+  text-decoration: none;
+  border-bottom: 1px solid #262626;
+}
+
+.sidemenu a:hover {
+  background: #262626;
+  color: var(--gold);
+}
+
+.sidemenu a.active {
+  background: var(--gold);
+  color: var(--black);
+  font-weight: bold;
+}
+
+.sidemenu a.active::before {
+  content: '» ';
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+}
+
+.footer {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  padding: 6px 12px;
+  text-align: center;
+}
+
+/* ---------- Tables ---------- */
+
+table.grid {
+  border-collapse: collapse;
+  width: 100%;
+  border: 1px solid var(--border);
+}
+
+table.grid th,
+table.grid td {
+  border: 1px solid var(--border);
+  padding: 4px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+
+table.grid th {
+  background: var(--gold);
+  color: var(--black);
+  font-weight: bold;
+}
+
+table.grid tbody tr:nth-child(even) {
+  background: var(--offwhite);
+}
+
+/* ---------- Forms ---------- */
+
+fieldset {
+  border: 1px solid var(--border);
+  background: var(--offwhite);
+  padding: 8px 12px 12px;
+  margin: 0 0 12px;
+}
+
+legend {
+  font-weight: bold;
+  color: var(--gold-text);
+  padding: 0 4px;
+}
+
+label {
+  display: inline-block;
+  min-width: 110px;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  border: 1px solid var(--border);
+  background: var(--white);
+  padding: 2px 4px;
+}
+
+.form-row {
+  margin-bottom: 6px;
+}
+
+/* ---------- Buttons ---------- */
+
+button,
+.button {
+  font: inherit;
+  display: inline-block;
+  cursor: pointer;
+  padding: 2px 10px;
+  border: 1px solid var(--red-dark);
+  background: linear-gradient(#8e1a25, var(--red));
+  color: var(--white);
+  text-decoration: none;
+}
+
+button:hover,
+.button:hover {
+  background: var(--red-dark);
+  color: var(--white);
+}
+
+button.secondary {
+  border-color: #8c8c8c;
+  background: linear-gradient(#fafafa, #dcdcdc);
+  color: var(--black);
+}
+
+button.secondary:hover {
+  background: #dcdcdc;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* ---------- Messages & status ---------- */
+
+.msg {
+  border: 1px solid var(--border);
+  background: var(--offwhite);
+  padding: 6px 10px;
+  margin: 0 0 12px;
+}
+
+.msg-error {
+  border-color: var(--red);
+  background: #f6e6e7;
+  color: var(--red);
+}
+
+.banner {
+  background: var(--red);
+  color: var(--white);
+  padding: 4px 12px;
+  font-weight: bold;
+}
+
+.banner a {
+  color: var(--white);
+}
+
+.status-ok {
+  font-weight: bold;
+}
+
+.status-bad {
+  color: var(--red);
+  font-weight: bold;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* ---------- Gamer portal: one narrow column ---------- */
+
+.portal {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+
+.portal .content {
+  padding: 12px;
+}
+
+.portal-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.portal-menu a {
+  display: block;
+  padding: 12px;
+  margin-bottom: 6px;
+  border: 1px solid var(--border);
+  background: var(--offwhite);
+  color: var(--black);
+  font-size: 14px;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.portal-menu a:hover {
+  border-color: var(--gold);
+  color: var(--red);
+}
+
+.portal-menu a::after {
+  content: ' »';
+  color: var(--gold-text);
+}
+
+@media (max-width: 480px) {
+  .portal {
+    border: 0;
+  }
+}
