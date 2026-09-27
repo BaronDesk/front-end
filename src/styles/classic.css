@@ -132,6 +132,16 @@ p {
   margin: 0 6px;
 }
 
+/* HQ branch switcher. */
+.topbar label {
+  min-width: 0;
+}
+
+.topbar select {
+  font-size: 11px;
+  padding: 0 2px;
+}
+
 /* ---------- Admin layout: left menu + content ---------- */
 
 .layout {
@@ -496,6 +506,16 @@ button:disabled {
 
 .row-muted td {
   color: var(--muted);
+}
+
+/* The branch HQ is working in (HQ overview). */
+.row-current td:first-child {
+  border-left: 3px solid var(--gold);
+}
+
+table.grid tfoot td {
+  font-weight: bold;
+  border-top: 2px solid var(--black);
 }
 
 .status-ok {

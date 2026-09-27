@@ -2,27 +2,28 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 
 import { api } from '../../api/http';
-import type { Branch, PublicUser, Role } from '../../api/types';
+import type { PublicUser, Role } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { ROLE_LABEL } from '../../auth/roles';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatDateTime } from '../../shared/format';
 import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
+import { useBranchScope } from '../branch/BranchContext';
 
 const STAFF_ROLES: Role[] = ['EMPLOYEE', 'MANAGER', 'ADMIN'];
 
 export function UsersPage() {
   const { user: me } = useAuth();
-  const isHq = me?.branchId === null;
-  const users = useApiQuery<PublicUser[]>('/users');
-  const branches = useApiQuery<Branch[]>('/branches');
-  const branchName = (id: string | null) => (id ? (branches.data?.find((b) => b.id === id)?.name ?? id.slice(0, 8)) : 'All branches');
+  const { isHq, branches, branchId, branchName, scoped } = useBranchScope();
+  // Gamers are global; the staff list follows HQ's branch choice.
+  const users = useApiQuery<PublicUser[]>(scoped('/users'));
   const action = useAction();
 
   const [q, setQ] = useState('');
   const [gamerForm, setGamerForm] = useState({ username: '', password: '' });
-  const [staffForm, setStaffForm] = useState({ username: '', password: '', role: 'EMPLOYEE' as Role, branchId: '' });
+  const emptyStaff = { username: '', password: '', role: 'EMPLOYEE' as Role, branchId: branchId ?? '' };
+  const [staffForm, setStaffForm] = useState(emptyStaff);
   const [roleDraft, setRoleDraft] = useState<Record<string, Role>>({});
 
   const all = users.data ?? [];
@@ -47,7 +48,7 @@ export function UsersPage() {
     const body = { ...staffForm, branchId: isHq ? staffForm.branchId : me?.branchId };
     const created = await action.run('create-staff', () => api<PublicUser>('POST', '/employees', body), (u) => `${ROLE_LABEL[u.role]} ${u.username} created.`);
     if (created) {
-      setStaffForm({ username: '', password: '', role: 'EMPLOYEE', branchId: '' });
+      setStaffForm(emptyStaff);
       users.reload();
     }
   }
@@ -229,7 +230,7 @@ export function UsersPage() {
               {isHq ? (
                 <select id="s-branch" required value={staffForm.branchId} onChange={(e) => setStaffForm({ ...staffForm, branchId: e.target.value })}>
                   <option value="">— choose —</option>
-                  {(branches.data ?? []).map((b) => (
+                  {branches.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.name}
                     </option>

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router';
 
-import { AuthProvider } from '../auth/AuthContext';
+import { AuthProvider, useAuth } from '../auth/AuthContext';
 import { RequireAuth, RequireRole } from '../auth/guards';
 import { RealtimeProvider } from '../realtime/RealtimeContext';
 import { LoginForm } from '../shared/LoginForm';
@@ -9,6 +9,7 @@ import { Placeholder } from '../shared/Placeholder';
 import { AdminLayout, AdminLoginLayout } from './AdminLayout';
 import { AlertsPage } from './alerts/AlertsPage';
 import { GamesPage } from './games/GamesPage';
+import { HqPage } from './hq/HqPage';
 import { ADMIN_MENU } from './menu';
 import { AccessDenied } from './pages/AccessDenied';
 import { PlansPage } from './plans/PlansPage';
@@ -35,7 +36,14 @@ const PAGES: Record<string, ReactNode> = {
   '/games': <GamesPage />,
   '/reservations': <ReservationsPage />,
   '/sessions': <SessionsPage />,
+  '/hq': <HqPage />,
 };
+
+/** HQ starts on the all-branches overview; everyone else on their stations. */
+function Home() {
+  const { user } = useAuth();
+  return <Navigate to={user?.branchId === null ? '/hq' : '/stations'} replace />;
+}
 
 // Hash routing (#/stations): works the same in the Vite dev server, behind
 // Caddy's plain file_server, and inside the Electron window, with no
@@ -60,7 +68,7 @@ export function AdminApp() {
 
             <Route element={<RequireAuth />}>
               <Route element={<AdminLayout />}>
-                <Route index element={<Navigate to="/stations" replace />} />
+                <Route index element={<Home />} />
                 {ADMIN_MENU.map((item) => {
                   const page = PAGES[item.path] ?? (
                     <>

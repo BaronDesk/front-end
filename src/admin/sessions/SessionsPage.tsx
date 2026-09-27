@@ -8,6 +8,7 @@ import { ErrorBox } from '../../shared/ErrorBox';
 import { formatClock, formatDuration, formatMoney, secondsSince, useNow } from '../../shared/format';
 import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
+import { useBranchScope } from '../branch/BranchContext';
 import { GamerSelect, StationSelect } from '../pickers';
 import { useGamerNames, useStationNames } from '../useLookups';
 import { endReasonLabel } from './labels';
@@ -21,8 +22,9 @@ interface EndedNotice {
 export function SessionsPage() {
   const navigate = useNavigate();
   const now = useNow(1_000);
-  const active = useApiQuery<SessionView[]>('/sessions?status=ACTIVE');
-  const ended = useApiQuery<SessionView[]>('/sessions?status=ENDED');
+  const { scoped, inScope } = useBranchScope();
+  const active = useApiQuery<SessionView[]>(scoped('/sessions?status=ACTIVE'));
+  const ended = useApiQuery<SessionView[]>(scoped('/sessions?status=ENDED'));
   const gamerNames = useGamerNames();
   const stationNames = useStationNames();
   const action = useAction();
@@ -36,6 +38,7 @@ export function SessionsPage() {
 
   // Live numbers come from the server; the browser only moves the clock between updates.
   useRealtimeEvent('session_update', (e) => {
+    if (!inScope(e.branchId)) return;
     if (e.status === 'ENDED') {
       active.setData((list) => list?.filter((s) => s.id !== e.sessionId));
       ended.reload();

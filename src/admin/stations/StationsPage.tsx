@@ -8,7 +8,8 @@ import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatDuration, secondsSince, useNow } from '../../shared/format';
 import { useApiQuery } from '../../shared/useApiQuery';
-import { useBranchNames, useGamerNames } from '../useLookups';
+import { useBranchScope } from '../branch/BranchContext';
+import { useGamerNames } from '../useLookups';
 import { CommandNotices } from './CommandNotices';
 import { formatMetric, isHot } from './telemetry';
 import { COMMAND_LABEL, useCommands } from './useCommands';
@@ -21,15 +22,16 @@ function Temp({ samples, metric }: { samples: TelemetrySample[] | undefined; met
 
 export function StationsPage() {
   const { user } = useAuth();
-  const isHq = user?.branchId === null;
+  const { isHq, branchId, branchName, scoped, inScope } = useBranchScope();
+  // One branch picked: the column would say the same thing on every row.
+  const showBranch = isHq && branchId === null;
   const canBulk = hasRole(user, 'MANAGER');
   const now = useNow(10_000);
 
-  const stations = useApiQuery<Station[]>('/stations');
-  const sessions = useApiQuery<SessionView[]>('/sessions?status=ACTIVE');
-  const alerts = useApiQuery<Alert[]>('/alerts');
+  const stations = useApiQuery<Station[]>(scoped('/stations'));
+  const sessions = useApiQuery<SessionView[]>(scoped('/sessions?status=ACTIVE'));
+  const alerts = useApiQuery<Alert[]>(scoped('/alerts'));
   const gamerNames = useGamerNames();
-  const branchNames = useBranchNames(isHq);
   const games = useApiQuery<{ id: string; title: string }[]>('/games');
   const [telemetry, setTelemetry] = useState<Record<string, TelemetrySample[]>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -44,6 +46,7 @@ export function StationsPage() {
   }
 
   useRealtimeEvent('station_status', (e) => {
+    if (!inScope(e.branchId)) return; // HQ looking at another branch
     const current = stations.data?.find((s) => s.id === e.machineId);
     if (!current) {
       reloadSoon(); // a station we don't list yet (just approved, or another branch for HQ)
@@ -60,8 +63,9 @@ export function StationsPage() {
   });
 
   useRealtimeEvent('telemetry_update', (e) => setTelemetry((t) => ({ ...t, [e.machineId]: e.samples })));
-  useRealtimeEvent('alert', (e) => alerts.setData((list) => [e, ...(list ?? []).filter((a) => a.id !== e.id)]));
+  useRealtimeEvent('alert', (e) => inScope(e.branchId) && alerts.setData((list) => [e, ...(list ?? []).filter((a) => a.id !== e.id)]));
   useRealtimeEvent('session_update', (e) => {
+    if (!inScope(e.branchId)) return;
     if (e.status === 'ENDED' || !sessions.data?.some((s) => s.id === e.sessionId)) sessions.reload();
   });
 
@@ -72,7 +76,7 @@ export function StationsPage() {
   });
 
   const list = [...(stations.data ?? [])].sort(
-    (a, b) => (branchNames.get(a.branchId) ?? '').localeCompare(branchNames.get(b.branchId) ?? '') || a.name.localeCompare(b.name),
+    (a, b) => branchName(a.branchId).localeCompare(branchName(b.branchId)) || a.name.localeCompare(b.name),
   );
   const sessionById = new Map((sessions.data ?? []).map((s) => [s.id, s]));
   const openAlerts = (machineId: string) =>
@@ -149,7 +153,7 @@ export function StationsPage() {
               </th>
             )}
             <th>Station</th>
-            {isHq && <th>Branch</th>}
+            {showBranch && <th>Branch</th>}
             <th>Status</th>
             <th>Screen</th>
             <th>Session</th>
@@ -176,7 +180,7 @@ export function StationsPage() {
                     <b>{s.name}</b>
                   </Link>
                 </td>
-                {isHq && <td>{branchNames.get(s.branchId) ?? '—'}</td>}
+                {showBranch && <td>{branchName(s.branchId)}</td>}
                 <td className={s.online ? 'status-ok' : 'status-bad'}>{s.online ? 'ONLINE' : 'OFFLINE'}</td>
                 <td>
                   {s.locked ? 'Locked' : 'Unlocked'}

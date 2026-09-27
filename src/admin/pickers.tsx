@@ -1,5 +1,6 @@
 import type { PublicUser, Station } from '../api/types';
 import { useApiQuery } from '../shared/useApiQuery';
+import { useBranchScope } from './branch/BranchContext';
 
 interface PickerProps {
   id?: string;
@@ -32,7 +33,9 @@ interface StationSelectProps extends PickerProps {
 }
 
 export function StationSelect({ id, value, onChange, required, filter, note }: StationSelectProps) {
-  const { data, loading } = useApiQuery<Station[]>('/stations');
+  // HQ with a branch picked: only that branch's stations, so actions land there.
+  const { scoped } = useBranchScope();
+  const { data, loading } = useApiQuery<Station[]>(scoped('/stations'));
   const stations = [...(data ?? [])].filter((s) => !filter || filter(s)).sort((a, b) => a.name.localeCompare(b.name));
   return (
     <select id={id} value={value} onChange={(e) => onChange(e.target.value)} required={required}>

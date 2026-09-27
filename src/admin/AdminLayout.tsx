@@ -7,8 +7,8 @@ import { ConnectionBanner, LiveTag } from '../shared/ConnectionBanner';
 import { MockBadge } from '../shared/MockBadge';
 import { AlertBanner } from './alerts/AlertBanner';
 import { AlertFeedProvider, useAlertFeed } from './alerts/AlertFeedContext';
+import { BranchProvider, BranchSwitcher, useBranchScope } from './branch/BranchContext';
 import { ADMIN_MENU } from './menu';
-import { useBranchName } from './useBranchName';
 
 function TopBar({ children }: { children?: ReactNode }) {
   return (
@@ -30,16 +30,18 @@ function Footer() {
 
 export function AdminLayout() {
   return (
-    <AlertFeedProvider>
-      <AdminShell />
-    </AlertFeedProvider>
+    <BranchProvider>
+      <AlertFeedProvider>
+        <AdminShell />
+      </AlertFeedProvider>
+    </BranchProvider>
   );
 }
 
 function AdminShell() {
   const { user, logout } = useAuth();
   const { openCount } = useAlertFeed();
-  const branchName = useBranchName(user);
+  const { branchId } = useBranchScope();
   const menu = ADMIN_MENU.filter((item) => !item.minRole || hasRole(user, item.minRole));
 
   return (
@@ -47,8 +49,7 @@ function AdminShell() {
       <TopBar>
         <LiveTag />
         <span className="sep">|</span>
-        {/* Branch switcher for HQ: step 8. */}
-        Branch: <b>{branchName}</b>
+        <BranchSwitcher />
         <span className="sep">|</span>
         <b>{user?.username}</b> ({user && ROLE_LABEL[user.role]})
         <span className="sep">|</span>
@@ -79,7 +80,8 @@ function AdminShell() {
           </ul>
         </nav>
         <main className="content">
-          <Outlet />
+          {/* A new branch starts every page fresh: lists, forms and selections. */}
+          <Outlet key={branchId ?? 'all'} />
         </main>
       </div>
 

@@ -2,12 +2,11 @@ import { useRef, useState } from 'react';
 
 import { api } from '../../api/http';
 import type { EnrollmentStatus, Station } from '../../api/types';
-import { useAuth } from '../../auth/AuthContext';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatAgo, useNow } from '../../shared/format';
 import { useApiQuery } from '../../shared/useApiQuery';
-import { useBranchNames } from '../useLookups';
+import { useBranchScope } from '../branch/BranchContext';
 
 const FILTERS: { value: EnrollmentStatus; label: string }[] = [
   { value: 'PENDING', label: 'Waiting for approval' },
@@ -20,19 +19,19 @@ type Action = 'approve' | 'reject' | 'revoke';
 
 /** Dynamic PC registration, the second half of Node Tracking (brief §6.4). */
 export function EnrollmentPage() {
-  const { user } = useAuth();
-  const isHq = user?.branchId === null;
+  const { isHq, branchId, branchName, scoped, inScope } = useBranchScope();
+  const showBranch = isHq && branchId === null;
   const now = useNow(10_000);
   const [status, setStatus] = useState<EnrollmentStatus>('PENDING');
-  const stations = useApiQuery<Station[]>(`/enrollment?status=${status}`);
-  const branchNames = useBranchNames(isHq);
+  const stations = useApiQuery<Station[]>(scoped(`/enrollment?status=${status}`));
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [done, setDone] = useState<string | null>(null);
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // A new PC asking to enroll shows up as a station_status event: reload the list.
-  useRealtimeEvent('station_status', () => {
+  useRealtimeEvent('station_status', (e) => {
+    if (!inScope(e.branchId)) return;
     if (reloadTimer.current) clearTimeout(reloadTimer.current);
     reloadTimer.current = setTimeout(stations.reload, 300);
   });
@@ -82,7 +81,7 @@ export function EnrollmentPage() {
         <thead>
           <tr>
             <th>Name</th>
-            {isHq && <th>Branch</th>}
+            {showBranch && <th>Branch</th>}
             <th>MAC address</th>
             <th>IP address</th>
             <th>Agent</th>
@@ -96,7 +95,7 @@ export function EnrollmentPage() {
               <td>
                 <b>{s.name}</b>
               </td>
-              {isHq && <td>{branchNames.get(s.branchId) ?? '—'}</td>}
+              {showBranch && <td>{branchName(s.branchId)}</td>}
               <td>
                 <code>{s.mac}</code>
               </td>

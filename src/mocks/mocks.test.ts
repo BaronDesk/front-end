@@ -6,7 +6,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CommandLog, DashboardEvents, Reservation, SessionView, Station, WalletTransaction } from '../api/types';
+import type { BranchSummary, CommandLog, DashboardEvents, Reservation, SessionView, Station, WalletTransaction } from '../api/types';
 import { db } from './db';
 import { userFromToken } from './handlers/auth';
 import { createFakeRealtime } from './realtime';
@@ -92,6 +92,44 @@ describe('branch scope and roles', () => {
 
   it('404 for a route that has no mock', async () => {
     expect((await call('GET', '/nope', undefined, await login('hq.admin'))).status).toBe(404);
+  });
+});
+
+describe('HQ (multi-agency)', () => {
+  it('?branchId narrows HQ lists to one branch; staff cannot widen theirs', async () => {
+    const sousse = db.branches[1].id;
+    const hq = await call('GET', `/stations?branchId=${sousse}`, undefined, await login('hq.admin'));
+    expect((hq.data as Station[]).length).toBeGreaterThan(0);
+    expect((hq.data as Station[]).every((s) => s.branchId === sousse)).toBe(true);
+
+    const staff = await call('GET', `/stations?branchId=${sousse}`, undefined, await login('staff.tunis'));
+    expect((staff.data as Station[]).every((s) => s.branchId === db.branches[0].id)).toBe(true);
+  });
+
+  it('branch summary is HQ only and counts approved stations per branch', async () => {
+    expect((await call('GET', '/branches/summary', undefined, await login('manager.tunis'))).status).toBe(403);
+
+    const res = await call('GET', '/branches/summary', undefined, await login('hq.admin'));
+    expect(res.status).toBe(200);
+    const rows = res.data as BranchSummary[];
+    expect(rows.map((r) => r.name).sort()).toEqual(db.branches.map((b) => b.name).sort());
+    const tunis = rows.find((r) => r.branchId === db.branches[0].id)!;
+    const approved = db.stations.filter((s) => s.branchId === db.branches[0].id && s.enrollmentStatus === 'APPROVED');
+    expect(tunis.stationsTotal).toBe(approved.length);
+    expect(tunis.stationsOnline).toBe(approved.filter((s) => s.online).length);
+  });
+
+  it('HQ locks a station in another branch; a manager from another branch cannot', async () => {
+    const station = byName('SOU-01');
+    station.locked = false;
+    const denied = await call('POST', '/commands', { machineId: station.id, type: 'LOCK', payload: {} }, await login('manager.tunis'));
+    expect(denied.status).toBe(403);
+    expect(denied.data).toMatchObject({ code: 'FORBIDDEN_BRANCH' });
+
+    const res = await call('POST', '/commands', { machineId: station.id, type: 'LOCK', payload: {} }, await login('hq.admin'));
+    expect(res.status).toBe(200);
+    await vi.advanceTimersByTimeAsync(600);
+    expect(station.locked).toBe(true);
   });
 });
 

@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import type { Alert } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { useApiQuery } from '../../shared/useApiQuery';
+import { useBranchScope } from '../branch/BranchContext';
 
 interface AlertFeed {
   /** Alerts nobody has acknowledged yet (menu count). */
@@ -19,10 +20,13 @@ const AlertFeedContext = createContext<AlertFeed | null>(null);
 const MAX_UNSEEN = 20;
 
 export function AlertFeedProvider({ children }: { children: ReactNode }) {
-  const open = useApiQuery<Alert[]>('/alerts?status=OPEN');
+  // Menu count and banner follow HQ's branch choice, like every list.
+  const { scoped, inScope } = useBranchScope();
+  const open = useApiQuery<Alert[]>(scoped('/alerts?status=OPEN'));
   const [unseen, setUnseen] = useState<Alert[]>([]);
 
   useRealtimeEvent('alert', (a) => {
+    if (!inScope(a.branchId)) return;
     open.setData((list) => [a, ...(list ?? []).filter((x) => x.id !== a.id)]);
     setUnseen((u) => [a, ...u.filter((x) => x.id !== a.id)].slice(0, MAX_UNSEEN));
   });

@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 
 import type { Alert, CommandLog, CommandType, Game, SessionView, Station, TelemetrySample } from '../../api/types';
-import { useAuth } from '../../auth/AuthContext';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatAgo, formatClock, formatDateTime, formatDuration, secondsSince, useNow } from '../../shared/format';
 import { useApiQuery } from '../../shared/useApiQuery';
-import { useBranchNames, useGamerNames } from '../useLookups';
+import { useBranchScope } from '../branch/BranchContext';
+import { useGamerNames } from '../useLookups';
 import { describeMetric, formatMetric, isHot } from './telemetry';
 import { COMMAND_LABEL, useCommands } from './useCommands';
 
@@ -23,7 +23,6 @@ const STATUS_TEXT: Record<CommandLog['status'], string> = {
 
 export function StationDetailPage() {
   const { id = '' } = useParams();
-  const { user } = useAuth();
   const now = useNow(5_000);
 
   const station = useApiQuery<Station>(`/stations/${id}`);
@@ -34,7 +33,7 @@ export function StationDetailPage() {
   const sessionId = station.data?.sessionId ?? null;
   const session = useApiQuery<SessionView>(sessionId ? `/sessions/${sessionId}` : null);
   const gamerNames = useGamerNames();
-  const branchNames = useBranchNames(user?.branchId === null);
+  const { isHq, branchName } = useBranchScope();
 
   const [history, setHistory] = useState<TelemetrySample[]>([]);
   const [gameId, setGameId] = useState('');
@@ -146,10 +145,10 @@ export function StationDetailPage() {
             <th>Running game</th>
             <td>{gameTitle(s.runningGameId)}</td>
           </tr>
-          {user?.branchId === null && (
+          {isHq && (
             <tr>
               <th>Branch</th>
-              <td>{branchNames.get(s.branchId) ?? s.branchId}</td>
+              <td>{branchName(s.branchId)}</td>
             </tr>
           )}
           <tr>

@@ -3,12 +3,12 @@ import { Link } from 'react-router';
 
 import { api } from '../../api/http';
 import type { Alert, AlertCategory, AlertSeverity } from '../../api/types';
-import { useAuth } from '../../auth/AuthContext';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatAgo, formatDateTime, useNow } from '../../shared/format';
 import { useApiQuery } from '../../shared/useApiQuery';
-import { useBranchNames, useStationNames } from '../useLookups';
+import { useBranchScope } from '../branch/BranchContext';
+import { useStationNames } from '../useLookups';
 import { useAlertFeed } from './AlertFeedContext';
 import { CATEGORY_LABEL, isSevere, SEVERITIES, STATUS_LABEL, typeLabel } from './labels';
 
@@ -29,12 +29,11 @@ function matches(a: Alert, status: StatusFilter, category: string, severity: str
 }
 
 export function AlertsPage() {
-  const { user } = useAuth();
-  const isHq = user?.branchId === null;
+  const { isHq, branchId, branchName, scoped, inScope } = useBranchScope();
+  const showBranch = isHq && branchId === null;
   const now = useNow(15_000);
   const feed = useAlertFeed();
   const stationNames = useStationNames();
-  const branchNames = useBranchNames(isHq);
 
   const [status, setStatus] = useState<StatusFilter>('UNRESOLVED');
   const [category, setCategory] = useState('');
@@ -44,7 +43,7 @@ export function AlertsPage() {
   if (status === 'OPEN' || status === 'ACKED' || status === 'RESOLVED') params.set('status', status);
   if (category) params.set('category', category);
   if (severity) params.set('severity', severity);
-  const alerts = useApiQuery<Alert[]>(`/alerts${params.size ? `?${params}` : ''}`);
+  const alerts = useApiQuery<Alert[]>(scoped(`/alerts${params.size ? `?${params}` : ''}`));
 
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
@@ -59,7 +58,7 @@ export function AlertsPage() {
   }, [unseen, dismissAll]);
 
   useRealtimeEvent('alert', (a) => {
-    if (!matches(a, status, category, severity)) return;
+    if (!inScope(a.branchId) || !matches(a, status, category, severity)) return;
     alerts.setData((list) => [a, ...(list ?? []).filter((x) => x.id !== a.id)]);
     setFresh((f) => new Set(f).add(a.id));
   });
@@ -132,7 +131,7 @@ export function AlertsPage() {
           <tr>
             <th>When</th>
             <th>Station</th>
-            {isHq && <th>Branch</th>}
+            {showBranch && <th>Branch</th>}
             <th>Category</th>
             <th>Alert</th>
             <th>Severity</th>
@@ -151,7 +150,7 @@ export function AlertsPage() {
               <td>
                 <Link to={`/stations/${a.machineId}`}>{stationNames.get(a.machineId) ?? a.machineId.slice(0, 8)}</Link>
               </td>
-              {isHq && <td>{branchNames.get(a.branchId) ?? '—'}</td>}
+              {showBranch && <td>{branchName(a.branchId)}</td>}
               <td>{CATEGORY_LABEL[a.category] ?? a.category}</td>
               <td>
                 {typeLabel(a.type)}

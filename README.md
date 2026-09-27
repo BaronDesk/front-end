@@ -60,6 +60,13 @@ Restart `npm run dev` after changing them. Reload the page to reset the fake dat
 - `VITE_REAL_PREFIXES=/dashboard-io` uses the real socket while the rest stays fake. It needs a real login token, so add `/auth` too.
 - Git Bash rewrites a leading `/` in env values to a Windows path. Put the values in `.env.local`, or prefix the command with `MSYS_NO_PATHCONV=1`.
 
+## HQ (multi-branch)
+
+- HQ (`ADMIN`, `branchId = null`) gets a **Branch** dropdown in the top bar: *All branches* or one branch. Branch admins and staff see their branch name as plain text.
+- With a branch picked, every list asks for `?branchId=…` and live events from other branches are ignored, so the pickers only offer that branch's stations and Lock, sessions and bookings land there. Pages reload fresh when the branch changes. The choice survives a reload (per tab).
+- **HQ overview** (`#/hq`, HQ's start page): stations, online, offline, in session and open alerts per branch from `GET /branches/summary`, refreshed on live events. The buttons pick the branch and open its Stations, Alerts or Sessions.
+- Code: `src/admin/branch/BranchContext.tsx` (`useBranchScope()`: `scoped(path)`, `inScope(branchId)`), `src/admin/hq/HqPage.tsx`.
+
 ## Build and test
 
 ```sh

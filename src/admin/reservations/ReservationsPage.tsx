@@ -7,6 +7,7 @@ import { useOnReconnect } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
+import { useBranchScope } from '../branch/BranchContext';
 import { GamerSelect, StationSelect } from '../pickers';
 import { useGamerNames } from '../useLookups';
 
@@ -33,8 +34,9 @@ function hhmm(iso: string): string {
 /** Advance reservation (brief §6.8): day grid per station, list, create, check-in, cancel. */
 export function ReservationsPage() {
   const [date, setDate] = useState(localDate);
-  const reservations = useApiQuery<Reservation[]>(`/reservations?date=${date}`);
-  const stations = useApiQuery<Station[]>('/stations');
+  const { scoped } = useBranchScope();
+  const reservations = useApiQuery<Reservation[]>(scoped(`/reservations?date=${date}`));
+  const stations = useApiQuery<Station[]>(scoped('/stations'));
   const gamerNames = useGamerNames();
   const action = useAction();
   useOnReconnect(reservations.reload);
