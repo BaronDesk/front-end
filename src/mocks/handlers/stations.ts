@@ -20,8 +20,9 @@ import { MockHttpError, route, type MockContext } from '../router';
 
 // ---------- branches ----------
 
+// Gamers (branchId null) see every branch too: the portal books in either venue.
 route('GET', '/branches', (ctx) => {
-  const caller = requireStaff(ctx);
+  const caller = requireUser(ctx);
   return db.branches.filter((b) => !caller.branchId || b.id === caller.branchId);
 });
 

@@ -573,6 +573,75 @@ table.grid tfoot td {
   color: var(--gold-text);
 }
 
+/* Portal forms: one field per line, full width, thumb-sized. 16px inputs stop iOS zooming in. */
+.portal label {
+  display: block;
+  min-width: 0;
+  margin-bottom: 2px;
+}
+
+.portal .topbar label {
+  display: inline;
+}
+
+.portal .content input,
+.portal .content select {
+  width: 100%;
+  font-size: 16px;
+  padding: 6px;
+}
+
+.portal .content button,
+.portal .content .button {
+  font-size: 14px;
+  padding: 8px 14px;
+}
+
+.portal .wide {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+.portal table.grid,
+.portal table.kv {
+  width: 100%;
+}
+
+.portal table.bill {
+  min-width: 0;
+}
+
+.portal table.kv th {
+  width: 40%;
+}
+
+.quick-amounts {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.quick-amounts button {
+  flex: 1;
+}
+
+.big-figure {
+  border: 1px solid var(--border);
+  background: var(--offwhite);
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.big-figure b {
+  display: block;
+  font-size: 22px;
+}
+
+table.grid .num {
+  text-align: right;
+}
+
 @media (max-width: 480px) {
   .portal {
     border: 0;

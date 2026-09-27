@@ -56,7 +56,7 @@ Restart `npm run dev` after changing them. Reload the page to reset the fake dat
 - After login the admin app connects to `/dashboard-io` (Socket.IO, token in `auth`). The top bar shows **LIVE**, **CONNECTING** or **OFFLINE**.
 - When the connection drops, a red bar says so and Socket.IO retries on its own. If the server refuses the token, the app refreshes it once and retries (then every 10 s).
 - Screens use `useRealtimeEvent('station_status', …)` to react to events and `useOnReconnect(refetch)` to reload their data after a reconnect.
-- With fake data, run `barondesk.simulateDrop(5000)` in the browser console to test the red bar, and `barondesk.simulateAlert()` to raise an alert now (random station, any branch).
+- With fake data, run `barondesk.simulateDrop(5000)` in the browser console to test the red bar, `barondesk.simulateAlert()` to raise an alert now (random station, any branch), and `barondesk.startSession('lowbalance')` to start a gamer's session (portal).
 - `VITE_REAL_PREFIXES=/dashboard-io` uses the real socket while the rest stays fake. It needs a real login token, so add `/auth` too.
 - Git Bash rewrites a leading `/` in env values to a Windows path. Put the values in `.env.local`, or prefix the command with `MSYS_NO_PATHCONV=1`.
 
@@ -66,6 +66,14 @@ Restart `npm run dev` after changing them. Reload the page to reset the fake dat
 - With a branch picked, every list asks for `?branchId=…` and live events from other branches are ignored, so the pickers only offer that branch's stations and Lock, sessions and bookings land there. Pages reload fresh when the branch changes. The choice survives a reload (per tab).
 - **HQ overview** (`#/hq`, HQ's start page): stations, online, offline, in session and open alerts per branch from `GET /branches/summary`, refreshed on live events. The buttons pick the branch and open its Stations, Alerts or Sessions.
 - Code: `src/admin/branch/BranchContext.tsx` (`useBranchScope()`: `scoped(path)`, `inScope(branchId)`), `src/admin/hq/HqPage.tsx`.
+
+## Gamer portal
+
+- One narrow column (max 480 px, checked at 360 px with no sideways scroll). Pages: **Free stations**, **Book a station** (+ my bookings, cancel), **My wallet** (online top-up, history), **My session**, **My profile**. The home page shows the balance and a link to the running session.
+- **My session** shows time played, cost so far, balance left and time left, all from the server (`GET /me/session` + `session_update`). The browser only moves the clock. A red **Low balance** box appears when the server marks the session `WARNED`. Ending it shows the bill.
+- Live updates: the portal uses the same socket, but only reads `session_update` events for the logged-in gamer. The real gateway puts gamers in `branch:all` today (see the brief, §13), so the client filter is only a stopgap. The page also refreshes every 30 s in case live updates don't reach the phone.
+- Free stations refresh every 20 s (gamers get no station events). Money forms send an `idempotencyKey`.
+- Try it with fake data: `gamer1` (Gold member) for booking and top-up; `gamer2` is already playing on TUN-02. For the low-balance warning, log in as `lowbalance`, run `barondesk.startSession('lowbalance')` in the browser console, and open **My session** (the warning shows within 10 s; the station locks after ~8 min). Each tab has its own fake data, so a session started in the admin tab doesn't reach the portal tab.
 
 ## Build and test
 

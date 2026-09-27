@@ -11,7 +11,7 @@
 import type { Station } from '../api/types';
 import { publish } from './bus';
 import { db, FLAKY_STATION_ID, newId, nowIso } from './db';
-import { endSession, nextTelemetry, publishStation, raiseAlert, sessionUpdate, setOnline } from './logic';
+import { endSession, nextTelemetry, publishStation, raiseAlert, sessionUpdate, setOnline, startSession } from './logic';
 
 const TELEMETRY_MS = 2_000;
 const SESSION_MS = 10_000;
@@ -64,6 +64,19 @@ export function randomAlert(): void {
   } else {
     raiseAlert(s, 'anti_theft', 'DEVICE_REMOVED', 'HIGH', 'USB keyboard "HyperX Alloy" disconnected');
   }
+}
+
+/**
+ * Dev helper for the portal: barondesk.startSession('lowbalance') starts a
+ * session for that gamer on a free station, as the desk would. Returns the station name.
+ */
+export function startDemoSession(username: string): string {
+  const user = db.users.find((u) => u.username === username);
+  if (!user) throw new Error(`no user ${username}`);
+  const free = db.stations.find((s) => s.enrollmentStatus === 'APPROVED' && s.online && !s.sessionId);
+  if (!free) throw new Error('no free station');
+  startSession(user.id, free.id);
+  return free.name;
 }
 
 function newEnrollmentRequest(): void {

@@ -262,3 +262,58 @@ describe('money and bookings', () => {
     expect(byName('SOU-02')).toMatchObject({ locked: true, sessionId: null });
   });
 });
+
+describe('gamer portal', () => {
+  it('a gamer sees every venue and station availability, without MAC or IP', async () => {
+    const token = await login('gamer4');
+    const branches = await call('GET', '/branches', undefined, token);
+    expect(branches.data).toHaveLength(db.branches.length);
+    const av = await call('GET', `/stations/availability?branchId=${db.branches[1].id}`, undefined, token);
+    const rows = av.data as Record<string, unknown>[];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((r) => r.branchId === db.branches[1].id && !('mac' in r) && !('ip' in r))).toBe(true);
+  });
+
+  it('books for themselves only, pays the fee, and gets it back on an early cancel', async () => {
+    const token = await login('gamer4');
+    const me = userId('gamer4');
+    const start = new Date(Date.now() + 26 * 3_600_000);
+    const end = new Date(start.getTime() + 2 * 3_600_000);
+    const body = { machineId: byName('TUN-03').id, start: start.toISOString(), end: end.toISOString() };
+
+    const forOther = await call('POST', '/reservations', { ...body, userId: userId('gamer5') }, token);
+    expect(forOther.status).toBe(403);
+
+    const before = db.balances.get(me)!;
+    const booked = await call('POST', '/reservations', { ...body, userId: me }, token);
+    expect(booked.status).toBe(200);
+    expect(db.balances.get(me)).toBe(before - db.pricing.bookingFee);
+    const mine = await call('GET', '/me/reservations', undefined, token);
+    expect((mine.data as Reservation[]).map((r) => r.id)).toContain((booked.data as Reservation).id);
+
+    expect((await call('DELETE', `/reservations/${(booked.data as Reservation).id}`, undefined, token)).status).toBe(204);
+    expect(db.balances.get(me)).toBe(before);
+  });
+
+  it('self top-up is ONLINE; another gamer’s wallet is off limits', async () => {
+    const token = await login('gamer5');
+    const res = await call('POST', `/wallet/${userId('gamer5')}/topup`, { amount: 5, method: 'CASH', idempotencyKey: 'self-1' }, token);
+    expect(res.data).toMatchObject({ type: 'TOPUP', amount: 5, method: 'ONLINE' });
+    expect((await call('GET', `/wallet/${userId('gamer4')}`, undefined, token)).status).toBe(403);
+  });
+
+  it('a gamer reads and ends their own session and gets the bill', async () => {
+    const staff = await login('staff.sousse');
+    const started = await call('POST', '/sessions', { userId: userId('gamer5'), machineId: byName('SOU-01').id }, staff);
+    expect(started.status).toBe(200);
+
+    const token = await login('gamer5');
+    const mine = await call('GET', '/me/session', undefined, token);
+    expect(mine.data).toMatchObject({ id: (started.data as SessionView).id });
+    await vi.advanceTimersByTimeAsync(30 * 60_000);
+    const ended = await call('POST', `/sessions/${(started.data as SessionView).id}/end`, {}, token);
+    expect(ended.data).toMatchObject({ status: 'ENDED', endReason: 'USER_ENDED' });
+    expect((ended.data as SessionView).billing!.total).toBeGreaterThan(0);
+    expect((await call('GET', '/me/session', undefined, token)).data).toBeNull();
+  });
+});

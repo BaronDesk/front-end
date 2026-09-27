@@ -1,6 +1,6 @@
 import type { MenuItem } from '../shared/menu';
 
-// Every portal page is built in step 9 (Frontend Implementation Plan §4).
+// Gamer portal pages (Frontend Implementation Plan §4, step 9).
 export const PORTAL_MENU: MenuItem[] = [
   { path: '/availability', label: 'Free stations', step: 9 },
   { path: '/book', label: 'Book a station', step: 9 },
