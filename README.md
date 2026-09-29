@@ -15,7 +15,7 @@ cp .env.example .env.local   # mocks on by default; edit to use the real backend
 npm run dev                  # http://localhost:5173
 ```
 
-The dev server proxies backend routes (`/auth`, `/users`, `/employees`, `/health`, `/dashboard-io`) to `VITE_BACKEND_URL` (default `http://localhost:3000`, which `back-end/docker-compose.dev.yml` exposes). Add new backend paths to `BACKEND_PATHS` in `vite.config.ts`.
+The dev server proxies backend routes (`/auth`, `/users`, `/employees`, `/health`, `/api`, `/dashboard-io`) to `VITE_BACKEND_URL` (default `http://localhost:3000`, which `back-end/docker-compose.dev.yml` exposes). Add new backend paths to `BACKEND_PATHS` in `vite.config.ts`.
 
 ## Fake data (mocks)
 
@@ -25,6 +25,7 @@ Most backend endpoints don't exist yet, so the app can answer them in the browse
 |---|---|
 | `VITE_USE_MOCKS=true` | Every endpoint is answered with fake data. A red **FAKE DATA** tag shows in the top bar |
 | `VITE_REAL_PREFIXES=/auth,/users,/employees` | With mocks on, these paths still go to the real backend (e.g. real login, fake stations) |
+| `VITE_REAL_PREFIXES=/auth,/users,/employees,/api,/dashboard-io` | Everything the backend serves today is real (identity, and `/api/v1` stations, commands, alerts, games); the rest stays fake |
 | `VITE_USE_MOCKS=false` | Everything goes to the real backend |
 
 Restart `npm run dev` after changing them. Reload the page to reset the fake data.

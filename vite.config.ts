@@ -2,9 +2,9 @@ import { resolve } from 'node:path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Backend routes have no global prefix yet (no /api/v1), so each top-level
-// path the frontend calls is proxied on its own. Add a line per new module.
-const BACKEND_PATHS = ['/auth', '/users', '/employees', '/health'];
+// Identity routes sit at the root (/auth, /users, /employees); every newer
+// module (stations, commands, alerts, games) lives under /api/v1.
+const BACKEND_PATHS = ['/auth', '/users', '/employees', '/health', '/api'];
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
