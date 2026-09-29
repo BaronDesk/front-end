@@ -1,40 +1,42 @@
 /*
- * ops/ endpoints: remote commands and alerts. A command is answered on
- * /dashboard-io with command_result, like the real agent ack loop:
- * ~500 ms ACKED/NACKED when the station is online, TIMEOUT after 5 s if not.
+ * ops/ endpoints: remote commands and alerts. Commands follow the real
+ * backend (ops/services/commands.service.ts): every rejection happens before a
+ * row exists (409 STATION_OFFLINE, STATION_NOT_IN_SESSION, NO_ACTIVE_SESSION…);
+ * otherwise the row goes PENDING → SENT → ACKED / FAILED / NACKED / TIMEOUT,
+ * each step pushed as command_update on /dashboard-io.
  */
-import type { CommandLog, CommandResultEvent, CommandType } from '../../api/types';
+import type { Command, CommandStatus, CommandType } from '../../api/types';
 import { publish } from '../bus';
 import { db, newId, nowIso } from '../db';
 import { assertBranch, badRequest, branchFilter, findStation, notFound, requireStaff } from '../guards';
 import { endSession, publishStation, setOnline } from '../logic';
 import { MockHttpError, route, type MockContext } from '../router';
 
-const COMMAND_TYPES: CommandType[] = ['UNLOCK', 'LOCK', 'SHUTDOWN', 'LAUNCH_GAME', 'END_SESSION', 'POLICY_UPDATE'];
+const COMMAND_TYPES: CommandType[] = ['LOCK', 'UNLOCK', 'SHUTDOWN', 'LAUNCH_GAME', 'END_SESSION', 'CATALOG_UPDATE'];
+const SEND_DELAY_MS = 100;
 const ACK_DELAY_MS = 500;
-const TIMEOUT_MS = 5000;
 /** A shut-down station "boots" again after this long, so tests can continue. */
 const REBOOT_MS = 30_000;
+/** Nacks that end as FAILED; any other code (STALE) ends as NACKED. */
+const FAILED_NACKS = new Set(['UNKNOWN_TYPE', 'INVALID_PAYLOAD', 'EXEC_FAILED']);
 
-function finish(cmd: CommandLog, status: CommandResultEvent['status'], code: string | null = null, reason: string | null = null) {
-  cmd.status = status;
-  cmd.code = code;
-  cmd.reason = reason;
-  cmd.completedAt = nowIso();
-  const s = db.stations.find((x) => x.id === cmd.machineId);
-  publish('command_result', {
-    commandId: cmd.id,
-    machineId: cmd.machineId,
-    branchId: s?.branchId ?? '',
-    type: cmd.type,
-    status,
-    code,
-    reason,
-  });
+function update(cmd: Command, changes: Partial<Command>): void {
+  Object.assign(cmd, changes);
+  publish('command_update', { ...cmd });
 }
 
-/** What the "agent" does when the command arrives. Returns a NACK reason, or null on success. */
-function execute(cmd: CommandLog): { code: string; reason: string } | null {
+function reply(cmd: Command, nack: { code: string; reason: string } | null): void {
+  const resolvedAt = nowIso();
+  if (!nack) {
+    update(cmd, { status: 'ACKED', resolvedAt });
+    return;
+  }
+  const status: CommandStatus = FAILED_NACKS.has(nack.code) ? 'FAILED' : 'NACKED';
+  update(cmd, { status, resolvedAt, nackCode: nack.code, nackReason: nack.reason });
+}
+
+/** What the "agent" does when the command arrives. Returns a nack, or null on success. */
+function execute(cmd: Command): { code: string; reason: string } | null {
   const s = findStation(cmd.machineId);
   switch (cmd.type) {
     case 'LOCK':
@@ -44,20 +46,14 @@ function execute(cmd: CommandLog): { code: string; reason: string } | null {
     case 'UNLOCK':
       s.locked = false;
       break;
-    case 'LAUNCH_GAME': {
-      const gameId = String(cmd.payload.gameId ?? '');
-      if (!(db.stationGames.get(s.id) ?? []).includes(gameId)) {
-        return { code: 'EXEC_FAILED', reason: 'game is not installed on this station' };
-      }
-      if (s.locked) return { code: 'EXEC_FAILED', reason: 'station is locked' };
-      s.runningGameId = gameId;
+    case 'LAUNCH_GAME':
+      if (s.locked || !s.sessionId) return { code: 'EXEC_FAILED', reason: 'must be unlocked with an active session' };
+      s.runningGameId = cmd.gameId;
       break;
-    }
     case 'END_SESSION': {
       const session = db.sessions.find((x) => x.id === s.sessionId);
-      if (!session) return { code: 'STALE', reason: 'no active session on this station' };
-      endSession(session, 'STAFF_ENDED');
-      return null; // endSession already published the station change
+      if (session) endSession(session, 'STAFF_ENDED'); // publishes the station change
+      return null;
     }
     case 'SHUTDOWN': {
       const session = db.sessions.find((x) => x.id === s.sessionId);
@@ -67,61 +63,86 @@ function execute(cmd: CommandLog): { code: string; reason: string } | null {
       setTimeout(() => setOnline(s, true), REBOOT_MS);
       return null;
     }
-    case 'POLICY_UPDATE':
-      break;
+    case 'CATALOG_UPDATE':
+      return null;
   }
   publishStation(s);
   return null;
 }
 
-route('POST', '/commands', (ctx) => {
+route('POST', '/api/v1/stations/:id/commands', (ctx) => {
   const caller = requireStaff(ctx);
   const type = ctx.body.type as CommandType;
-  if (!COMMAND_TYPES.includes(type)) badRequest('unknown command type');
-  const s = findStation(String(ctx.body.machineId ?? ''));
+  if (!COMMAND_TYPES.includes(type)) badRequest('invalid command type');
+  const gameId = typeof ctx.body.gameId === 'string' ? ctx.body.gameId.trim() : '';
+  if (type === 'LAUNCH_GAME' && !gameId) badRequest('gameId is required for LAUNCH_GAME');
+  if (type !== 'LAUNCH_GAME' && gameId) badRequest('gameId is only accepted for LAUNCH_GAME');
+  if (type !== 'END_SESSION' && ctx.body.reason) badRequest('reason is only accepted for END_SESSION');
+  if (type === 'SHUTDOWN' && caller.role === 'EMPLOYEE') {
+    throw new MockHttpError(403, 'INSUFFICIENT_SCOPE', 'SHUTDOWN requires admin scope');
+  }
+
+  const s = findStation(ctx.params.id);
   assertBranch(caller, s.branchId);
   if (s.enrollmentStatus !== 'APPROVED') {
     throw new MockHttpError(409, 'STATION_NOT_ENROLLED', 'station is not approved');
   }
-  if (type === 'POLICY_UPDATE' && caller.role === 'EMPLOYEE') {
-    throw new MockHttpError(403, 'FORBIDDEN', 'requires role MANAGER or higher');
+  if (!s.online) throw new MockHttpError(409, 'STATION_OFFLINE', 'station is not online');
+  if (type === 'LAUNCH_GAME') {
+    if (s.locked || !s.sessionId) {
+      throw new MockHttpError(409, 'STATION_NOT_IN_SESSION', 'station must be unlocked with an active session to launch a game');
+    }
+    // The mock's games have no separate wire id yet: gameId is the game's row id.
+    if (!(db.stationGames.get(s.id) ?? []).includes(gameId)) {
+      throw new MockHttpError(409, 'GAME_NOT_ASSIGNED', "game is not in this station's catalog");
+    }
+  }
+  if (type === 'END_SESSION' && !s.sessionId) {
+    throw new MockHttpError(409, 'NO_ACTIVE_SESSION', 'station has no active session');
   }
 
-  const cmd: CommandLog = {
-    id: newId(),
+  const cmd: Command = {
+    commandId: newId(),
     machineId: s.id,
+    branchId: s.branchId,
     type,
-    payload: (ctx.body.payload as Record<string, unknown>) ?? {},
+    gameId: type === 'LAUNCH_GAME' ? gameId : null,
     status: 'PENDING',
-    code: null,
-    reason: null,
     issuedBy: caller.id,
     issuedAt: nowIso(),
-    completedAt: null,
+    sentAt: null,
+    resolvedAt: null,
+    attempts: 0,
+    nackCode: null,
+    nackReason: null,
+    failureReason: null,
   };
   db.commands.unshift(cmd);
+  publish('command_update', { ...cmd });
 
-  if (!s.online) {
-    setTimeout(() => finish(cmd, 'TIMEOUT', 'TIMEOUT', 'no response from station'), TIMEOUT_MS);
-  } else {
-    setTimeout(() => {
-      const nack = execute(cmd);
-      if (nack) finish(cmd, 'NACKED', nack.code, nack.reason);
-      else finish(cmd, 'ACKED');
-    }, ACK_DELAY_MS);
-  }
-  return cmd;
+  setTimeout(() => update(cmd, { status: 'SENT', sentAt: nowIso(), attempts: cmd.attempts + 1 }), SEND_DELAY_MS);
+  setTimeout(() => {
+    // Went offline after the POST (e.g. the flaky SOU-03): the ack never comes.
+    if (!s.online) update(cmd, { status: 'TIMEOUT', resolvedAt: nowIso(), failureReason: 'no ack from the station' });
+    else reply(cmd, execute(cmd));
+  }, ACK_DELAY_MS);
+  return { ...cmd };
 });
 
-route('GET', '/commands', (ctx) => {
+route('GET', '/api/v1/stations/:id/commands', (ctx) => {
   const caller = requireStaff(ctx);
-  const machineId = ctx.query.get('machineId');
-  const branch = branchFilter(caller, ctx.query.get('branchId'));
-  return db.commands.filter((c) => {
-    if (machineId && c.machineId !== machineId) return false;
-    const s = db.stations.find((x) => x.id === c.machineId);
-    return !branch || s?.branchId === branch;
-  });
+  const s = findStation(ctx.params.id);
+  assertBranch(caller, s.branchId);
+  const limit = Math.min(100, Math.max(1, Number(ctx.query.get('limit') ?? 20) || 20));
+  return db.commands.filter((c) => c.machineId === s.id).slice(0, limit);
+});
+
+route('GET', '/api/v1/commands/:commandId', (ctx) => {
+  const caller = requireStaff(ctx);
+  const cmd = db.commands.find((c) => c.commandId === ctx.params.commandId);
+  if (!cmd) throw new MockHttpError(404, 'COMMAND_NOT_FOUND', 'command not found');
+  assertBranch(caller, cmd.branchId);
+  return cmd;
 });
 
 // ---------- alerts ----------

@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   BranchSummary,
-  CommandLog,
+  Command,
   DashboardEvents,
   Reservation,
   SessionView,
@@ -148,11 +148,11 @@ describe('HQ (multi-agency)', () => {
   it('HQ locks a station in another branch; a manager from another branch cannot', async () => {
     const station = byName('SOU-01');
     station.locked = false;
-    const denied = await call('POST', '/commands', { machineId: station.id, type: 'LOCK', payload: {} }, await login('manager.tunis'));
+    const denied = await call('POST', `/api/v1/stations/${station.id}/commands`, { type: 'LOCK' }, await login('manager.tunis'));
     expect(denied.status).toBe(403);
     expect(denied.data).toMatchObject({ code: 'FORBIDDEN_BRANCH' });
 
-    const res = await call('POST', '/commands', { machineId: station.id, type: 'LOCK', payload: {} }, await login('hq.admin'));
+    const res = await call('POST', `/api/v1/stations/${station.id}/commands`, { type: 'LOCK' }, await login('hq.admin'));
     expect(res.status).toBe(200);
     await vi.advanceTimersByTimeAsync(600);
     expect(station.locked).toBe(true);
@@ -160,16 +160,16 @@ describe('HQ (multi-agency)', () => {
 });
 
 describe('commands and realtime', () => {
-  it('LOCK: PENDING, then command_result ACKED + station_status, only to the right branch', async () => {
+  it('LOCK: PENDING → SENT → ACKED via command_update + station_status, only to the right branch', async () => {
     const tunisToken = await login('staff.tunis');
     const tunis = createFakeRealtime();
     const sousse = createFakeRealtime();
-    const tunisResults: DashboardEvents['command_result'][] = [];
+    const tunisResults: DashboardEvents['command_update'][] = [];
     const tunisStatus: DashboardEvents['station_status'][] = [];
     const sousseResults: unknown[] = [];
-    tunis.on('command_result', (e) => tunisResults.push(e));
+    tunis.on('command_update', (e) => tunisResults.push(e));
     tunis.on('station_status', (e) => tunisStatus.push(e));
-    sousse.on('command_result', (e) => sousseResults.push(e));
+    sousse.on('command_update', (e) => sousseResults.push(e));
     tunis.connect(() => tunisToken);
     const sousseToken = await login('staff.sousse');
     sousse.connect(() => sousseToken);
@@ -177,39 +177,48 @@ describe('commands and realtime', () => {
 
     const station = byName('TUN-05');
     station.locked = false;
-    const res = await call('POST', '/commands', { machineId: station.id, type: 'LOCK', payload: {} }, tunisToken);
-    expect((res.data as CommandLog).status).toBe('PENDING');
+    const res = await call('POST', `/api/v1/stations/${station.id}/commands`, { type: 'LOCK' }, tunisToken);
+    const cmd = res.data as Command;
+    expect(cmd.status).toBe('PENDING');
 
     await vi.advanceTimersByTimeAsync(600);
-    expect(tunisResults).toContainEqual(expect.objectContaining({ commandId: (res.data as CommandLog).id, status: 'ACKED' }));
+    expect(tunisResults.filter((e) => e.commandId === cmd.commandId).map((e) => e.status)).toEqual(['PENDING', 'SENT', 'ACKED']);
     expect(tunisStatus).toContainEqual(expect.objectContaining({ serialNumber: station.serialNumber, locked: true }));
     expect(sousseResults).toHaveLength(0);
     tunis.disconnect();
     sousse.disconnect();
   });
 
-  it('command to an offline station times out', async () => {
+  it('a command to an offline station is refused up front: 409 STATION_OFFLINE, no row', async () => {
     const token = await login('manager.tunis');
     const station = byName('TUN-04'); // seeded offline
-    const res = await call('POST', '/commands', { machineId: station.id, type: 'UNLOCK', payload: {} }, token);
-    await vi.advanceTimersByTimeAsync(5_100);
-    const log = await call('GET', `/commands?machineId=${station.id}`, undefined, token);
-    const cmd = (log.data as CommandLog[]).find((c) => c.id === (res.data as CommandLog).id)!;
-    expect(cmd).toMatchObject({ status: 'TIMEOUT', reason: 'no response from station' });
+    const res = await call('POST', `/api/v1/stations/${station.id}/commands`, { type: 'UNLOCK' }, token);
+    expect(res).toMatchObject({ status: 409, data: { code: 'STATION_OFFLINE' } });
+    const log = await call('GET', `/api/v1/stations/${station.id}/commands`, undefined, token);
+    expect(log.data).toEqual([]);
   });
 
-  it('LAUNCH_GAME of a game not on the station is NACKED', async () => {
+  it('LAUNCH_GAME needs a session; END_SESSION needs one; SHUTDOWN needs a manager', async () => {
+    const manager = await login('manager.tunis');
+    const station = byName('TUN-03'); // locked, no session
+    const game = db.games[0];
+    const launch = await call('POST', `/api/v1/stations/${station.id}/commands`, { type: 'LAUNCH_GAME', gameId: game.id }, manager);
+    expect(launch).toMatchObject({ status: 409, data: { code: 'STATION_NOT_IN_SESSION' } });
+    const end = await call('POST', `/api/v1/stations/${station.id}/commands`, { type: 'END_SESSION' }, manager);
+    expect(end).toMatchObject({ status: 409, data: { code: 'NO_ACTIVE_SESSION' } });
+    const shutdown = await call('POST', `/api/v1/stations/${station.id}/commands`, { type: 'SHUTDOWN' }, await login('staff.tunis'));
+    expect(shutdown).toMatchObject({ status: 403, data: { code: 'INSUFFICIENT_SCOPE' } });
+  });
+
+  it('the command log lists the station commands, newest first, with their final status', async () => {
     const token = await login('manager.tunis');
-    const station = byName('TUN-03');
-    station.locked = false;
-    const notInstalled = db.games.find((g) => !(db.stationGames.get(station.id) ?? []).includes(g.id))!;
-    const res = await call('POST', '/commands', { machineId: station.id, type: 'LAUNCH_GAME', payload: { gameId: notInstalled.id } }, token);
+    const station = byName('TUN-01');
+    const res = await call('POST', `/api/v1/stations/${station.id}/commands`, { type: 'CATALOG_UPDATE' }, token);
     await vi.advanceTimersByTimeAsync(600);
-    const log = await call('GET', `/commands?machineId=${station.id}`, undefined, token);
-    expect((log.data as CommandLog[]).find((c) => c.id === (res.data as CommandLog).id)).toMatchObject({
-      status: 'NACKED',
-      code: 'EXEC_FAILED',
-    });
+    const log = await call('GET', `/api/v1/stations/${station.id}/commands?limit=5`, undefined, token);
+    expect((log.data as Command[])[0]).toMatchObject({ commandId: (res.data as Command).commandId, status: 'ACKED', attempts: 1 });
+    const one = await call('GET', `/api/v1/commands/${(res.data as Command).commandId}`, undefined, token);
+    expect(one.data).toMatchObject({ status: 'ACKED', type: 'CATALOG_UPDATE' });
   });
 
   it('gamers only receive their own session_update', async () => {

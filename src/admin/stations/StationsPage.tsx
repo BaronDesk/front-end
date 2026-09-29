@@ -89,7 +89,7 @@ export function StationsPage() {
     setActionError(null);
     for (const id of machineIds) {
       try {
-        await commands.send(id, type);
+        await commands.send(id, { type });
       } catch (err) {
         setActionError(err);
       }

@@ -1,41 +1,63 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { api } from '../../api/http';
-import type { CommandLog, CommandResultEvent, CommandType } from '../../api/types';
+import type { Command, CommandStatus, CommandType, IssueCommandBody } from '../../api/types';
 import { useRealtimeEvent } from '../../realtime/RealtimeContext';
+import { STATIONS_PATH } from './station';
 
 /**
- * Safety net if command_result never comes (e.g. the socket was down).
- * The backend's own timeout should answer first.
+ * Safety net if the final command_update never comes (e.g. the socket was
+ * down). The backend answers first: ack timeout 10 s, 2 attempts by default.
  */
-const CLIENT_TIMEOUT_MS = 15_000;
+const CLIENT_TIMEOUT_MS = 30_000;
 const MAX_NOTICES = 6;
+
+/** Statuses a command can still leave. TIMEOUT is final here, though a late ack may still replace it in the log. */
+const OPEN: ReadonlySet<CommandStatus> = new Set(['PENDING', 'SENT']);
+
+export function isOpen(status: CommandStatus): boolean {
+  return OPEN.has(status);
+}
 
 export interface CommandNotice {
   commandId: string;
   machineId: string;
   type: CommandType;
-  status: CommandResultEvent['status'] | 'NO_RESULT';
+  status: Exclude<CommandStatus, 'PENDING' | 'SENT'> | 'NO_RESULT';
+  /** The agent's nack code, if any. */
   code: string | null;
   reason: string | null;
   at: string;
 }
 
+function toNotice(c: Command): CommandNotice {
+  return {
+    commandId: c.commandId,
+    machineId: c.machineId,
+    type: c.type,
+    status: c.status as CommandNotice['status'],
+    code: c.nackCode,
+    reason: c.nackReason ?? c.failureReason,
+    at: c.resolvedAt ?? new Date().toISOString(),
+  };
+}
+
 /**
- * Sends remote commands (POST /commands) and follows each one until its
- * command_result arrives on /dashboard-io (brief §12, rule 3).
+ * Sends remote commands (POST /api/v1/stations/:id/commands, 202) and follows
+ * each one through its command_update events until a final status
+ * (brief §12, rule 3). `onUpdate` sees every update, e.g. to patch a command log.
  */
-export function useCommands(onResult?: (result: CommandResultEvent) => void) {
-  const [pending, setPending] = useState<Record<string, CommandLog>>({});
+export function useCommands(onUpdate?: (command: Command) => void) {
+  const [pending, setPending] = useState<Record<string, Command>>({});
   const [notices, setNotices] = useState<CommandNotice[]>([]);
-  // A fast agent can answer before our POST returns; keep those results.
-  const early = useRef(new Map<string, CommandResultEvent>());
+  // A fast agent can answer before our POST returns; keep those final updates.
+  const early = useRef(new Map<string, Command>());
   // Same ids as `pending`, but readable synchronously when an event lands before a re-render.
   const pendingIds = useRef(new Set<string>());
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-  const onResultRef = useRef(onResult);
+  const onUpdateRef = useRef(onUpdate);
   useEffect(() => {
-    onResultRef.current = onResult;
+    onUpdateRef.current = onUpdate;
   });
 
   const settle = useCallback((notice: CommandNotice) => {
@@ -48,19 +70,19 @@ export function useCommands(onResult?: (result: CommandResultEvent) => void) {
       delete next[notice.commandId];
       return next;
     });
-    setNotices((n) => [notice, ...n].slice(0, MAX_NOTICES));
+    setNotices((n) => [notice, ...n.filter((x) => x.commandId !== notice.commandId)].slice(0, MAX_NOTICES));
   }, []);
 
-  function fromResult(r: CommandResultEvent): CommandNotice {
-    return { ...r, at: new Date().toISOString() };
-  }
-
-  useRealtimeEvent('command_result', (r) => {
-    onResultRef.current?.(r);
-    if (pendingIds.current.has(r.commandId)) settle(fromResult(r));
+  useRealtimeEvent('command_update', (c) => {
+    onUpdateRef.current?.(c);
+    if (isOpen(c.status)) {
+      if (pendingIds.current.has(c.commandId)) setPending((p) => ({ ...p, [c.commandId]: c }));
+      return;
+    }
+    if (pendingIds.current.has(c.commandId)) settle(toNotice(c));
     else {
-      // Also receives other staff's results for the branch: keep only the latest few.
-      early.current.set(r.commandId, r);
+      // Also receives other staff's commands for the branch: keep only the latest few.
+      early.current.set(c.commandId, c);
       if (early.current.size > 50) early.current.delete(early.current.keys().next().value!);
     }
   });
@@ -71,24 +93,29 @@ export function useCommands(onResult?: (result: CommandResultEvent) => void) {
   }, []);
 
   const send = useCallback(
-    async (machineId: string, type: CommandType, payload: Record<string, unknown> = {}) => {
-      const cmd = await api<CommandLog>('POST', '/commands', { machineId, type, payload });
-      const already = early.current.get(cmd.id);
+    async (machineId: string, body: IssueCommandBody) => {
+      const cmd = await api<Command>('POST', `${STATIONS_PATH}/${machineId}/commands`, body);
+      const already = early.current.get(cmd.commandId);
       if (already) {
-        early.current.delete(cmd.id);
-        setNotices((n) => [fromResult(already), ...n].slice(0, MAX_NOTICES));
+        early.current.delete(cmd.commandId);
+        setNotices((n) => [toNotice(already), ...n].slice(0, MAX_NOTICES));
+        return already;
+      }
+      if (!isOpen(cmd.status)) {
+        // e.g. FAILED at once when the server could not queue it.
+        setNotices((n) => [toNotice(cmd), ...n].slice(0, MAX_NOTICES));
         return cmd;
       }
-      pendingIds.current.add(cmd.id);
-      setPending((p) => ({ ...p, [cmd.id]: cmd }));
+      pendingIds.current.add(cmd.commandId);
+      setPending((p) => ({ ...p, [cmd.commandId]: cmd }));
       timers.current.set(
-        cmd.id,
+        cmd.commandId,
         setTimeout(
           () =>
             settle({
-              commandId: cmd.id,
+              commandId: cmd.commandId,
               machineId,
-              type,
+              type: body.type,
               status: 'NO_RESULT',
               code: null,
               reason: 'no result received; check the command log',
@@ -117,5 +144,5 @@ export const COMMAND_LABEL: Record<CommandType, string> = {
   SHUTDOWN: 'Shut down',
   LAUNCH_GAME: 'Launch game',
   END_SESSION: 'End session',
-  POLICY_UPDATE: 'Policy update',
+  CATALOG_UPDATE: 'Game list sync',
 };

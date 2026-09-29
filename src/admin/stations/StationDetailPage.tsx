@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 
-import type { Alert, CommandLog, CommandType, Game, SessionView, StationDetail, TelemetrySnapshot } from '../../api/types';
+import type { Alert, Command, CommandStatus, Game, IssueCommandBody, SessionView, StationDetail, TelemetrySnapshot } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatAgo, formatClock, formatDateTime, formatDuration, secondsSince, useNow } from '../../shared/format';
@@ -10,7 +10,7 @@ import { useBranchScope } from '../branch/BranchContext';
 import { useGamerNames } from '../useLookups';
 import { applyStatus, isOnline, screenText, stationLabel, STATIONS_PATH } from './station';
 import { describeMetric, formatMetric, isHot, sortedMetrics } from './telemetry';
-import { COMMAND_LABEL, useCommands } from './useCommands';
+import { COMMAND_LABEL, isOpen, useCommands } from './useCommands';
 
 /** How much telemetry history the page keeps in memory (brief §6: no DB history call). */
 const HISTORY_MS = 5 * 60_000;
@@ -21,12 +21,16 @@ interface Reading {
   metrics: Record<string, number>;
 }
 
-const STATUS_TEXT: Record<CommandLog['status'], string> = {
-  PENDING: 'waiting…',
-  ACKED: 'done',
+const STATUS_TEXT: Record<CommandStatus, string> = {
+  PENDING: 'queued…',
+  SENT: 'sent, waiting…',
+  ACKED: 'accepted',
   NACKED: 'refused',
+  FAILED: 'failed',
   TIMEOUT: 'no response',
 };
+
+const LOG_SIZE = 20;
 
 export function StationDetailPage() {
   const { id = '' } = useParams();
@@ -36,7 +40,7 @@ export function StationDetailPage() {
   // 404 TELEMETRY_NOT_AVAILABLE once the server's cache expired: shown as "no reading", not an error.
   const snapshot = useApiQuery<TelemetrySnapshot>(`${STATIONS_PATH}/${id}/telemetry`);
   const games = useApiQuery<Game[]>(`/stations/${id}/games`);
-  const log = useApiQuery<CommandLog[]>(`/commands?machineId=${id}`);
+  const log = useApiQuery<Command[]>(`${STATIONS_PATH}/${id}/commands?limit=${LOG_SIZE}`);
   const alerts = useApiQuery<Alert[]>(`/alerts?machineId=${id}`);
   const sessionId = station.data?.sessionId ?? null;
   const session = useApiQuery<SessionView>(sessionId ? `/sessions/${sessionId}` : null);
@@ -47,13 +51,10 @@ export function StationDetailPage() {
   const [gameId, setGameId] = useState('');
   const [actionError, setActionError] = useState<unknown>(null);
 
-  const commands = useCommands((r) => {
-    if (r.machineId !== id) return;
-    log.setData((rows) =>
-      rows?.map((c) =>
-        c.id === r.commandId ? { ...c, status: r.status, code: r.code, reason: r.reason, completedAt: new Date().toISOString() } : c,
-      ),
-    );
+  // Every command_update for this station (ours, other staff's, automatic CATALOG_UPDATEs) lands in the log.
+  const commands = useCommands((c) => {
+    if (c.machineId !== id) return;
+    log.setData((rows) => [c, ...(rows ?? []).filter((x) => x.commandId !== c.commandId)].slice(0, LOG_SIZE));
   });
 
   useRealtimeEvent('station_status', (e) => {
@@ -79,11 +80,14 @@ export function StationDetailPage() {
     alerts.reload();
   });
 
-  async function run(type: CommandType, payload: Record<string, unknown> = {}) {
+  async function run(body: IssueCommandBody) {
     setActionError(null);
     try {
-      const cmd = await commands.send(id, type, payload);
-      log.setData((rows) => [cmd, ...(rows ?? []).filter((c) => c.id !== cmd.id)]);
+      const cmd = await commands.send(id, body);
+      // Keep a newer status that command_update may already have written.
+      log.setData((rows) =>
+        rows?.some((c) => c.commandId === cmd.commandId) ? rows : [cmd, ...(rows ?? [])].slice(0, LOG_SIZE),
+      );
     } catch (err) {
       setActionError(err);
     }
@@ -177,16 +181,16 @@ export function StationDetailPage() {
 
       <h2>Remote commands</h2>
       <div className="toolbar">
-        <button type="button" disabled={busy} onClick={() => run('LOCK')}>
+        <button type="button" disabled={busy} onClick={() => run({ type: 'LOCK' })}>
           Lock
         </button>{' '}
-        <button type="button" disabled={busy} onClick={() => run('UNLOCK')}>
+        <button type="button" disabled={busy} onClick={() => run({ type: 'UNLOCK' })}>
           Unlock
         </button>{' '}
         <button
           type="button"
           disabled={busy}
-          onClick={() => window.confirm(`Shut down ${name}?${s.sessionId ? ' The running session ends.' : ''}`) && run('SHUTDOWN')}
+          onClick={() => window.confirm(`Shut down ${name}?${s.sessionId ? ' The running session ends.' : ''}`) && run({ type: 'SHUTDOWN' })}
         >
           Shut down
         </button>{' '}
@@ -194,7 +198,7 @@ export function StationDetailPage() {
           type="button"
           disabled={busy || !s.sessionId}
           title={s.sessionId ? '' : 'No session on this station'}
-          onClick={() => window.confirm(`End the session on ${name} and bill it now?`) && run('END_SESSION')}
+          onClick={() => window.confirm(`End the session on ${name} and bill it now?`) && run({ type: 'END_SESSION' })}
         >
           End session
         </button>
@@ -207,7 +211,7 @@ export function StationDetailPage() {
             </option>
           ))}
         </select>{' '}
-        <button type="button" disabled={busy || !gameId} onClick={() => run('LAUNCH_GAME', { gameId })}>
+        <button type="button" disabled={busy || !gameId} onClick={() => run({ type: 'LAUNCH_GAME', gameId })}>
           Launch game
         </button>
         {waiting && <i> &nbsp; {COMMAND_LABEL[waiting.type]}… waiting for the station</i>}
@@ -256,17 +260,20 @@ export function StationDetailPage() {
           </tr>
         </thead>
         <tbody>
-          {(log.data ?? []).slice(0, 20).map((c) => (
-            <tr key={c.id}>
+          {(log.data ?? []).map((c) => (
+            <tr key={c.commandId}>
               <td>{formatClock(c.issuedAt)}</td>
               <td>
                 {COMMAND_LABEL[c.type]}
-                {c.type === 'LAUNCH_GAME' && ` (${gameTitle(String(c.payload.gameId ?? ''))})`}
+                {c.type === 'LAUNCH_GAME' && c.gameId && ` (${gameTitle(c.gameId)})`}
               </td>
-              <td className={c.status === 'ACKED' ? 'status-ok' : c.status === 'PENDING' ? '' : 'status-bad'}>{STATUS_TEXT[c.status]}</td>
+              <td className={c.status === 'ACKED' ? 'status-ok' : isOpen(c.status) ? '' : 'status-bad'}>
+                {STATUS_TEXT[c.status]}
+                {c.attempts > 1 && <span className="muted"> ({c.attempts} tries)</span>}
+              </td>
               <td>
-                {c.reason ?? ''}
-                {c.code && <span className="muted"> ({c.code})</span>}
+                {c.nackReason ?? c.failureReason ?? ''}
+                {c.nackCode && <span className="muted"> ({c.nackCode})</span>}
               </td>
             </tr>
           ))}

@@ -2,13 +2,14 @@ import { formatClock } from '../../shared/format';
 import { COMMAND_LABEL, type CommandNotice } from './useCommands';
 
 const STATUS_TEXT: Record<CommandNotice['status'], string> = {
-  ACKED: 'done',
+  ACKED: 'accepted by the station',
   NACKED: 'refused by the station',
+  FAILED: 'failed',
   TIMEOUT: 'no response from station',
   NO_RESULT: 'no result yet',
 };
 
-/** Latest command results, newest first: "14:05:09 TUN-01 Lock: done". */
+/** Latest command results, newest first: "14:05:09 TUN-01 Lock: accepted by the station". */
 export function CommandNotices({ notices, stationName }: { notices: CommandNotice[]; stationName(id: string): string }) {
   if (notices.length === 0) return null;
   return (

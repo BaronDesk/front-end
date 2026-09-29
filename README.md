@@ -40,7 +40,7 @@ Restart `npm run dev` after changing them. Reload the page to reset the fake dat
 | `gamer1` … `gamer5` | GAMER | – | gamer1: Gold (−10 %), gamer2: in a session on TUN-02, gamer3: 10-hour pass |
 | `lowbalance` | GAMER | – | 0.400 balance: low-balance warning at once, auto-lock after ~8 min of play |
 
-**What happens on its own:** telemetry every 2 s, session updates every 10 s, SOU-03 goes online/offline every 30 s, a random alert every 45 s, a new station TUN-07 asks to enroll after 60 s. Commands are acked after ~0.5 s (TIMEOUT after 5 s if the station is offline). A shut-down station comes back after 30 s.
+**What happens on its own:** telemetry every 2 s, session updates every 10 s, SOU-03 goes online/offline every 30 s, a random alert every 45 s, a new station TUN-07 asks to enroll after 60 s. Commands go PENDING → SENT → ACKED in ~0.5 s (`command_update`), like the real backend; an offline station is refused at once (409 `STATION_OFFLINE`). A shut-down station comes back after 30 s.
 
 **Mixing real and fake:** with `VITE_REAL_PREFIXES=/auth,…`, the mock reads the real JWT's claims (`sub`, `role`, `branchId`) to know who is calling. A branch id it doesn't know is treated as the first seeded branch (Tunis Centre).
 

@@ -5,7 +5,7 @@
 import type {
   Alert,
   Branch,
-  CommandLog,
+  Command,
   Game,
   GamerProfile,
   Membership,
@@ -282,7 +282,7 @@ const pricing: Pricing = { ratePerHour: 3, bookingFee: 1, lowBalanceMinutes: 10 
 /** machineId → latest snapshot (the backend keeps these in Redis, 30 s TTL). */
 const telemetry = new Map<string, TelemetrySnapshot>();
 
-const commands: CommandLog[] = [];
+const commands: Command[] = [];
 
 /** idempotencyKey → transaction id, for money endpoints. */
 const idempotency = new Map<string, string>();

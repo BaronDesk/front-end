@@ -3,7 +3,7 @@ import { useState } from 'react';
 import type { DashboardEventName } from '../../api/types';
 import { useRealtimeEvent } from '../../realtime/RealtimeContext';
 
-const EVENTS: DashboardEventName[] = ['station_status', 'telemetry_update', 'alert', 'session_update', 'command_result'];
+const EVENTS: DashboardEventName[] = ['station_status', 'telemetry_update', 'alert', 'session_update', 'command_update'];
 
 interface Count {
   n: number;
