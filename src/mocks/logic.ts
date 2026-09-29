@@ -10,13 +10,14 @@ import type {
   Session,
   SessionUpdateEvent,
   Station,
+  StationDetail,
   StationStatusEvent,
   TelemetrySample,
   TransactionType,
   WalletTransaction,
 } from '../api/types';
 import { publish } from './bus';
-import { db, newId, nowIso, round3, type MockUser } from './db';
+import { db, newId, nowIso, round3, type MockStation, type MockUser } from './db';
 import { MockHttpError } from './router';
 
 export function publicUser(u: MockUser): PublicUser {
@@ -32,23 +33,58 @@ export function publicUser(u: MockUser): PublicUser {
 
 // ---------- stations ----------
 
-export function stationStatus(s: Station): StationStatusEvent {
+const ENROLLMENT_TO_BACKEND: Record<MockStation['enrollmentStatus'], StationDetail['enrollmentStatus']> = {
+  PENDING: 'PENDING',
+  APPROVED: 'ENROLLED',
+  REJECTED: 'INACTIVE',
+  REVOKED: 'DEACTIVATED',
+};
+
+/** GET /api/v1/stations item. Unlike the real list, it carries branchId (HQ scoping). */
+export function toStationDto(s: MockStation): Station {
   return {
-    machineId: s.id,
-    branchId: s.branchId,
-    online: s.online,
+    id: s.id,
+    serialNumber: s.serialNumber,
+    name: s.name,
+    status: s.online ? 'ONLINE' : 'OFFLINE',
+    lastSeen: s.lastSeenAt,
     locked: s.locked,
     sessionId: s.sessionId,
     runningGameId: s.runningGameId,
-    lastSeenAt: s.lastSeenAt,
+    ip: s.ip,
+    branchId: s.branchId,
   };
 }
 
-export function publishStation(s: Station): void {
+/** GET /api/v1/stations/:id */
+export function toStationDetail(s: MockStation): StationDetail {
+  return {
+    ...toStationDto(s),
+    branchId: s.branchId,
+    enrollmentStatus: ENROLLMENT_TO_BACKEND[s.enrollmentStatus],
+    leaseExpiresAt: null,
+  };
+}
+
+export function stationStatus(s: MockStation): StationStatusEvent {
+  return {
+    serialNumber: s.serialNumber,
+    name: s.name,
+    status: s.online ? 'ONLINE' : 'OFFLINE',
+    lastSeen: s.lastSeenAt ?? nowIso(),
+    ip: s.ip,
+    locked: s.locked,
+    sessionId: s.sessionId,
+    runningGameId: s.runningGameId,
+    branchId: s.branchId,
+  };
+}
+
+export function publishStation(s: MockStation): void {
   publish('station_status', stationStatus(s));
 }
 
-export function setOnline(s: Station, online: boolean): void {
+export function setOnline(s: MockStation, online: boolean): void {
   s.online = online;
   s.lastSeenAt = nowIso();
   if (!online) s.runningGameId = null;
@@ -64,7 +100,7 @@ function jitter(prev: number | undefined, base: number, spread: number, min: num
 }
 
 /** Next sample set for a station, a random walk from the last one. Metric names = agent's mapper. */
-export function nextTelemetry(s: Station): TelemetrySample[] {
+export function nextTelemetry(s: MockStation): TelemetrySample[] {
   const prev = new Map((db.telemetry.get(s.id) ?? []).map((x) => [x.metric, x.value]));
   const busy = s.sessionId !== null;
   const sampledAt = nowIso();
@@ -84,7 +120,7 @@ export function nextTelemetry(s: Station): TelemetrySample[] {
 // ---------- alerts ----------
 
 export function raiseAlert(
-  s: Station,
+  s: MockStation,
   category: AlertCategory,
   type: string,
   severity: AlertSeverity,

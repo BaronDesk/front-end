@@ -15,7 +15,7 @@ import {
   requireStaff,
   requireUser,
 } from '../guards';
-import { publishStation } from '../logic';
+import { publishStation, toStationDetail, toStationDto } from '../logic';
 import { MockHttpError, route, type MockContext } from '../router';
 
 // ---------- branches ----------
@@ -44,10 +44,13 @@ route('GET', '/branches/summary', (ctx) => {
 // ---------- stations ----------
 
 // Only approved stations; the enrollment queue has its own endpoint.
-route('GET', '/stations', (ctx) => {
+// The real list ignores ?branchId= today; the mock honours it (HQ view).
+route('GET', '/api/v1/stations', (ctx) => {
   const caller = requireStaff(ctx);
   const branch = branchFilter(caller, ctx.query.get('branchId'));
-  return db.stations.filter((s) => s.enrollmentStatus === 'APPROVED' && (!branch || s.branchId === branch));
+  return db.stations
+    .filter((s) => s.enrollmentStatus === 'APPROVED' && (!branch || s.branchId === branch))
+    .map(toStationDto);
 });
 
 // Public-ish list for the gamer portal: no MAC/IP, just free or busy.
@@ -71,11 +74,11 @@ route('GET', '/stations/availability', (ctx) => {
     });
 });
 
-route('GET', '/stations/:id', (ctx) => {
+route('GET', '/api/v1/stations/:id', (ctx) => {
   const caller = requireStaff(ctx);
   const s = findStation(ctx.params.id);
   assertBranch(caller, s.branchId);
-  return s;
+  return toStationDetail(s);
 });
 
 // Latest telemetry from the cache, so the detail page isn't empty until the next push.

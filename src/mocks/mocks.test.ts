@@ -67,15 +67,15 @@ describe('auth', () => {
 
 describe('branch scope and roles', () => {
   it('staff see only their branch; HQ sees all', async () => {
-    const staff = await call('GET', '/stations', undefined, await login('staff.sousse'));
-    const hq = await call('GET', '/stations', undefined, await login('hq.admin'));
+    const staff = await call('GET', '/api/v1/stations', undefined, await login('staff.sousse'));
+    const hq = await call('GET', '/api/v1/stations', undefined, await login('hq.admin'));
     const staffStations = staff.data as Station[];
     expect(staffStations.every((s) => s.branchId === db.branches[1].id)).toBe(true);
     expect((hq.data as Station[]).length).toBeGreaterThan(staffStations.length);
   });
 
   it('403 FORBIDDEN_BRANCH on another branch station', async () => {
-    const res = await call('GET', `/stations/${byName('TUN-01').id}`, undefined, await login('staff.sousse'));
+    const res = await call('GET', `/api/v1/stations/${byName('TUN-01').id}`, undefined, await login('staff.sousse'));
     expect(res.status).toBe(403);
     expect(res.data).toMatchObject({ code: 'FORBIDDEN_BRANCH' });
   });
@@ -87,7 +87,7 @@ describe('branch scope and roles', () => {
   });
 
   it('401 without a token', async () => {
-    expect((await call('GET', '/stations')).status).toBe(401);
+    expect((await call('GET', '/api/v1/stations')).status).toBe(401);
   });
 
   it('404 for a route that has no mock', async () => {
@@ -98,11 +98,11 @@ describe('branch scope and roles', () => {
 describe('HQ (multi-agency)', () => {
   it('?branchId narrows HQ lists to one branch; staff cannot widen theirs', async () => {
     const sousse = db.branches[1].id;
-    const hq = await call('GET', `/stations?branchId=${sousse}`, undefined, await login('hq.admin'));
+    const hq = await call('GET', `/api/v1/stations?branchId=${sousse}`, undefined, await login('hq.admin'));
     expect((hq.data as Station[]).length).toBeGreaterThan(0);
     expect((hq.data as Station[]).every((s) => s.branchId === sousse)).toBe(true);
 
-    const staff = await call('GET', `/stations?branchId=${sousse}`, undefined, await login('staff.tunis'));
+    const staff = await call('GET', `/api/v1/stations?branchId=${sousse}`, undefined, await login('staff.tunis'));
     expect((staff.data as Station[]).every((s) => s.branchId === db.branches[0].id)).toBe(true);
   });
 
@@ -156,7 +156,7 @@ describe('commands and realtime', () => {
 
     await vi.advanceTimersByTimeAsync(600);
     expect(tunisResults).toContainEqual(expect.objectContaining({ commandId: (res.data as CommandLog).id, status: 'ACKED' }));
-    expect(tunisStatus).toContainEqual(expect.objectContaining({ machineId: station.id, locked: true }));
+    expect(tunisStatus).toContainEqual(expect.objectContaining({ serialNumber: station.serialNumber, locked: true }));
     expect(sousseResults).toHaveLength(0);
     tunis.disconnect();
     sousse.disconnect();

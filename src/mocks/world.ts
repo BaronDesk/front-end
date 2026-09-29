@@ -8,9 +8,8 @@
  *   every 45 s  a random alert (overheating or USB device removed)
  *   after 60 s  a new station TUN-07 asks to enroll
  */
-import type { Station } from '../api/types';
 import { publish } from './bus';
-import { db, FLAKY_STATION_ID, newId, nowIso } from './db';
+import { db, FLAKY_STATION_ID, newId, nowIso, type MockStation } from './db';
 import { endSession, nextTelemetry, publishStation, raiseAlert, sessionUpdate, setOnline, startSession } from './logic';
 
 const TELEMETRY_MS = 2_000;
@@ -21,7 +20,7 @@ const ENROLL_AFTER_MS = 60_000;
 
 let started = false;
 
-function liveStations(): Station[] {
+function liveStations(): MockStation[] {
   return db.stations.filter((s) => s.enrollmentStatus === 'APPROVED' && s.online);
 }
 
@@ -81,8 +80,9 @@ export function startDemoSession(username: string): string {
 
 function newEnrollmentRequest(): void {
   const branchId = db.branches[0].id;
-  const s: Station = {
+  const s: MockStation = {
     id: newId(),
+    serialNumber: 'SN-TUN-07',
     branchId,
     name: 'TUN-07',
     mac: '00:1A:2B:3C:4D:77',

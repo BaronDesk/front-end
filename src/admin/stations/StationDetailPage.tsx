@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 
-import type { Alert, CommandLog, CommandType, Game, SessionView, Station, TelemetrySample } from '../../api/types';
+import type { Alert, CommandLog, CommandType, Game, SessionView, StationDetail, TelemetrySample } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatAgo, formatClock, formatDateTime, formatDuration, secondsSince, useNow } from '../../shared/format';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
 import { useGamerNames } from '../useLookups';
+import { applyStatus, isOnline, screenText, stationLabel, STATIONS_PATH } from './station';
 import { describeMetric, formatMetric, isHot } from './telemetry';
 import { COMMAND_LABEL, useCommands } from './useCommands';
 
@@ -25,7 +26,7 @@ export function StationDetailPage() {
   const { id = '' } = useParams();
   const now = useNow(5_000);
 
-  const station = useApiQuery<Station>(`/stations/${id}`);
+  const station = useApiQuery<StationDetail>(`${STATIONS_PATH}/${id}`);
   const snapshot = useApiQuery<TelemetrySample[]>(`/stations/${id}/telemetry`);
   const games = useApiQuery<Game[]>(`/stations/${id}/games`);
   const log = useApiQuery<CommandLog[]>(`/commands?machineId=${id}`);
@@ -49,8 +50,7 @@ export function StationDetailPage() {
   });
 
   useRealtimeEvent('station_status', (e) => {
-    if (e.machineId !== id) return;
-    station.setData((s) => s && { ...s, online: e.online, locked: e.locked, sessionId: e.sessionId, runningGameId: e.runningGameId, lastSeenAt: e.lastSeenAt });
+    station.setData((s) => (s && s.serialNumber === e.serialNumber ? applyStatus(s, e) : s));
   });
   useRealtimeEvent('telemetry_update', (e) => {
     if (e.machineId !== id) return;
@@ -95,7 +95,9 @@ export function StationDetailPage() {
 
   const waiting = commands.pendingFor(id);
   const busy = Boolean(waiting);
-  const samples = [...(s.online ? (snapshot.data ?? []) : [])].sort(
+  const online = isOnline(s);
+  const name = stationLabel(s);
+  const samples = [...(online ? (snapshot.data ?? []) : [])].sort(
     (a, b) => describeMetric(a.metric).order - describeMetric(b.metric).order,
   );
   const range = (metric: string) => {
@@ -109,20 +111,23 @@ export function StationDetailPage() {
       <p>
         <Link to="/stations">« Back to stations</Link>
       </p>
-      <h1>Station {s.name}</h1>
+      <h1>Station {name}</h1>
       <ErrorBox error={actionError} />
 
       <table className="kv">
         <tbody>
           <tr>
             <th>Status</th>
-            <td className={s.online ? 'status-ok' : 'status-bad'}>
-              {s.online ? 'ONLINE' : 'OFFLINE'} <span className="muted">(last seen {formatAgo(s.lastSeenAt, now)})</span>
+            <td className={online ? 'status-ok' : 'status-bad'}>
+              {s.status} <span className="muted">(last seen {formatAgo(s.lastSeen, now)})</span>
             </td>
           </tr>
           <tr>
             <th>Screen</th>
-            <td>{s.locked ? 'Locked' : 'Unlocked'}</td>
+            <td>
+              {screenText(s.locked)}
+              {s.leaseExpiresAt && <span className="muted"> (lease until {formatClock(s.leaseExpiresAt)})</span>}
+            </td>
           </tr>
           <tr>
             <th>Session</th>
@@ -152,10 +157,14 @@ export function StationDetailPage() {
             </tr>
           )}
           <tr>
-            <th>IP / MAC</th>
+            <th>Serial / IP</th>
             <td>
-              {s.ip} / {s.mac}
+              <code>{s.serialNumber}</code> / {s.ip ?? '—'}
             </td>
+          </tr>
+          <tr>
+            <th>Enrollment</th>
+            <td>{s.enrollmentStatus}</td>
           </tr>
         </tbody>
       </table>
@@ -171,7 +180,7 @@ export function StationDetailPage() {
         <button
           type="button"
           disabled={busy}
-          onClick={() => window.confirm(`Shut down ${s.name}?${s.sessionId ? ' The running session ends.' : ''}`) && run('SHUTDOWN')}
+          onClick={() => window.confirm(`Shut down ${name}?${s.sessionId ? ' The running session ends.' : ''}`) && run('SHUTDOWN')}
         >
           Shut down
         </button>{' '}
@@ -179,7 +188,7 @@ export function StationDetailPage() {
           type="button"
           disabled={busy || !s.sessionId}
           title={s.sessionId ? '' : 'No session on this station'}
-          onClick={() => window.confirm(`End the session on ${s.name} and bill it now?`) && run('END_SESSION')}
+          onClick={() => window.confirm(`End the session on ${name} and bill it now?`) && run('END_SESSION')}
         >
           End session
         </button>
@@ -198,9 +207,9 @@ export function StationDetailPage() {
         {waiting && <i> &nbsp; {COMMAND_LABEL[waiting.type]}… waiting for the station</i>}
       </div>
 
-      <h2>Telemetry {s.online && <span className="muted">(live, min/max over the last 5 minutes on this page)</span>}</h2>
+      <h2>Telemetry {online && <span className="muted">(live, min/max over the last 5 minutes on this page)</span>}</h2>
       {samples.length === 0 ? (
-        <p className="muted">{s.online ? 'Waiting for the first reading…' : 'Station is offline.'}</p>
+        <p className="muted">{online ? 'Waiting for the first reading…' : 'Station is offline.'}</p>
       ) : (
         <table className="grid" style={{ width: 'auto' }}>
           <thead>

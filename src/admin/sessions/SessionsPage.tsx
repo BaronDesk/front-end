@@ -10,6 +10,7 @@ import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
 import { GamerSelect, StationSelect } from '../pickers';
+import { isOnline } from '../stations/station';
 import { useGamerNames, useStationNames } from '../useLookups';
 import { endReasonLabel } from './labels';
 
@@ -180,7 +181,7 @@ export function SessionsPage() {
                 required
                 value={form.machineId}
                 onChange={(v) => setForm({ ...form, machineId: v })}
-                filter={(s: Station) => s.online && !s.sessionId}
+                filter={(s: Station) => isOnline(s) && !s.sessionId}
               />
             </div>
             <div className="form-row">

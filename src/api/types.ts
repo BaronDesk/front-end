@@ -1,6 +1,6 @@
 /*
- * Shapes the frontend reads from the backend. Auth + user shapes mirror
- * back-end/src/modules/identity as it is today. Everything else follows
+ * Shapes the frontend reads from the backend. Auth, user and station shapes
+ * mirror back-end/src as it is today. Everything else still follows
  * Step 0 — Frozen Contracts and the Frontend brief §7/§8; the backend does
  * not serve those yet, so the mock layer (src/mocks) is the only producer.
  */
@@ -45,9 +45,44 @@ export interface BranchSummary {
   openAlerts: number;
 }
 
+export type MachineStatus = 'ONLINE' | 'OFFLINE';
+
+/** GET /api/v1/stations item (station/services/stations.service.ts toStation). */
+export interface Station {
+  id: string;
+  serialNumber: string;
+  /** Optional on the machine row: show serialNumber when null (stationLabel). */
+  name: string | null;
+  status: MachineStatus;
+  lastSeen: string | null;
+  /** null until the agent has reported since the server started. */
+  locked: boolean | null;
+  sessionId: string | null;
+  /** The catalog's wire gameId, set only from the agent's state_report. */
+  runningGameId: string | null;
+  ip: string | null;
+  /** Not in the real list yet (backend gap); the mock sends it. */
+  branchId?: string;
+}
+
+/** Backend MachineEnrollmentStatus. */
+export type MachineEnrollmentStatus = 'PENDING' | 'ENROLLED' | 'INACTIVE' | 'DEACTIVATED';
+
+/** GET /api/v1/stations/:id */
+export interface StationDetail extends Station {
+  branchId: string;
+  enrollmentStatus: MachineEnrollmentStatus;
+  /** When the agent's unlock lease runs out, if it reported one. */
+  leaseExpiresAt: string | null;
+}
+
+/**
+ * Mock only: the backend has no enrollment admin endpoints yet, so the
+ * "New stations" page still uses the draft shape and statuses.
+ */
 export type EnrollmentStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVOKED';
 
-export interface Station {
+export interface EnrollmentStation {
   id: string;
   branchId: string;
   name: string;
@@ -55,9 +90,6 @@ export interface Station {
   ip: string;
   enrollmentStatus: EnrollmentStatus;
   online: boolean;
-  locked: boolean;
-  sessionId: string | null;
-  runningGameId: string | null;
   lastSeenAt: string | null;
 }
 
@@ -239,14 +271,17 @@ export interface Pricing {
 
 // ---------- /dashboard-io events (brief §7) ----------
 
+/** station/services/presence.service.ts StationStatusEvent. Keyed by serialNumber, not id. */
 export interface StationStatusEvent {
-  machineId: string;
-  branchId: string;
-  online: boolean;
-  locked: boolean;
+  serialNumber: string;
+  name: string | null;
+  status: MachineStatus;
+  lastSeen: string;
+  ip: string | null;
+  locked: boolean | null;
   sessionId: string | null;
   runningGameId: string | null;
-  lastSeenAt: string | null;
+  branchId: string;
 }
 
 export interface TelemetryUpdateEvent {

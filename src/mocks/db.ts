@@ -14,7 +14,7 @@ import type {
   Reservation,
   Role,
   Session,
-  Station,
+  EnrollmentStation,
   Subscription,
   SubscriptionPlan,
   TelemetrySample,
@@ -31,6 +31,18 @@ export interface MockUser {
   branchId: string | null;
   createdAt: string;
   password: string;
+}
+
+/**
+ * A station as the mock keeps it: the enrollment record plus live agent
+ * state. Handlers turn it into the real API shapes (logic.ts toStationDto,
+ * stationStatus).
+ */
+export interface MockStation extends EnrollmentStation {
+  serialNumber: string;
+  locked: boolean;
+  sessionId: string | null;
+  runningGameId: string | null;
 }
 
 /** Stable ids, so URLs like #/stations/<id> survive a reload. */
@@ -100,9 +112,10 @@ const gamerIds = users.filter((u) => u.role === 'GAMER').map((u) => u.id);
 const [G1, G2, G3] = gamerIds;
 const LOW = users.find((u) => u.username === 'lowbalance')!.id;
 
-function station(n: number, branchId: string, name: string, extra: Partial<Station> = {}): Station {
+function station(n: number, branchId: string, name: string, extra: Partial<MockStation> = {}): MockStation {
   return {
     id: sid(3, n),
+    serialNumber: `SN-${name}`,
     branchId,
     name,
     mac: `00:1A:2B:3C:4D:${n.toString(16).padStart(2, '0').toUpperCase()}`,
@@ -119,7 +132,7 @@ function station(n: number, branchId: string, name: string, extra: Partial<Stati
 
 const ACTIVE_SESSION = sid(9, 1);
 
-const stations: Station[] = [
+const stations: MockStation[] = [
   station(1, B1, 'TUN-01'),
   station(2, B1, 'TUN-02', { locked: false, sessionId: ACTIVE_SESSION }),
   station(3, B1, 'TUN-03'),

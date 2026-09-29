@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 
 import { api } from '../../api/http';
-import type { EnrollmentStatus, Station } from '../../api/types';
+import type { EnrollmentStation, EnrollmentStatus } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatAgo, useNow } from '../../shared/format';
@@ -23,7 +23,7 @@ export function EnrollmentPage() {
   const showBranch = isHq && branchId === null;
   const now = useNow(10_000);
   const [status, setStatus] = useState<EnrollmentStatus>('PENDING');
-  const stations = useApiQuery<Station[]>(scoped(`/enrollment?status=${status}`));
+  const stations = useApiQuery<EnrollmentStation[]>(scoped(`/enrollment?status=${status}`));
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export function EnrollmentPage() {
   });
   useOnReconnect(stations.reload);
 
-  async function act(s: Station, action: Action) {
+  async function act(s: EnrollmentStation, action: Action) {
     if (action === 'revoke' && !window.confirm(`Revoke ${s.name}? It is disconnected and must enroll again.`)) return;
     setBusy(s.id);
     setError(null);

@@ -9,6 +9,7 @@ import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
 import { GamerSelect, StationSelect } from '../pickers';
+import { stationLabel, STATIONS_PATH } from '../stations/station';
 import { useGamerNames } from '../useLookups';
 
 /** Hours shown in the day grid. */
@@ -36,7 +37,7 @@ export function ReservationsPage() {
   const [date, setDate] = useState(localDate);
   const { scoped } = useBranchScope();
   const reservations = useApiQuery<Reservation[]>(scoped(`/reservations?date=${date}`));
-  const stations = useApiQuery<Station[]>(scoped('/stations'));
+  const stations = useApiQuery<Station[]>(scoped(STATIONS_PATH));
   const gamerNames = useGamerNames();
   const action = useAction();
   useOnReconnect(reservations.reload);
@@ -45,8 +46,11 @@ export function ReservationsPage() {
   const [bookKey, setBookKey] = useState(newIdempotencyKey);
 
   const list = reservations.data ?? [];
-  const stationName = (id: string) => stations.data?.find((s) => s.id === id)?.name ?? id.slice(0, 8);
-  const sortedStations = [...(stations.data ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+  const stationName = (id: string) => {
+    const s = stations.data?.find((x) => x.id === id);
+    return s ? stationLabel(s) : id.slice(0, 8);
+  };
+  const sortedStations = [...(stations.data ?? [])].sort((a, b) => stationLabel(a).localeCompare(stationLabel(b)));
 
   function cell(machineId: string, hour: number): Reservation | undefined {
     const from = new Date(`${date}T00:00`);
@@ -126,7 +130,7 @@ export function ReservationsPage() {
             {sortedStations.map((s) => (
               <tr key={s.id}>
                 <td>
-                  <b>{s.name}</b>
+                  <b>{stationLabel(s)}</b>
                 </td>
                 {HOURS.map((h) => {
                   const r = cell(s.id, h);

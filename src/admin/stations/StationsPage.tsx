@@ -11,6 +11,7 @@ import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
 import { useGamerNames } from '../useLookups';
 import { CommandNotices } from './CommandNotices';
+import { applyStatus, isOnline, screenText, stationLabel, STATIONS_PATH } from './station';
 import { formatMetric, isHot } from './telemetry';
 import { COMMAND_LABEL, useCommands } from './useCommands';
 
@@ -28,7 +29,7 @@ export function StationsPage() {
   const canBulk = hasRole(user, 'MANAGER');
   const now = useNow(10_000);
 
-  const stations = useApiQuery<Station[]>(scoped('/stations'));
+  const stations = useApiQuery<Station[]>(scoped(STATIONS_PATH));
   const sessions = useApiQuery<SessionView[]>(scoped('/sessions?status=ACTIVE'));
   const alerts = useApiQuery<Alert[]>(scoped('/alerts'));
   const gamerNames = useGamerNames();
@@ -47,19 +48,13 @@ export function StationsPage() {
 
   useRealtimeEvent('station_status', (e) => {
     if (!inScope(e.branchId)) return; // HQ looking at another branch
-    const current = stations.data?.find((s) => s.id === e.machineId);
+    const current = stations.data?.find((s) => s.serialNumber === e.serialNumber);
     if (!current) {
       reloadSoon(); // a station we don't list yet (just approved, or another branch for HQ)
       return;
     }
     if (current.sessionId !== e.sessionId) sessions.reload();
-    stations.setData((list) =>
-      list?.map((s) =>
-        s.id === e.machineId
-          ? { ...s, online: e.online, locked: e.locked, sessionId: e.sessionId, runningGameId: e.runningGameId, lastSeenAt: e.lastSeenAt }
-          : s,
-      ),
-    );
+    stations.setData((list) => list?.map((s) => (s.serialNumber === e.serialNumber ? applyStatus(s, e) : s)));
   });
 
   useRealtimeEvent('telemetry_update', (e) => setTelemetry((t) => ({ ...t, [e.machineId]: e.samples })));
@@ -75,13 +70,18 @@ export function StationsPage() {
     alerts.reload();
   });
 
+  // The real list has no branchId yet: those rows sort (and show) without a branch.
+  const branchOf = (s: Station) => (s.branchId ? branchName(s.branchId) : '—');
   const list = [...(stations.data ?? [])].sort(
-    (a, b) => branchName(a.branchId).localeCompare(branchName(b.branchId)) || a.name.localeCompare(b.name),
+    (a, b) => branchOf(a).localeCompare(branchOf(b)) || stationLabel(a).localeCompare(stationLabel(b)),
   );
   const sessionById = new Map((sessions.data ?? []).map((s) => [s.id, s]));
   const openAlerts = (machineId: string) =>
     (alerts.data ?? []).filter((a) => a.machineId === machineId && a.status !== 'RESOLVED').length;
-  const stationName = (id: string) => stations.data?.find((s) => s.id === id)?.name ?? id.slice(0, 8);
+  const stationName = (id: string) => {
+    const s = stations.data?.find((x) => x.id === id);
+    return s ? stationLabel(s) : id.slice(0, 8);
+  };
   const gameTitle = (id: string | null) => (id ? (games.data?.find((g) => g.id === id)?.title ?? 'a game') : null);
 
   async function run(machineIds: string[], type: CommandType) {
@@ -105,7 +105,7 @@ export function StationsPage() {
   }
 
   const selectedIds = list.filter((s) => selected.has(s.id)).map((s) => s.id);
-  const online = list.filter((s) => s.online).length;
+  const online = list.filter(isOnline).length;
   const inSession = list.filter((s) => s.sessionId).length;
 
   return (
@@ -172,18 +172,18 @@ export function StationsPage() {
               <tr key={s.id}>
                 {canBulk && (
                   <td>
-                    <input type="checkbox" aria-label={`Select ${s.name}`} checked={selected.has(s.id)} onChange={() => toggle(s.id)} />
+                    <input type="checkbox" aria-label={`Select ${stationLabel(s)}`} checked={selected.has(s.id)} onChange={() => toggle(s.id)} />
                   </td>
                 )}
                 <td>
                   <Link to={`/stations/${s.id}`}>
-                    <b>{s.name}</b>
+                    <b>{stationLabel(s)}</b>
                   </Link>
                 </td>
-                {showBranch && <td>{branchName(s.branchId)}</td>}
-                <td className={s.online ? 'status-ok' : 'status-bad'}>{s.online ? 'ONLINE' : 'OFFLINE'}</td>
+                {showBranch && <td>{branchOf(s)}</td>}
+                <td className={isOnline(s) ? 'status-ok' : 'status-bad'}>{s.status}</td>
                 <td>
-                  {s.locked ? 'Locked' : 'Unlocked'}
+                  {screenText(s.locked)}
                   {s.runningGameId && <div className="muted">{gameTitle(s.runningGameId)}</div>}
                 </td>
                 <td>
@@ -197,10 +197,10 @@ export function StationsPage() {
                   )}
                 </td>
                 <td>
-                  <Temp samples={s.online ? telemetry[s.id] : undefined} metric="cpu.temperature_c" />
+                  <Temp samples={isOnline(s) ? telemetry[s.id] : undefined} metric="cpu.temperature_c" />
                 </td>
                 <td>
-                  <Temp samples={s.online ? telemetry[s.id] : undefined} metric="gpu.0.temperature_c" />
+                  <Temp samples={isOnline(s) ? telemetry[s.id] : undefined} metric="gpu.0.temperature_c" />
                 </td>
                 <td className={alertCount ? 'status-bad' : 'muted'}>{alertCount || '—'}</td>
                 <td className="nowrap">
