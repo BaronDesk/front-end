@@ -6,7 +6,16 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { BranchSummary, CommandLog, DashboardEvents, Reservation, SessionView, Station, WalletTransaction } from '../api/types';
+import type {
+  BranchSummary,
+  CommandLog,
+  DashboardEvents,
+  Reservation,
+  SessionView,
+  Station,
+  TelemetrySnapshot,
+  WalletTransaction,
+} from '../api/types';
 import { db } from './db';
 import { userFromToken } from './handlers/auth';
 import { createFakeRealtime } from './realtime';
@@ -92,6 +101,23 @@ describe('branch scope and roles', () => {
 
   it('404 for a route that has no mock', async () => {
     expect((await call('GET', '/nope', undefined, await login('hq.admin'))).status).toBe(404);
+  });
+});
+
+describe('telemetry', () => {
+  it('serves the latest snapshot of an online station; 404 TELEMETRY_NOT_AVAILABLE when offline', async () => {
+    const token = await login('staff.tunis');
+    const online = byName('TUN-01');
+    await vi.advanceTimersByTimeAsync(2_100); // one telemetry tick
+
+    const res = await call('GET', `/api/v1/stations/${online.id}/telemetry`, undefined, token);
+    expect(res.status).toBe(200);
+    const snapshot = res.data as TelemetrySnapshot;
+    expect(snapshot).toMatchObject({ machineId: online.id, serialNumber: online.serialNumber, branchId: online.branchId });
+    expect(snapshot.metrics['cpu.temperature_c']).toEqual(expect.any(Number));
+
+    const offline = await call('GET', `/api/v1/stations/${byName('TUN-04').id}/telemetry`, undefined, token);
+    expect(offline).toMatchObject({ status: 404, data: { code: 'TELEMETRY_NOT_AVAILABLE' } });
   });
 });
 

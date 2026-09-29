@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 
-import type { Alert, CommandType, SessionView, Station, TelemetrySample } from '../../api/types';
+import type { Alert, CommandType, SessionView, Station } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { hasRole } from '../../auth/roles';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
@@ -15,10 +15,10 @@ import { applyStatus, isOnline, screenText, stationLabel, STATIONS_PATH } from '
 import { formatMetric, isHot } from './telemetry';
 import { COMMAND_LABEL, useCommands } from './useCommands';
 
-function Temp({ samples, metric }: { samples: TelemetrySample[] | undefined; metric: string }) {
-  const sample = samples?.find((s) => s.metric === metric);
-  if (!sample) return <span className="muted">—</span>;
-  return <span className={isHot(metric, sample.value) ? 'status-bad' : ''}>{formatMetric(metric, sample.value)}</span>;
+function Temp({ metrics, metric }: { metrics: Record<string, number> | undefined; metric: string }) {
+  const value = metrics?.[metric];
+  if (value === undefined) return <span className="muted">—</span>;
+  return <span className={isHot(metric, value) ? 'status-bad' : ''}>{formatMetric(metric, value)}</span>;
 }
 
 export function StationsPage() {
@@ -34,7 +34,8 @@ export function StationsPage() {
   const alerts = useApiQuery<Alert[]>(scoped('/alerts'));
   const gamerNames = useGamerNames();
   const games = useApiQuery<{ id: string; title: string }[]>('/games');
-  const [telemetry, setTelemetry] = useState<Record<string, TelemetrySample[]>>({});
+  // machineId -> latest metrics, from telemetry_update only (no per-row snapshot call).
+  const [telemetry, setTelemetry] = useState<Record<string, Record<string, number>>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [actionError, setActionError] = useState<unknown>(null);
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -57,7 +58,7 @@ export function StationsPage() {
     stations.setData((list) => list?.map((s) => (s.serialNumber === e.serialNumber ? applyStatus(s, e) : s)));
   });
 
-  useRealtimeEvent('telemetry_update', (e) => setTelemetry((t) => ({ ...t, [e.machineId]: e.samples })));
+  useRealtimeEvent('telemetry_update', (e) => setTelemetry((t) => ({ ...t, [e.machineId]: e.metrics })));
   useRealtimeEvent('alert', (e) => inScope(e.branchId) && alerts.setData((list) => [e, ...(list ?? []).filter((a) => a.id !== e.id)]));
   useRealtimeEvent('session_update', (e) => {
     if (!inScope(e.branchId)) return;
@@ -197,10 +198,10 @@ export function StationsPage() {
                   )}
                 </td>
                 <td>
-                  <Temp samples={isOnline(s) ? telemetry[s.id] : undefined} metric="cpu.temperature_c" />
+                  <Temp metrics={isOnline(s) ? telemetry[s.id] : undefined} metric="cpu.temperature_c" />
                 </td>
                 <td>
-                  <Temp samples={isOnline(s) ? telemetry[s.id] : undefined} metric="gpu.0.temperature_c" />
+                  <Temp metrics={isOnline(s) ? telemetry[s.id] : undefined} metric="gpu.0.temperature_c" />
                 </td>
                 <td className={alertCount ? 'status-bad' : 'muted'}>{alertCount || '—'}</td>
                 <td className="nowrap">

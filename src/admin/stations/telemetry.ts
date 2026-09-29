@@ -36,6 +36,11 @@ export function describeMetric(metric: string): MetricInfo {
   return { label: metric, unit: '', order: 999 };
 }
 
+/** A snapshot's metrics as [metric, value] pairs in display order. */
+export function sortedMetrics(metrics: Record<string, number>): [string, number][] {
+  return Object.entries(metrics).sort(([a], [b]) => describeMetric(a).order - describeMetric(b).order || a.localeCompare(b));
+}
+
 /** Temperatures at or above this are shown in red. The agent's own alert thresholds decide alerts. */
 export const HOT_C = 80;
 

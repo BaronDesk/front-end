@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 
-import type { Alert, CommandLog, CommandType, Game, SessionView, StationDetail, TelemetrySample } from '../../api/types';
+import type { Alert, CommandLog, CommandType, Game, SessionView, StationDetail, TelemetrySnapshot } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatAgo, formatClock, formatDateTime, formatDuration, secondsSince, useNow } from '../../shared/format';
@@ -9,11 +9,17 @@ import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
 import { useGamerNames } from '../useLookups';
 import { applyStatus, isOnline, screenText, stationLabel, STATIONS_PATH } from './station';
-import { describeMetric, formatMetric, isHot } from './telemetry';
+import { describeMetric, formatMetric, isHot, sortedMetrics } from './telemetry';
 import { COMMAND_LABEL, useCommands } from './useCommands';
 
 /** How much telemetry history the page keeps in memory (brief §6: no DB history call). */
 const HISTORY_MS = 5 * 60_000;
+
+/** One telemetry_update seen on this page, for the min/max columns. */
+interface Reading {
+  at: number;
+  metrics: Record<string, number>;
+}
 
 const STATUS_TEXT: Record<CommandLog['status'], string> = {
   PENDING: 'waiting…',
@@ -27,7 +33,8 @@ export function StationDetailPage() {
   const now = useNow(5_000);
 
   const station = useApiQuery<StationDetail>(`${STATIONS_PATH}/${id}`);
-  const snapshot = useApiQuery<TelemetrySample[]>(`/stations/${id}/telemetry`);
+  // 404 TELEMETRY_NOT_AVAILABLE once the server's cache expired: shown as "no reading", not an error.
+  const snapshot = useApiQuery<TelemetrySnapshot>(`${STATIONS_PATH}/${id}/telemetry`);
   const games = useApiQuery<Game[]>(`/stations/${id}/games`);
   const log = useApiQuery<CommandLog[]>(`/commands?machineId=${id}`);
   const alerts = useApiQuery<Alert[]>(`/alerts?machineId=${id}`);
@@ -36,7 +43,7 @@ export function StationDetailPage() {
   const gamerNames = useGamerNames();
   const { isHq, branchName } = useBranchScope();
 
-  const [history, setHistory] = useState<TelemetrySample[]>([]);
+  const [history, setHistory] = useState<Reading[]>([]);
   const [gameId, setGameId] = useState('');
   const [actionError, setActionError] = useState<unknown>(null);
 
@@ -54,9 +61,10 @@ export function StationDetailPage() {
   });
   useRealtimeEvent('telemetry_update', (e) => {
     if (e.machineId !== id) return;
-    snapshot.setData(() => e.samples);
+    snapshot.setData(() => e);
+    const at = Date.parse(e.timestamp) || Date.now();
     const cutoff = Date.now() - HISTORY_MS;
-    setHistory((h) => [...h.filter((x) => Date.parse(x.sampledAt) >= cutoff), ...e.samples]);
+    setHistory((h) => [...h.filter((x) => x.at >= cutoff), { at, metrics: e.metrics }]);
   });
   useRealtimeEvent('alert', (e) => {
     if (e.machineId === id) alerts.setData((list) => [e, ...(list ?? [])]);
@@ -97,11 +105,9 @@ export function StationDetailPage() {
   const busy = Boolean(waiting);
   const online = isOnline(s);
   const name = stationLabel(s);
-  const samples = [...(online ? (snapshot.data ?? []) : [])].sort(
-    (a, b) => describeMetric(a.metric).order - describeMetric(b.metric).order,
-  );
+  const readings = online && snapshot.data ? sortedMetrics(snapshot.data.metrics) : [];
   const range = (metric: string) => {
-    const values = history.filter((x) => x.metric === metric).map((x) => x.value);
+    const values = history.map((x) => x.metrics[metric]).filter((v): v is number => v !== undefined);
     return values.length ? { min: Math.min(...values), max: Math.max(...values) } : null;
   };
   const gameTitle = (gid: string | null) => (gid ? (games.data?.find((g) => g.id === gid)?.title ?? 'unknown game') : '—');
@@ -208,7 +214,10 @@ export function StationDetailPage() {
       </div>
 
       <h2>Telemetry {online && <span className="muted">(live, min/max over the last 5 minutes on this page)</span>}</h2>
-      {samples.length === 0 ? (
+      {online && snapshot.data && (
+        <p className="muted">Last reading at {formatClock(snapshot.data.timestamp)}.</p>
+      )}
+      {readings.length === 0 ? (
         <p className="muted">{online ? 'Waiting for the first reading…' : 'Station is offline.'}</p>
       ) : (
         <table className="grid" style={{ width: 'auto' }}>
@@ -221,14 +230,14 @@ export function StationDetailPage() {
             </tr>
           </thead>
           <tbody>
-            {samples.map((x) => {
-              const r = range(x.metric);
+            {readings.map(([metric, value]) => {
+              const r = range(metric);
               return (
-                <tr key={x.metric}>
-                  <td>{describeMetric(x.metric).label}</td>
-                  <td className={isHot(x.metric, x.value) ? 'status-bad' : 'status-ok'}>{formatMetric(x.metric, x.value)}</td>
-                  <td>{r ? formatMetric(x.metric, r.min) : '—'}</td>
-                  <td>{r ? formatMetric(x.metric, r.max) : '—'}</td>
+                <tr key={metric}>
+                  <td>{describeMetric(metric).label}</td>
+                  <td className={isHot(metric, value) ? 'status-bad' : 'status-ok'}>{formatMetric(metric, value)}</td>
+                  <td>{r ? formatMetric(metric, r.min) : '—'}</td>
+                  <td>{r ? formatMetric(metric, r.max) : '—'}</td>
                 </tr>
               );
             })}

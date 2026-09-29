@@ -12,7 +12,7 @@ import type {
   Station,
   StationDetail,
   StationStatusEvent,
-  TelemetrySample,
+  TelemetrySnapshot,
   TransactionType,
   WalletTransaction,
 } from '../api/types';
@@ -99,12 +99,12 @@ function jitter(prev: number | undefined, base: number, spread: number, min: num
   return Math.round(Math.min(max, Math.max(min, next)) * 10) / 10;
 }
 
-/** Next sample set for a station, a random walk from the last one. Metric names = agent's mapper. */
-export function nextTelemetry(s: MockStation): TelemetrySample[] {
-  const prev = new Map((db.telemetry.get(s.id) ?? []).map((x) => [x.metric, x.value]));
+/** Next snapshot for a station, a random walk from the last one. Metric names = agent's mapper. */
+export function nextTelemetry(s: MockStation): TelemetrySnapshot {
+  const prev = new Map(Object.entries(db.telemetry.get(s.id)?.metrics ?? {}));
   const busy = s.sessionId !== null;
-  const sampledAt = nowIso();
-  const values: Record<string, number> = {
+  const now = nowIso();
+  const metrics: Record<string, number> = {
     'cpu.load_percent': jitter(prev.get('cpu.load_percent'), busy ? 55 : 8, 12, 1, 100),
     'cpu.temperature_c': jitter(prev.get('cpu.temperature_c'), busy ? 62 : 41, 4, 30, 95),
     'memory.usage_percent': jitter(prev.get('memory.usage_percent'), busy ? 61 : 28, 5, 10, 99),
@@ -112,9 +112,16 @@ export function nextTelemetry(s: MockStation): TelemetrySample[] {
     'gpu.0.temperature_c': jitter(prev.get('gpu.0.temperature_c'), busy ? 70 : 38, 4, 30, 95),
     'fan.0.speed_rpm': Math.round(jitter(prev.get('fan.0.speed_rpm'), busy ? 1650 : 780, 120, 500, 2600)),
   };
-  const samples = Object.entries(values).map(([metric, value]) => ({ metric, value, sampledAt }));
-  db.telemetry.set(s.id, samples);
-  return samples;
+  const snapshot: TelemetrySnapshot = {
+    serialNumber: s.serialNumber,
+    machineId: s.id,
+    branchId: s.branchId,
+    timestamp: now,
+    receivedAt: now,
+    metrics,
+  };
+  db.telemetry.set(s.id, snapshot);
+  return snapshot;
 }
 
 // ---------- alerts ----------

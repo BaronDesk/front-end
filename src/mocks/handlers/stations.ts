@@ -82,11 +82,14 @@ route('GET', '/api/v1/stations/:id', (ctx) => {
 });
 
 // Latest telemetry from the cache, so the detail page isn't empty until the next push.
-route('GET', '/stations/:id/telemetry', (ctx) => {
+// The real server answers 404 once its 30 s cache entry expired; offline here.
+route('GET', '/api/v1/stations/:id/telemetry', (ctx) => {
   const caller = requireStaff(ctx);
   const s = findStation(ctx.params.id);
   assertBranch(caller, s.branchId);
-  return s.online ? (db.telemetry.get(s.id) ?? []) : [];
+  const snapshot = s.online ? db.telemetry.get(s.id) : undefined;
+  if (!snapshot) throw new MockHttpError(404, 'TELEMETRY_NOT_AVAILABLE', 'no live telemetry for this station');
+  return snapshot;
 });
 
 // ---------- enrollment ----------

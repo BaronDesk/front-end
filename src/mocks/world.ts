@@ -27,7 +27,7 @@ function liveStations(): MockStation[] {
 function tickTelemetry(): void {
   for (const s of liveStations()) {
     s.lastSeenAt = nowIso();
-    publish('telemetry_update', { machineId: s.id, branchId: s.branchId, samples: nextTelemetry(s) });
+    publish('telemetry_update', nextTelemetry(s));
   }
 }
 

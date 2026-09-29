@@ -102,11 +102,20 @@ export interface StationAvailability {
   nextReservationAt: string | null;
 }
 
-/** Metric names come from the agent's HardwareTelemetryMapper. */
-export interface TelemetrySample {
-  metric: string;
-  value: number;
-  sampledAt: string;
+/**
+ * GET /api/v1/stations/:id/telemetry and the telemetry_update event
+ * (ops/services/telemetry.service.ts TelemetrySnapshot). The server merges the
+ * agent's delta frames, so `metrics` is always the full set. Metric names come
+ * from the agent's HardwareTelemetryMapper (e.g. cpu.temperature_c, gpu.0.load_percent).
+ */
+export interface TelemetrySnapshot {
+  serialNumber: string;
+  machineId: string;
+  branchId: string;
+  /** Newest sampledAt among the frame's readings. */
+  timestamp: string;
+  receivedAt: string;
+  metrics: Record<string, number>;
 }
 
 export interface Game {
@@ -284,12 +293,6 @@ export interface StationStatusEvent {
   branchId: string;
 }
 
-export interface TelemetryUpdateEvent {
-  machineId: string;
-  branchId: string;
-  samples: TelemetrySample[];
-}
-
 export type AlertEvent = Alert;
 
 export interface SessionUpdateEvent {
@@ -318,7 +321,7 @@ export interface CommandResultEvent {
 
 export interface DashboardEvents {
   station_status: StationStatusEvent;
-  telemetry_update: TelemetryUpdateEvent;
+  telemetry_update: TelemetrySnapshot;
   alert: AlertEvent;
   session_update: SessionUpdateEvent;
   command_result: CommandResultEvent;

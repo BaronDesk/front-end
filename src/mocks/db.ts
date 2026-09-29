@@ -17,7 +17,7 @@ import type {
   EnrollmentStation,
   Subscription,
   SubscriptionPlan,
-  TelemetrySample,
+  TelemetrySnapshot,
   WalletTransaction,
 } from '../api/types';
 
@@ -279,8 +279,8 @@ const alerts: Alert[] = [
 
 const pricing: Pricing = { ratePerHour: 3, bookingFee: 1, lowBalanceMinutes: 10 };
 
-/** machineId → latest samples (the backend keeps these in Redis, 30 s TTL). */
-const telemetry = new Map<string, TelemetrySample[]>();
+/** machineId → latest snapshot (the backend keeps these in Redis, 30 s TTL). */
+const telemetry = new Map<string, TelemetrySnapshot>();
 
 const commands: CommandLog[] = [];
 
