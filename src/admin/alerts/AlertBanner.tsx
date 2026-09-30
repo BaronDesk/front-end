@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router';
 
 import { useStationNames } from '../useLookups';
 import { useAlertFeed } from './AlertFeedContext';
-import { typeLabel } from './labels';
+import { alertDetail, repeatText, typeLabel } from './labels';
 
 /** Red bar for alerts that just arrived (brief §6.5: alert → toast + list). Hidden on the Alerts page itself. */
 export function AlertBanner() {
@@ -16,8 +16,8 @@ export function AlertBanner() {
 
   return (
     <div className="banner banner-alert" role="alert">
-      NEW ALERT: {stationNames.get(latest.machineId) ?? 'a station'} &middot; {typeLabel(latest.type)} ({latest.severity}) &middot;{' '}
-      {latest.detail}
+      NEW ALERT: {stationNames.get(latest.machineId) ?? latest.serialNumber ?? 'a station'} &middot; {typeLabel(latest.type)}{' '}
+      ({latest.severity}) &middot; {alertDetail(latest)} {repeatText(latest)}
       {more > 0 && ` (+${more} more)`}
       <span className="banner-actions">
         <Link to="/alerts">View alerts</Link> &nbsp;|&nbsp;{' '}

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 
 import { api } from '../../api/http';
-import type { Alert, AlertCategory, AlertSeverity } from '../../api/types';
+import type { Alert, AlertCategory, AlertSeverity, AlertStatus } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatAgo, formatDateTime, useNow } from '../../shared/format';
@@ -10,21 +10,22 @@ import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
 import { useStationNames } from '../useLookups';
 import { useAlertFeed } from './AlertFeedContext';
-import { CATEGORY_LABEL, isSevere, SEVERITIES, STATUS_LABEL, typeLabel } from './labels';
+import { ALERTS_PATH, alertDetail, CATEGORY_LABEL, isSevere, repeatText, SEVERITIES, typeLabel } from './labels';
 
-type StatusFilter = 'UNRESOLVED' | 'OPEN' | 'ACKED' | 'RESOLVED' | 'ALL';
+type StatusFilter = AlertStatus | 'all';
 
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
-  { value: 'UNRESOLVED', label: 'Not resolved' },
-  { value: 'OPEN', label: 'Open' },
-  { value: 'ACKED', label: 'Acknowledged' },
-  { value: 'RESOLVED', label: 'Resolved' },
-  { value: 'ALL', label: 'All' },
+  { value: 'open', label: 'Open' },
+  { value: 'resolved', label: 'Resolved' },
+  { value: 'all', label: 'All' },
 ];
 
+/** Newest first; the server caps a list at 500. */
+const LIMIT = 500;
+
 function matches(a: Alert, status: StatusFilter, category: string, severity: string): boolean {
-  if (status === 'UNRESOLVED' && a.status === 'RESOLVED') return false;
-  if (status !== 'UNRESOLVED' && status !== 'ALL' && a.status !== status) return false;
+  if (status === 'open' && a.acknowledged) return false;
+  if (status === 'resolved' && !a.acknowledged) return false;
   return (!category || a.category === category) && (!severity || a.severity === severity);
 }
 
@@ -35,15 +36,11 @@ export function AlertsPage() {
   const feed = useAlertFeed();
   const stationNames = useStationNames();
 
-  const [status, setStatus] = useState<StatusFilter>('UNRESOLVED');
+  const [status, setStatus] = useState<StatusFilter>('open');
   const [category, setCategory] = useState('');
   const [severity, setSeverity] = useState('');
-  // Server-side filters where the API has them; "not resolved" is filtered here.
-  const params = new URLSearchParams();
-  if (status === 'OPEN' || status === 'ACKED' || status === 'RESOLVED') params.set('status', status);
-  if (category) params.set('category', category);
-  if (severity) params.set('severity', severity);
-  const alerts = useApiQuery<Alert[]>(scoped(`/alerts${params.size ? `?${params}` : ''}`));
+  // The server filters by status (and HQ's branch); category and severity are filtered here.
+  const alerts = useApiQuery<Alert[]>(scoped(`${ALERTS_PATH}?limit=${LIMIT}${status === 'all' ? '' : `&status=${status}`}`));
 
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
@@ -57,21 +54,34 @@ export function AlertsPage() {
     dismissAll();
   }, [unseen, dismissAll]);
 
+  /** Put a new or changed alert in the list, or drop it if the status filter no longer matches. */
+  function upsert(a: Alert) {
+    alerts.setData((list) => {
+      const rest = (list ?? []).filter((x) => x.id !== a.id);
+      if (status === 'open' && a.acknowledged) return rest;
+      if (status === 'resolved' && !a.acknowledged) return rest;
+      const at = list?.findIndex((x) => x.id === a.id) ?? -1;
+      if (at < 0) return [a, ...rest];
+      const next = [...(list ?? [])];
+      next[at] = a; // a resolve keeps the row where it was
+      return next;
+    });
+  }
+
   useRealtimeEvent('alert', (a) => {
-    if (!inScope(a.branchId) || !matches(a, status, category, severity)) return;
-    alerts.setData((list) => [a, ...(list ?? []).filter((x) => x.id !== a.id)]);
+    if (!inScope(a.branchId)) return;
+    upsert(a);
     setFresh((f) => new Set(f).add(a.id));
   });
+  useRealtimeEvent('alert_resolved', (a) => inScope(a.branchId) && upsert(a));
   useOnReconnect(alerts.reload);
 
-  async function act(a: Alert, action: 'ack' | 'resolve') {
+  async function resolve(a: Alert) {
     setBusy(a.id);
     setError(null);
     try {
-      const updated = await api<Alert>('POST', `/alerts/${a.id}/${action}`);
-      alerts.setData((list) =>
-        (list ?? []).map((x) => (x.id === updated.id ? updated : x)).filter((x) => matches(x, status, category, severity)),
-      );
+      const updated = await api<Alert>('POST', `${ALERTS_PATH}/${a.id}/resolve`);
+      upsert(updated);
       feed.update(updated);
     } catch (err) {
       setError(err);
@@ -142,42 +152,45 @@ export function AlertsPage() {
         </thead>
         <tbody>
           {list.map((a) => (
-            <tr key={a.id} className={a.status === 'RESOLVED' ? 'row-muted' : ''}>
+            <tr key={a.id} className={a.acknowledged ? 'row-muted' : ''}>
               <td className="nowrap">
-                {formatDateTime(a.occurredAt)}
-                <div className="muted">{formatAgo(a.occurredAt, now)}</div>
+                {formatDateTime(a.createdAt)}
+                <div className="muted">{formatAgo(a.createdAt, now)}</div>
               </td>
               <td>
-                <Link to={`/stations/${a.machineId}`}>{stationNames.get(a.machineId) ?? a.machineId.slice(0, 8)}</Link>
+                <Link to={`/stations/${a.machineId}`}>
+                  {stationNames.get(a.machineId) ?? a.serialNumber ?? a.machineId.slice(0, 8)}
+                </Link>
               </td>
-              {showBranch && <td>{branchName(a.branchId)}</td>}
+              {showBranch && <td>{a.branchId ? branchName(a.branchId) : '—'}</td>}
               <td>{CATEGORY_LABEL[a.category] ?? a.category}</td>
               <td>
                 {typeLabel(a.type)}
-                {fresh.has(a.id) && a.status === 'OPEN' && <span className="new-tag">NEW</span>}
+                {fresh.has(a.id) && !a.acknowledged && <span className="new-tag">NEW</span>}
               </td>
               <td className={isSevere(a.severity) ? 'status-bad' : ''}>{a.severity}</td>
-              <td>{a.detail}</td>
-              <td className={a.status === 'OPEN' ? 'status-ok' : ''}>{STATUS_LABEL[a.status]}</td>
+              <td>
+                {alertDetail(a)} {repeatText(a) && <b>{repeatText(a)}</b>}
+              </td>
+              <td className={a.acknowledged ? '' : 'status-ok'}>
+                {a.acknowledged ? (
+                  <>
+                    Resolved
+                    {a.acknowledgedAt && <div className="muted">{formatDateTime(a.acknowledgedAt)}</div>}
+                  </>
+                ) : (
+                  'Open'
+                )}
+              </td>
               <td className="nowrap">
                 {busy === a.id ? (
                   <i>working…</i>
+                ) : a.acknowledged ? (
+                  <span className="muted">—</span>
                 ) : (
-                  <>
-                    {a.status === 'OPEN' && (
-                      <>
-                        <button type="button" onClick={() => act(a, 'ack')}>
-                          Acknowledge
-                        </button>{' '}
-                      </>
-                    )}
-                    {a.status !== 'RESOLVED' && (
-                      <button type="button" className="secondary" onClick={() => act(a, 'resolve')}>
-                        Resolve
-                      </button>
-                    )}
-                    {a.status === 'RESOLVED' && <span className="muted">—</span>}
-                  </>
+                  <button type="button" onClick={() => resolve(a)}>
+                    Resolve
+                  </button>
                 )}
               </td>
             </tr>

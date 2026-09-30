@@ -9,6 +9,7 @@ import { ErrorBox } from '../../shared/ErrorBox';
 import { formatDuration, secondsSince, useNow } from '../../shared/format';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
+import { ALERTS_PATH } from '../alerts/labels';
 import { useGamerNames } from '../useLookups';
 import { CommandNotices } from './CommandNotices';
 import { applyStatus, isOnline, screenText, stationLabel, STATIONS_PATH } from './station';
@@ -31,7 +32,7 @@ export function StationsPage() {
 
   const stations = useApiQuery<Station[]>(scoped(STATIONS_PATH));
   const sessions = useApiQuery<SessionView[]>(scoped('/sessions?status=ACTIVE'));
-  const alerts = useApiQuery<Alert[]>(scoped('/alerts'));
+  const alerts = useApiQuery<Alert[]>(scoped(`${ALERTS_PATH}?status=open&limit=500`));
   const gamerNames = useGamerNames();
   const games = useApiQuery<{ id: string; title: string }[]>('/games');
   // machineId -> latest metrics, from telemetry_update only (no per-row snapshot call).
@@ -60,6 +61,7 @@ export function StationsPage() {
 
   useRealtimeEvent('telemetry_update', (e) => setTelemetry((t) => ({ ...t, [e.machineId]: e.metrics })));
   useRealtimeEvent('alert', (e) => inScope(e.branchId) && alerts.setData((list) => [e, ...(list ?? []).filter((a) => a.id !== e.id)]));
+  useRealtimeEvent('alert_resolved', (e) => alerts.setData((list) => list?.filter((a) => a.id !== e.id)));
   useRealtimeEvent('session_update', (e) => {
     if (!inScope(e.branchId)) return;
     if (e.status === 'ENDED' || !sessions.data?.some((s) => s.id === e.sessionId)) sessions.reload();
@@ -78,7 +80,7 @@ export function StationsPage() {
   );
   const sessionById = new Map((sessions.data ?? []).map((s) => [s.id, s]));
   const openAlerts = (machineId: string) =>
-    (alerts.data ?? []).filter((a) => a.machineId === machineId && a.status !== 'RESOLVED').length;
+    (alerts.data ?? []).filter((a) => a.machineId === machineId && !a.acknowledged).length;
   const stationName = (id: string) => {
     const s = stations.data?.find((x) => x.id === id);
     return s ? stationLabel(s) : id.slice(0, 8);

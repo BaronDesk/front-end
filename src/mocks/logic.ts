@@ -133,16 +133,20 @@ export function raiseAlert(
   severity: AlertSeverity,
   detail: string,
 ): Alert {
+  const occurredAt = nowIso();
   const alert: Alert = {
     id: newId(),
     machineId: s.id,
+    serialNumber: s.serialNumber,
     branchId: s.branchId,
     category,
     type,
     severity,
-    detail,
-    status: 'OPEN',
-    occurredAt: nowIso(),
+    value: { serialNumber: s.serialNumber, message: detail, occurredAt },
+    acknowledged: false,
+    acknowledgedByUserId: null,
+    acknowledgedAt: null,
+    createdAt: occurredAt,
   };
   db.alerts.unshift(alert);
   publish('alert', alert);

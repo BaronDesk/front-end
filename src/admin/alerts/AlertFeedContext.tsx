@@ -4,14 +4,15 @@ import type { Alert } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
+import { ALERTS_PATH } from './labels';
 
 interface AlertFeed {
-  /** Alerts nobody has acknowledged yet (menu count). */
+  /** Alerts nobody has resolved yet (menu count). */
   openCount: number;
   /** Alerts that arrived live and haven't been looked at (banner), newest first. */
   unseen: Alert[];
   dismissAll(): void;
-  /** Tell the feed an alert changed status on the Alerts page. */
+  /** Tell the feed an alert changed on the Alerts page. */
   update(alert: Alert): void;
 }
 
@@ -22,24 +23,32 @@ const MAX_UNSEEN = 20;
 export function AlertFeedProvider({ children }: { children: ReactNode }) {
   // Menu count and banner follow HQ's branch choice, like every list.
   const { scoped, inScope } = useBranchScope();
-  const open = useApiQuery<Alert[]>(scoped('/alerts?status=OPEN'));
+  const open = useApiQuery<Alert[]>(scoped(`${ALERTS_PATH}?status=open&limit=500`));
   const [unseen, setUnseen] = useState<Alert[]>([]);
-
-  useRealtimeEvent('alert', (a) => {
-    if (!inScope(a.branchId)) return;
-    open.setData((list) => [a, ...(list ?? []).filter((x) => x.id !== a.id)]);
-    setUnseen((u) => [a, ...u.filter((x) => x.id !== a.id)].slice(0, MAX_UNSEEN));
-  });
-  useOnReconnect(open.reload);
-
   const { setData } = open;
+
   const update = useCallback(
     (alert: Alert) => {
-      setData((list) => (list ?? []).filter((x) => x.id !== alert.id || alert.status === 'OPEN'));
-      setUnseen((u) => u.filter((x) => x.id !== alert.id));
+      if (alert.acknowledged) {
+        setData((list) => list?.filter((x) => x.id !== alert.id));
+        setUnseen((u) => u.filter((x) => x.id !== alert.id));
+      } else {
+        setData((list) => [alert, ...(list ?? []).filter((x) => x.id !== alert.id)]);
+      }
     },
     [setData],
   );
+
+  // A repeat of an open alert comes back with the same id: it shows in the banner again.
+  useRealtimeEvent('alert', (a) => {
+    if (!inScope(a.branchId)) return;
+    update(a);
+    if (!a.acknowledged) setUnseen((u) => [a, ...u.filter((x) => x.id !== a.id)].slice(0, MAX_UNSEEN));
+  });
+  // Resolved by anyone (another staff member, another tab).
+  useRealtimeEvent('alert_resolved', (a) => inScope(a.branchId) && update(a));
+  useOnReconnect(open.reload);
+
   const dismissAll = useCallback(() => setUnseen((u) => (u.length ? [] : u)), []);
 
   const openCount = open.data?.length ?? 0;

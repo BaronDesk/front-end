@@ -23,6 +23,7 @@ export function HqPage() {
   useRealtimeEvent('station_status', reloadSoon);
   useRealtimeEvent('session_update', (e) => e.status === 'ENDED' && reloadSoon());
   useRealtimeEvent('alert', reloadSoon);
+  useRealtimeEvent('alert_resolved', reloadSoon);
   useOnReconnect(summary.reload);
 
   const rows = [...(summary.data ?? [])].sort((a, b) => a.name.localeCompare(b.name));

@@ -21,8 +21,8 @@ interface BranchScope {
   branchName(id: string | null): string;
   /** `path` with ?branchId= added when HQ has picked one branch. */
   scoped(path: string): string;
-  /** Should a live event from this branch reach the current screen? */
-  inScope(branchId: string): boolean;
+  /** Should a live event from this branch reach the current screen? null (a deleted branch) only for "All branches". */
+  inScope(branchId: string | null): boolean;
 }
 
 const BranchContext = createContext<BranchScope | null>(null);
@@ -93,7 +93,7 @@ export function BranchProvider({ children }: { children: ReactNode }) {
   );
 
   // Staff only receive their own branch's room, so everything is in scope.
-  const inScope = useCallback((id: string) => !isHq || !branchId || id === branchId, [isHq, branchId]);
+  const inScope = useCallback((id: string | null) => !isHq || !branchId || id === branchId, [isHq, branchId]);
 
   const value = useMemo(
     () => ({ isHq, branches, branchId, setBranchId, branchName, scoped, inScope }),

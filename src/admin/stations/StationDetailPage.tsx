@@ -7,6 +7,7 @@ import { ErrorBox } from '../../shared/ErrorBox';
 import { formatAgo, formatClock, formatDateTime, formatDuration, secondsSince, useNow } from '../../shared/format';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
+import { ALERTS_PATH, alertDetail, isSevere, repeatText, typeLabel } from '../alerts/labels';
 import { useGamerNames } from '../useLookups';
 import { applyStatus, isOnline, screenText, stationLabel, STATIONS_PATH } from './station';
 import { describeMetric, formatMetric, isHot, sortedMetrics } from './telemetry';
@@ -41,7 +42,9 @@ export function StationDetailPage() {
   const snapshot = useApiQuery<TelemetrySnapshot>(`${STATIONS_PATH}/${id}/telemetry`);
   const games = useApiQuery<Game[]>(`/stations/${id}/games`);
   const log = useApiQuery<Command[]>(`${STATIONS_PATH}/${id}/commands?limit=${LOG_SIZE}`);
-  const alerts = useApiQuery<Alert[]>(`/alerts?machineId=${id}`);
+  // The API filters alerts by branch, not by station: take the station's branch and keep this station's rows.
+  const alertBranch = station.data?.branchId;
+  const alerts = useApiQuery<Alert[]>(alertBranch ? `${ALERTS_PATH}?branchId=${alertBranch}&limit=500` : null);
   const sessionId = station.data?.sessionId ?? null;
   const session = useApiQuery<SessionView>(sessionId ? `/sessions/${sessionId}` : null);
   const gamerNames = useGamerNames();
@@ -67,9 +70,12 @@ export function StationDetailPage() {
     const cutoff = Date.now() - HISTORY_MS;
     setHistory((h) => [...h.filter((x) => x.at >= cutoff), { at, metrics: e.metrics }]);
   });
-  useRealtimeEvent('alert', (e) => {
-    if (e.machineId === id) alerts.setData((list) => [e, ...(list ?? [])]);
-  });
+  const upsertAlert = (e: Alert) => {
+    if (e.machineId !== id) return;
+    alerts.setData((list) => (list?.some((a) => a.id === e.id) ? list.map((a) => (a.id === e.id ? e : a)) : [e, ...(list ?? [])]));
+  };
+  useRealtimeEvent('alert', upsertAlert);
+  useRealtimeEvent('alert_resolved', upsertAlert);
   useRealtimeEvent('session_update', (e) => {
     if (e.machineId === id && e.sessionId === sessionId) session.reload();
   });
@@ -114,6 +120,7 @@ export function StationDetailPage() {
     const values = history.map((x) => x.metrics[metric]).filter((v): v is number => v !== undefined);
     return values.length ? { min: Math.min(...values), max: Math.max(...values) } : null;
   };
+  const stationAlerts = (alerts.data ?? []).filter((a) => a.machineId === id).slice(0, 10);
   const gameTitle = (gid: string | null) => (gid ? (games.data?.find((g) => g.id === gid)?.title ?? 'unknown game') : '—');
 
   return (
@@ -299,16 +306,18 @@ export function StationDetailPage() {
           </tr>
         </thead>
         <tbody>
-          {(alerts.data ?? []).slice(0, 10).map((a) => (
-            <tr key={a.id}>
-              <td>{formatDateTime(a.occurredAt)}</td>
-              <td>{a.type}</td>
-              <td className={a.severity === 'HIGH' || a.severity === 'CRITICAL' ? 'status-bad' : ''}>{a.severity}</td>
-              <td>{a.detail}</td>
-              <td>{a.status}</td>
+          {stationAlerts.map((a) => (
+            <tr key={a.id} className={a.acknowledged ? 'row-muted' : ''}>
+              <td>{formatDateTime(a.createdAt)}</td>
+              <td>{typeLabel(a.type)}</td>
+              <td className={isSevere(a.severity) ? 'status-bad' : ''}>{a.severity}</td>
+              <td>
+                {alertDetail(a)} {repeatText(a) && <b>{repeatText(a)}</b>}
+              </td>
+              <td>{a.acknowledged ? 'Resolved' : 'Open'}</td>
             </tr>
           ))}
-          {(alerts.data ?? []).length === 0 && (
+          {stationAlerts.length === 0 && (
             <tr>
               <td colSpan={5} className="muted">
                 No alerts for this station.

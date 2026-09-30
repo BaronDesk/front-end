@@ -252,29 +252,25 @@ const reservations: Reservation[] = [
   },
 ];
 
+function alert(n: number, station: number, branchId: string, fields: Pick<Alert, 'category' | 'type' | 'severity'>, message: string, at: string): Alert {
+  return {
+    id: sid(12, n),
+    machineId: sid(3, station),
+    serialNumber: stations.find((s) => s.id === sid(3, station))?.serialNumber ?? null,
+    branchId,
+    ...fields,
+    value: { message, occurredAt: at },
+    acknowledged: false,
+    acknowledgedByUserId: null,
+    acknowledgedAt: null,
+    createdAt: at,
+  };
+}
+
+// Newest first, like GET /api/v1/alerts.
 const alerts: Alert[] = [
-  {
-    id: sid(12, 1),
-    machineId: sid(3, 5),
-    branchId: B1,
-    category: 'hardware',
-    type: 'TEMPERATURE_WARNING',
-    severity: 'MEDIUM',
-    detail: 'GPU temperature 84 °C (threshold 80 °C)',
-    status: 'OPEN',
-    occurredAt: minutesAgo(8),
-  },
-  {
-    id: sid(12, 2),
-    machineId: sid(3, 12),
-    branchId: B2,
-    category: 'anti_theft',
-    type: 'DEVICE_REMOVED',
-    severity: 'HIGH',
-    detail: 'USB mouse "Logitech G502" disconnected',
-    status: 'OPEN',
-    occurredAt: minutesAgo(3),
-  },
+  alert(2, 12, B2, { category: 'anti_theft', type: 'DEVICE_REMOVED', severity: 'HIGH' }, 'USB mouse "Logitech G502" disconnected', minutesAgo(3)),
+  alert(1, 5, B1, { category: 'hardware', type: 'TEMPERATURE_WARNING', severity: 'MEDIUM' }, 'GPU temperature 84 °C (threshold 80 °C)', minutesAgo(8)),
 ];
 
 const pricing: Pricing = { ratePerHour: 3, bookingFee: 1, lowBalanceMinutes: 10 };

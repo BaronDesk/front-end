@@ -7,6 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
+  Alert,
   BranchSummary,
   Command,
   DashboardEvents,
@@ -118,6 +119,41 @@ describe('telemetry', () => {
 
     const offline = await call('GET', `/api/v1/stations/${byName('TUN-04').id}/telemetry`, undefined, token);
     expect(offline).toMatchObject({ status: 404, data: { code: 'TELEMETRY_NOT_AVAILABLE' } });
+  });
+});
+
+describe('alerts', () => {
+  it('lists open alerts of the caller branch; staff asking for another branch get 403', async () => {
+    const staff = await login('staff.tunis');
+    const res = await call('GET', '/api/v1/alerts?status=open', undefined, staff);
+    const list = res.data as Alert[];
+    expect(list.length).toBeGreaterThan(0);
+    expect(list.every((a) => a.branchId === db.branches[0].id && !a.acknowledged)).toBe(true);
+    expect(list[0].value?.message).toEqual(expect.any(String));
+
+    const other = await call('GET', `/api/v1/alerts?branchId=${db.branches[1].id}`, undefined, staff);
+    expect(other.status).toBe(403);
+  });
+
+  it('resolve: acknowledged + alert_resolved to the branch room; a second resolve is a no-op', async () => {
+    const token = await login('staff.sousse');
+    const rt = createFakeRealtime();
+    const resolved: Alert[] = [];
+    rt.on('alert_resolved', (a) => resolved.push(a));
+    rt.connect(() => token);
+    await vi.advanceTimersByTimeAsync(400);
+
+    const open = (await call('GET', '/api/v1/alerts?status=open', undefined, token)).data as Alert[];
+    const target = open[0];
+    const res = await call('POST', `/api/v1/alerts/${target.id}/resolve`, undefined, token);
+    expect(res.data).toMatchObject({ id: target.id, acknowledged: true, acknowledgedByUserId: userId('staff.sousse') });
+    expect(resolved.map((a) => a.id)).toEqual([target.id]);
+
+    await call('POST', `/api/v1/alerts/${target.id}/resolve`, undefined, token);
+    expect(resolved).toHaveLength(1);
+    const still = (await call('GET', '/api/v1/alerts?status=open', undefined, token)).data as Alert[];
+    expect(still.some((a) => a.id === target.id)).toBe(false);
+    rt.disconnect();
   });
 });
 

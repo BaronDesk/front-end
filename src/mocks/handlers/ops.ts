@@ -8,9 +8,9 @@
 import type { Command, CommandStatus, CommandType } from '../../api/types';
 import { publish } from '../bus';
 import { db, newId, nowIso } from '../db';
-import { assertBranch, badRequest, branchFilter, findStation, notFound, requireStaff } from '../guards';
+import { assertBranch, badRequest, branchFilter, findStation, requireStaff } from '../guards';
 import { endSession, publishStation, setOnline } from '../logic';
-import { MockHttpError, route, type MockContext } from '../router';
+import { MockHttpError, route } from '../router';
 
 const COMMAND_TYPES: CommandType[] = ['LOCK', 'UNLOCK', 'SHUTDOWN', 'LAUNCH_GAME', 'END_SESSION', 'CATALOG_UPDATE'];
 const SEND_DELAY_MS = 100;
@@ -147,33 +147,33 @@ route('GET', '/api/v1/commands/:commandId', (ctx) => {
 
 // ---------- alerts ----------
 
-route('GET', '/alerts', (ctx) => {
+// Like ops/services/alerts.service.ts: HQ may filter by ?branchId=, staff only
+// ask for their own branch (403 otherwise). No category/severity filter.
+route('GET', '/api/v1/alerts', (ctx) => {
   const caller = requireStaff(ctx);
-  const branch = branchFilter(caller, ctx.query.get('branchId'));
+  const requested = ctx.query.get('branchId');
+  if (requested) assertBranch(caller, requested);
+  const branch = branchFilter(caller, requested);
   const status = ctx.query.get('status');
-  const category = ctx.query.get('category');
-  const severity = ctx.query.get('severity');
-  const machineId = ctx.query.get('machineId');
-  return db.alerts.filter(
-    (a) =>
-      (!branch || a.branchId === branch) &&
-      (!status || a.status === status) &&
-      (!category || a.category === category) &&
-      (!severity || a.severity === severity) &&
-      (!machineId || a.machineId === machineId),
-  );
+  if (status && status !== 'open' && status !== 'resolved') badRequest('status must be open or resolved');
+  const limit = Math.min(500, Math.max(1, Number(ctx.query.get('limit') ?? 100) || 100));
+  return db.alerts
+    .filter(
+      (a) =>
+        (!branch || a.branchId === branch) &&
+        (!status || a.acknowledged === (status === 'resolved')),
+    )
+    .slice(0, limit);
 });
 
-function alertAction(to: 'ACKED' | 'RESOLVED') {
-  return (ctx: MockContext) => {
-    const caller = requireStaff(ctx);
-    const alert = db.alerts.find((a) => a.id === ctx.params.id) ?? notFound('alert');
-    assertBranch(caller, alert.branchId);
-    if (alert.status === 'RESOLVED') throw new MockHttpError(409, 'ALERT_RESOLVED', 'alert is already resolved');
-    alert.status = to;
-    return alert;
-  };
-}
-
-route('POST', '/alerts/:id/ack', alertAction('ACKED'));
-route('POST', '/alerts/:id/resolve', alertAction('RESOLVED'));
+// Idempotent: resolving a resolved alert returns it unchanged, with no event.
+route('POST', '/api/v1/alerts/:id/resolve', (ctx) => {
+  const caller = requireStaff(ctx);
+  const alert = db.alerts.find((a) => a.id === ctx.params.id);
+  if (!alert) throw new MockHttpError(404, 'ALERT_NOT_FOUND', 'alert not found');
+  if (alert.branchId) assertBranch(caller, alert.branchId);
+  if (alert.acknowledged) return alert;
+  Object.assign(alert, { acknowledged: true, acknowledgedByUserId: caller.id, acknowledgedAt: nowIso() });
+  publish('alert_resolved', { ...alert });
+  return alert;
+});

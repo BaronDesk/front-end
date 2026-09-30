@@ -36,7 +36,7 @@ route('GET', '/branches/summary', (ctx) => {
       stationsTotal: st.length,
       stationsOnline: st.filter((s) => s.online).length,
       stationsInSession: st.filter((s) => s.sessionId).length,
-      openAlerts: db.alerts.filter((a) => a.branchId === b.id && a.status !== 'RESOLVED').length,
+      openAlerts: db.alerts.filter((a) => a.branchId === b.id && !a.acknowledged).length,
     };
   });
 });
