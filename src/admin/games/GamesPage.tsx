@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 
 import { api, ApiError } from '../../api/http';
-import type { Game, GameInput, GameLaunchType, StationGame, StationGameOverrides } from '../../api/types';
+import type { Game, GameAssignments, GameInput, GameLaunchType, InstalledGame, StationGame, StationGameOverrides } from '../../api/types';
 import { useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatDateTime } from '../../shared/format';
@@ -10,6 +10,7 @@ import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
 import { StationSelect } from '../pickers';
 import { STATIONS_PATH } from '../stations/station';
+import { useStationNames } from '../useLookups';
 import { applyCatalogStatus, GAMES_PATH, installText, LAUNCH_TYPE_LABEL, LAUNCH_TYPES, TARGET_HINT } from './games';
 
 interface GameForm {
@@ -86,6 +87,10 @@ export function GamesPage() {
   const [addGame, setAddGame] = useState('');
   const [overrideTarget, setOverrideTarget] = useState('');
   const stationGames = useApiQuery<StationGame[]>(stationId ? `${STATIONS_PATH}/${stationId}/games` : null);
+  const installed = useApiQuery<InstalledGame[]>(
+    `${GAMES_PATH}/installed${stationId ? `?stationId=${stationId}` : branchId ? `?branchId=${branchId}` : ''}`,
+  );
+  const stationNames = useStationNames();
 
   useRealtimeEvent('catalog_status', (e) => {
     if (e.machineId === stationId) stationGames.setData((list) => applyCatalogStatus(list, e));
@@ -100,7 +105,7 @@ export function GamesPage() {
     const body = toInput(form);
     const saved = await action.run(
       'save',
-      () => api<Game>(form.id ? 'PATCH' : 'POST', form.id ? `${GAMES_PATH}/${form.id}` : GAMES_PATH, body),
+      () => api<Game>(form.id ? 'PATCH' : 'POST', form.id ? `${GAMES_PATH}/${form.id}` : GAMES_PATH, body).catch(explainShared(form)),
       (g) => `${g.name} ${form.id ? 'updated. Stations that offer it sync their catalog.' : 'added to the catalog. Offer it at a branch or a station below.'}`,
     );
     if (saved) {
@@ -113,10 +118,26 @@ export function GamesPage() {
   async function setEnabled(g: Game, enabled: boolean) {
     const done = await action.run(
       g.id,
-      () => api<Game>('PATCH', `${GAMES_PATH}/${g.id}`, { enabled }),
+      () => api<Game>('PATCH', `${GAMES_PATH}/${g.id}`, { enabled }).catch(explainShared(g)),
       `${g.name} ${enabled ? 'enabled' : 'disabled: it can no longer be launched'}.`,
     );
     if (done) games.reload();
+  }
+
+  async function remove(g: Game) {
+    if (!window.confirm(`Delete ${g.name} from the catalog? Every station that offers it drops it.`)) return;
+    const done = await action.run(g.id, () => api('DELETE', `${GAMES_PATH}/${g.id}`).catch(explainShared(g)), `${g.name} deleted.`);
+    if (done !== undefined) {
+      if (form.id === g.id) setForm(EMPTY);
+      games.reload();
+      stationGames.reload();
+    }
+  }
+
+  /** Prefills the form from a game a station found installed. */
+  function addFromInstalled(x: InstalledGame) {
+    setForm({ ...EMPTY, name: x.name, gameId: suggestGameId(x.name), launchType: x.launchType, target: x.target, processName: x.processName ?? '' });
+    document.getElementById('g-name')?.focus();
   }
 
   async function offerAtBranch(offer: boolean) {
@@ -125,9 +146,10 @@ export function GamesPage() {
     const where = branchName(branchId);
     await action.run(
       'branch',
-      () => api(offer ? 'PUT' : 'DELETE', `${GAMES_PATH}/${g.id}/branches/${branchId}`).catch(explainAssignment(g, 'branch')),
+      () => api(offer ? 'PUT' : 'DELETE', `${GAMES_PATH}/${g.id}/branches/${branchId}`),
       offer ? `${g.name} is offered at every station of ${where}.` : `${g.name} is no longer offered at ${where}.`,
     );
+    games.reload();
     stationGames.reload();
   }
 
@@ -144,18 +166,26 @@ export function GamesPage() {
     if (done) {
       setAddGame('');
       setOverrideTarget('');
+      games.reload();
       stationGames.reload();
     }
   }
 
+  /** Works for a branch-offered game too: the station is excluded, the rest of the branch keeps it. */
   async function removeFromStation(g: StationGame) {
     const done = await action.run(
       `station-${g.id}`,
-      () => api('DELETE', `${GAMES_PATH}/${g.id}/stations/${stationId}`).catch(explainAssignment(g, 'station')),
-      `${g.name} removed from the station.`,
+      () => api('DELETE', `${GAMES_PATH}/${g.id}/stations/${stationId}`),
+      `${g.name} removed from this station.`,
     );
-    if (done !== undefined) stationGames.reload();
+    if (done !== undefined) {
+      games.reload();
+      stationGames.reload();
+    }
   }
+
+  const branchGameRow = catalog.find((x) => x.id === branchGame);
+  const offeredHere = !!branchId && !!branchGameRow?.assignments?.branchIds.includes(branchId);
 
   return (
     <>
@@ -173,6 +203,7 @@ export function GamesPage() {
                 <th>Game id</th>
                 <th>Launch</th>
                 <th>Process</th>
+                <th>Offered at</th>
                 <th>Status</th>
                 <th />
               </tr>
@@ -191,6 +222,9 @@ export function GamesPage() {
                     {g.arguments && <div className="muted">args: {g.arguments}</div>}
                   </td>
                   <td>{g.processName ?? <span className="muted">not tracked</span>}</td>
+                  <td>
+                    <OfferedAt assignments={g.assignments} branchName={branchName} stationNames={stationNames} />
+                  </td>
                   <td className={g.enabled ? 'status-ok' : 'muted'}>{g.enabled ? 'Enabled' : 'Disabled'}</td>
                   <td className="nowrap">
                     <button type="button" className="secondary" onClick={() => setForm(toForm(g))}>
@@ -198,13 +232,16 @@ export function GamesPage() {
                     </button>{' '}
                     <button type="button" className="secondary" disabled={action.busy === g.id} onClick={() => setEnabled(g, !g.enabled)}>
                       {g.enabled ? 'Disable' : 'Enable'}
+                    </button>{' '}
+                    <button type="button" className="secondary" disabled={action.busy === g.id} onClick={() => remove(g)}>
+                      Delete
                     </button>
                   </td>
                 </tr>
               ))}
               {!games.loading && catalog.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="muted">
+                  <td colSpan={7} className="muted">
                     The catalog is empty.
                   </td>
                 </tr>
@@ -309,12 +346,15 @@ export function GamesPage() {
         <div className="toolbar">
           <label htmlFor="g-branch-game">Game</label>
           <GameSelect id="g-branch-game" games={catalog} value={branchGame} onChange={setBranchGame} />{' '}
-          <button type="button" disabled={!branchGame || action.busy === 'branch'} onClick={() => offerAtBranch(true)}>
+          <button type="button" disabled={!branchGame || offeredHere || action.busy === 'branch'} onClick={() => offerAtBranch(true)}>
             Offer at every station of {branchName(branchId)}
           </button>{' '}
-          <button type="button" className="secondary" disabled={!branchGame || action.busy === 'branch'} onClick={() => offerAtBranch(false)}>
+          <button type="button" className="secondary" disabled={!branchGame || !offeredHere || action.busy === 'branch'} onClick={() => offerAtBranch(false)}>
             Stop offering
           </button>
+          {branchGameRow && (
+            <span className="muted"> {offeredHere ? `Offered at ${branchName(branchId)}.` : `Not offered at ${branchName(branchId)}.`}</span>
+          )}
         </div>
       ) : (
         <p className="muted">Pick a branch in the top bar to offer games at it.</p>
@@ -380,7 +420,88 @@ export function GamesPage() {
           </form>
         </>
       )}
+
+      <h2>Installed on the stations</h2>
+      <p className="muted">
+        Steam and Epic games the stations{stationId ? ' (this station)' : branchId ? ` of ${branchName(branchId)}` : ''} found installed. Add the missing
+        ones to the catalog without typing app ids.
+      </p>
+      <ErrorBox error={installed.error} />
+      <table className="grid" style={{ width: 'auto' }}>
+        <thead>
+          <tr>
+            <th>Game</th>
+            <th>Launcher</th>
+            <th>Installed on</th>
+            <th>Catalog</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(installed.data ?? []).map((x) => (
+            <tr key={`${x.launchType}:${x.target}`}>
+              <td>{x.name}</td>
+              <td>
+                {LAUNCH_TYPE_LABEL[x.launchType]}: <code>{x.target}</code>
+              </td>
+              <td>{x.stations.length === 1 ? (x.stations[0].name ?? x.stations[0].serialNumber) : `${x.stations.length} stations`}</td>
+              <td>
+                {x.catalogGame ? (
+                  <span className="status-ok">In catalog as {x.catalogGame.name}</span>
+                ) : (
+                  <button type="button" className="secondary" onClick={() => addFromInstalled(x)}>
+                    Add to catalog
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+          {!installed.loading && (installed.data ?? []).length === 0 && (
+            <tr>
+              <td colSpan={4} className="muted">
+                No station has reported installed launcher games yet (they report after each catalog sync).
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </>
+  );
+}
+
+/** "El Manar · 2 stations · not on 1" from where a game is offered. */
+function OfferedAt({
+  assignments,
+  branchName,
+  stationNames,
+}: {
+  assignments: GameAssignments | undefined;
+  branchName(id: string): string;
+  stationNames: Map<string, string>;
+}) {
+  if (!assignments) return <span className="muted">—</span>;
+  const parts = [
+    ...assignments.branchIds.map(branchName),
+    ...assignments.stationIds.map((id) => stationNames.get(id) ?? 'a station'),
+  ];
+  if (parts.length === 0) return <span className="muted">nowhere</span>;
+  const off = assignments.excludedStationIds.map((id) => stationNames.get(id) ?? 'a station');
+  return (
+    <>
+      {parts.join(', ')}
+      {off.length > 0 && <div className="muted">not on {off.join(', ')}</div>}
+    </>
+  );
+}
+
+/** "Counter-Strike 2" -> "counter-strike-2": a starting point for the wire id. */
+function suggestGameId(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 64) || 'game'
   );
 }
 
@@ -398,18 +519,11 @@ function GameSelect({ id, games, value, onChange }: { id: string; games: Game[];
   );
 }
 
-/**
- * The station list doesn't say how a game got there. A DELETE that finds no
- * such assignment (404 ASSIGNMENT_NOT_FOUND) means it came the other way.
- */
-function explainAssignment(g: { name: string }, level: 'branch' | 'station') {
+/** The catalog is shared: a manager can't change or delete a game another branch offers (HQ can). */
+function explainShared(g: { name: string }) {
   return (err: unknown): never => {
-    if (err instanceof ApiError && err.code === 'ASSIGNMENT_NOT_FOUND') {
-      throw new Error(
-        level === 'station'
-          ? `${g.name} is offered at the whole branch, not assigned to this station: stop offering it at the branch instead.`
-          : `${g.name} is not offered at this branch (it may be assigned to single stations).`,
-      );
+    if (err instanceof ApiError && err.code === 'GAME_SHARED_WITH_OTHER_BRANCHES') {
+      throw new Error(`Other branches offer ${g.name || 'this game'} too: only HQ can change or delete it.`);
     }
     throw err;
   };

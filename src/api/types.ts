@@ -137,11 +137,34 @@ export interface Game {
   /** e.g. cs2.exe: lets the agent track the game and close it at session end. */
   processName: string | null;
   iconUrl: string | null;
-  /** No delete on the API: a retired game is disabled. */
+  /** A disabled game stays in the catalog but reaches no station. */
   enabled: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+  /** Where it is offered (staff list only), limited to the caller's branch unless HQ. */
+  assignments?: GameAssignments;
+}
+
+export interface GameAssignments {
+  /** Offered at every station of these branches… */
+  branchIds: string[];
+  /** …and on these single stations… */
+  stationIds: string[];
+  /** …except these, taken off although their branch offers it. */
+  excludedStationIds: string[];
+}
+
+/** GET /api/v1/games/installed: a launcher game the stations found installed. */
+export interface InstalledGame {
+  launchType: 'steam' | 'epic';
+  target: string;
+  name: string;
+  processName: string | null;
+  stations: { id: string; name: string | null; serialNumber: string }[];
+  reportedAt: string;
+  /** The catalog entry with this launcher target, if any. */
+  catalogGame: { id: string; gameId: string; name: string } | null;
 }
 
 /** POST /api/v1/games body (PATCH takes any subset). */
