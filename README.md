@@ -45,7 +45,7 @@ The types in `src/api/types.ts` mirror the backend DTOs for these, and the fake 
 - Branch names, the HQ branch dropdown and the HQ overview are still fake (`GET /branches` and `/branches/summary` don't exist yet). With real data, keep HQ on *All branches*: a fake branch id sent as `?branchId=` matches nothing.
 - The real station list has no `branchId` yet, so the Branch column shows "—". It also lists pending and rejected PCs next to enrolled ones (no enrollment status per row).
 - HQ needs a branch picked in the top bar to generate an enrollment token, and the dropdown's branches are fake: until `GET /branches` exists, generate tokens as a branch manager.
-- **Money:** the backend counts integer cents (1/100 dinar). Linked screens show dinars with 2 decimals (`formatCents`, `dinarsToCents` in `src/shared/format.ts`); the fake screens still show 3.
+- **Money:** the backend stores every amount as integer **millimes** (1 DT = 1000, see `back-end/prisma/seed.ts`); plan prices are the exception (decimal dinars). Linked screens convert with `formatMillimes` / `dinarsToMillimes` in `src/shared/format.ts`.
 - Prices are per branch: HQ picks a branch in the top bar first. The backend has no booking fee or low-balance setting, so the Plans page no longer edits them (the fake portal keeps its own).
 - Sessions, reservations, wallet, membership and pass plans, and the gamer portal stay fake. Their fake stations are not the real ones, so e.g. a walk-in session can't be started on a real PC from the Sessions page yet.
 - New backend modules sit at the root (`/machines`, `/wallets`, `/sessions`, …), not under `/api/v1`: add each one to `BACKEND_PATHS` in `vite.config.ts` and to `VITE_REAL_PREFIXES` when its screen is linked.

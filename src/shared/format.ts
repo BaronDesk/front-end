@@ -35,23 +35,31 @@ export function formatMoney(amount: number | null | undefined): string {
   return amount === null || amount === undefined ? '—' : `${amount.toFixed(3)} ${CURRENCY}`;
 }
 
+/** 1 dinar = 1000 millimes: the backend stores every money amount as integer millimes (prisma/seed.ts). */
+const MILLIMES_PER_DINAR = 1000;
+
 /**
- * The backend counts money in integer cents (1/100 dinar): "60.00 DT".
- * Only formats what the server sent.
+ * Integer millimes from the backend → "4.500 DT". Only formats what the
+ * server sent.
  */
-export function formatCents(cents: number | null | undefined): string {
-  return cents === null || cents === undefined ? '—' : `${(cents / 100).toFixed(2)} ${CURRENCY}`;
+export function formatMillimes(millimes: number | null | undefined): string {
+  return millimes === null || millimes === undefined ? '—' : `${(millimes / MILLIMES_PER_DINAR).toFixed(3)} ${CURRENCY}`;
 }
 
-/** A form value in dinars ("3.5") → integer cents (350), or null if it isn't a number. */
-export function dinarsToCents(text: string): number | null {
+/** "+10.000 DT" / "-1.500 DT" for backend ledger lines (millimes). */
+export function formatSignedMillimes(millimes: number): string {
+  return `${millimes > 0 ? '+' : ''}${formatMillimes(millimes)}`;
+}
+
+/** A form value in dinars ("4.5") → integer millimes (4500), or null if it isn't a number. */
+export function dinarsToMillimes(text: string): number | null {
   const value = Number(text.trim().replace(',', '.'));
-  return text.trim() && Number.isFinite(value) ? Math.round(value * 100) : null;
+  return text.trim() && Number.isFinite(value) ? Math.round(value * MILLIMES_PER_DINAR) : null;
 }
 
-/** Integer cents → a form value in dinars ("3.50"). */
-export function centsToDinars(cents: number): string {
-  return (cents / 100).toFixed(2);
+/** Integer millimes → a form value in dinars ("4.500"). */
+export function millimesToDinars(millimes: number): string {
+  return (millimes / MILLIMES_PER_DINAR).toFixed(3);
 }
 
 /** "+10.000 DT" / "-3.000 DT" for ledger lines. */

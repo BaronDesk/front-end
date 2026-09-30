@@ -223,7 +223,7 @@ route('PUT', '/branches/:branchId/pricing', (ctx) => {
   const { branchId } = ctx.params;
   assertBranch(caller, branchId);
   const { paygRate, bookingRate } = ctx.body;
-  if (!isRate(paygRate) || !isRate(bookingRate)) badRequest('paygRate and bookingRate must be positive whole cents');
+  if (!isRate(paygRate) || !isRate(bookingRate)) badRequest('paygRate and bookingRate must be positive whole millimes');
   if (!db.branches.some((b) => b.id === branchId)) throw new MockHttpError(404, 'BRANCH_NOT_FOUND', 'branch not found');
   const row: BranchPricing = {
     id: db.branchPricing.get(branchId)?.id ?? newId(),

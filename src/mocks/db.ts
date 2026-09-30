@@ -351,9 +351,9 @@ const alerts: Alert[] = [
 /** Fake-only settings: the portal's booking fee and the low-balance warning (the backend has neither). */
 const pricing: Pricing = { ratePerHour: 3, bookingFee: 1, lowBalanceMinutes: 10 };
 
-/** branchId → its play prices in cents per hour (the backend's Pricing). Sousse has none yet: PRICING_NOT_SET. */
+/** branchId → its play prices in millimes per hour (the backend's Pricing). Sousse has none yet: PRICING_NOT_SET. */
 const branchPricing = new Map<string, BranchPricing>([
-  [B1, { id: sid(13, 1), branchId: B1, paygRate: 300, bookingRate: 250, updatedAt: minutesAgo(60 * 24 * 7) }],
+  [B1, { id: sid(13, 1), branchId: B1, paygRate: 3000, bookingRate: 2500, updatedAt: minutesAgo(60 * 24 * 7) }],
 ]);
 
 /** machineId → latest snapshot (the backend keeps these in Redis, 30 s TTL). */

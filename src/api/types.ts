@@ -421,7 +421,7 @@ export interface Pricing {
 
 /**
  * GET / PUT /branches/:branchId/pricing (pricing/util/public-pricing.ts).
- * Rates are integer cents (1/100 dinar) per hour; GET is 404
+ * Rates are integer millimes (1/1000 dinar) per hour; GET is 404
  * PRICING_NOT_SET until a manager sets them, and a session can't start then.
  */
 export interface BranchPricing {

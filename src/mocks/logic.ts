@@ -306,9 +306,9 @@ function activePass(userId: string) {
 }
 
 function costFor(session: Session, elapsedSeconds: number) {
-  // The branch's walk-in rate (cents per hour) when set, like the backend's session pricing.
+  // The branch's walk-in rate (millimes per hour) when set, like the backend's session pricing.
   const branchRate = db.branchPricing.get(session.branchId)?.paygRate;
-  const rate = branchRate !== undefined ? branchRate / 100 : db.pricing.ratePerHour;
+  const rate = branchRate !== undefined ? branchRate / 1000 : db.pricing.ratePerHour;
   const discountPercent = activeDiscount(session.userId);
   const hours = elapsedSeconds / 3600;
   const hoursFromPass = Math.min(hours, activePass(session.userId)?.hoursLeft ?? 0);

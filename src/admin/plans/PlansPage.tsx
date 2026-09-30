@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { api, ApiError } from '../../api/http';
 import type { BranchPricing, MembershipPlan, SubscriptionPlan } from '../../api/types';
 import { ErrorBox } from '../../shared/ErrorBox';
-import { centsToDinars, CURRENCY, dinarsToCents, formatCents, formatDateTime, formatMoney } from '../../shared/format';
+import { CURRENCY, dinarsToMillimes, formatDateTime, formatMillimes, formatMoney, millimesToDinars } from '../../shared/format';
 import { ActionMessages, useAction, type Action } from '../../shared/useAction';
 import { useApiQuery, type ApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
@@ -153,7 +153,7 @@ function PlanSection({ kind, plans, action }: { kind: Kind; plans: ApiQuery<Plan
 
 /**
  * Play prices of one branch (GET / PUT /branches/:branchId/pricing), in dinars
- * on screen and integer cents on the wire. A branch without prices can't start
+ * on screen and integer millimes on the wire. A branch without prices can't start
  * sessions, so the empty form says so.
  */
 function PricingForm({ action }: { action: Action }) {
@@ -164,7 +164,7 @@ function PricingForm({ action }: { action: Action }) {
 
   useEffect(() => {
     if (pricing.data) {
-      setForm({ paygRate: centsToDinars(pricing.data.paygRate), bookingRate: centsToDinars(pricing.data.bookingRate) });
+      setForm({ paygRate: millimesToDinars(pricing.data.paygRate), bookingRate: millimesToDinars(pricing.data.bookingRate) });
     } else if (notSet) {
       setForm({ paygRate: '', bookingRate: '' });
     }
@@ -172,8 +172,8 @@ function PricingForm({ action }: { action: Action }) {
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    const paygRate = dinarsToCents(form.paygRate);
-    const bookingRate = dinarsToCents(form.bookingRate);
+    const paygRate = dinarsToMillimes(form.paygRate);
+    const bookingRate = dinarsToMillimes(form.bookingRate);
     if (!branchId || paygRate === null || bookingRate === null) return;
     const saved = await action.run(
       'pricing',
@@ -203,8 +203,8 @@ function PricingForm({ action }: { action: Action }) {
           <input
             id="p-payg"
             type="number"
-            min="0.01"
-            step="0.01"
+            min="0.001"
+            step="0.001"
             required
             value={form.paygRate}
             onChange={(e) => setForm({ ...form, paygRate: e.target.value })}
@@ -215,8 +215,8 @@ function PricingForm({ action }: { action: Action }) {
           <input
             id="p-booking"
             type="number"
-            min="0.01"
-            step="0.01"
+            min="0.001"
+            step="0.001"
             required
             value={form.bookingRate}
             onChange={(e) => setForm({ ...form, bookingRate: e.target.value })}
@@ -224,7 +224,7 @@ function PricingForm({ action }: { action: Action }) {
         </div>
         {pricing.data && (
           <p className="muted">
-            Now: walk-in {formatCents(pricing.data.paygRate)} / hour, booked {formatCents(pricing.data.bookingRate)} / hour (changed{' '}
+            Now: walk-in {formatMillimes(pricing.data.paygRate)} / hour, booked {formatMillimes(pricing.data.bookingRate)} / hour (changed{' '}
             {formatDateTime(pricing.data.updatedAt)}). Membership discounts apply on top.
           </p>
         )}

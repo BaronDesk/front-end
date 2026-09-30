@@ -22,7 +22,7 @@ import type {
   WalletTransaction,
 } from '../api/types';
 import { prefixPattern } from '../config';
-import { dinarsToCents, formatCents } from '../shared/format';
+import { dinarsToMillimes, formatMillimes } from '../shared/format';
 import { db } from './db';
 import { userFromToken } from './handlers/auth';
 import { createFakeRealtime } from './realtime';
@@ -298,13 +298,13 @@ describe('real/fake routing and money helpers', () => {
     expect(pricing.test('/branches')).toBe(false);
   });
 
-  it('dinars on screen, integer cents on the wire', () => {
-    expect(dinarsToCents('3.5')).toBe(350);
-    expect(dinarsToCents('3,25')).toBe(325);
-    expect(dinarsToCents('0.015')).toBe(2);
-    expect(dinarsToCents('')).toBeNull();
-    expect(dinarsToCents('abc')).toBeNull();
-    expect(formatCents(6000)).toBe('60.00 DT');
+  it('dinars on screen, integer millimes on the wire', () => {
+    expect(dinarsToMillimes('4.5')).toBe(4500);
+    expect(dinarsToMillimes('2,750')).toBe(2750);
+    expect(dinarsToMillimes('0.0004')).toBe(0);
+    expect(dinarsToMillimes('')).toBeNull();
+    expect(dinarsToMillimes('abc')).toBeNull();
+    expect(formatMillimes(4000)).toBe('4.000 DT');
   });
 });
 
