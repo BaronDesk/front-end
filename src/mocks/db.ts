@@ -13,8 +13,9 @@ import type {
   Pricing,
   Reservation,
   Role,
-  Session,
   EnrollmentStation,
+  Session,
+  StationGameOverrides,
   Subscription,
   SubscriptionPlan,
   TelemetrySnapshot,
@@ -147,18 +148,80 @@ const stations: MockStation[] = [
 
 export const FLAKY_STATION_ID = sid(3, 13);
 
+function game(
+  n: number,
+  gameId: string,
+  name: string,
+  launchType: Game['launchType'],
+  target: string,
+  processName: string | null,
+  args: string | null = null,
+): Game {
+  const at = minutesAgo(60 * 24 * 10);
+  return {
+    id: sid(4, n),
+    gameId,
+    name,
+    launchType,
+    target,
+    arguments: args,
+    workingDirectory: null,
+    processName,
+    iconUrl: null,
+    enabled: true,
+    sortOrder: 0,
+    createdAt: at,
+    updatedAt: at,
+  };
+}
+
 const games: Game[] = [
-  { id: sid(4, 1), title: 'Counter-Strike 2', executablePath: 'C:\\Games\\CS2\\cs2.exe', genre: 'FPS', cover: null },
-  { id: sid(4, 2), title: 'Valorant', executablePath: 'C:\\Riot Games\\VALORANT\\VALORANT.exe', genre: 'FPS', cover: null },
-  { id: sid(4, 3), title: 'League of Legends', executablePath: 'C:\\Riot Games\\League of Legends\\LeagueClient.exe', genre: 'MOBA', cover: null },
-  { id: sid(4, 4), title: 'Fortnite', executablePath: 'C:\\Epic Games\\Fortnite\\FortniteLauncher.exe', genre: 'Battle royale', cover: null },
-  { id: sid(4, 5), title: 'Rocket League', executablePath: 'C:\\Epic Games\\rocketleague\\RocketLeague.exe', genre: 'Sports', cover: null },
+  game(1, 'cs2', 'Counter-Strike 2', 'steam', '730', 'cs2.exe'),
+  game(
+    2,
+    'valorant',
+    'Valorant',
+    'exe',
+    'C:\\Riot Games\\Riot Client\\RiotClientServices.exe',
+    'VALORANT-Win64-Shipping.exe',
+    '--launch-product=valorant --launch-patchline=live',
+  ),
+  game(3, 'lol', 'League of Legends', 'exe', 'C:\\Riot Games\\League of Legends\\LeagueClient.exe', 'LeagueClient.exe'),
+  game(4, 'fortnite', 'Fortnite', 'epic', 'Fortnite', 'FortniteClient-Win64-Shipping.exe'),
+  game(5, 'rocket-league', 'Rocket League', 'epic', 'Sugar', 'RocketLeague.exe'),
 ];
 
-/** machineId → gameIds installed on it. */
-const stationGames = new Map<string, string[]>(
-  stations.map((s, i) => [s.id, games.filter((_, g) => (g + i) % 2 === 0 || g === 0).map((g) => g.id)]),
-);
+/** Game row id → branches that offer it at every station (GameBranch). */
+const gameBranches = new Map<string, Set<string>>([
+  [sid(4, 1), new Set([B1, B2])],
+  [sid(4, 2), new Set([B1, B2])],
+  [sid(4, 3), new Set([B1])],
+]);
+
+/** machineId → (game row id → per-station overrides) (MachineGame). */
+const machineGames = new Map<string, Map<string, StationGameOverrides>>([
+  [sid(3, 1), new Map([[sid(4, 4), {}]])],
+  [sid(3, 2), new Map([[sid(4, 4), {}]])],
+  [sid(3, 3), new Map([[sid(4, 5), {}]])],
+  [sid(3, 11), new Map([[sid(4, 4), {}]])],
+]);
+
+export interface GameStatus {
+  installed: boolean;
+  reason: string | null;
+  reportedAt: string;
+}
+
+/**
+ * machineId → (wire gameId → what the agent last reported) (StationGameStatus).
+ * Filled by logic.ts reportCatalog, like the agent's catalog_status after a sync.
+ */
+const gameStatuses = new Map<string, Map<string, GameStatus>>();
+
+/** machineId → (wire gameId → why the fake agent can't launch it). Seeded so one game shows "No". */
+const notInstalled = new Map<string, Map<string, string>>([
+  [sid(3, 3), new Map([['valorant', 'Executable not found: C:\\Riot Games\\Riot Client\\RiotClientServices.exe']])],
+]);
 
 const membershipPlans: MembershipPlan[] = [
   { id: sid(5, 1), name: 'Silver', price: 15, discountPercent: 5, durationDays: 30 },
@@ -287,8 +350,11 @@ export const db = {
   branches,
   users,
   stations,
-  stationGames,
   games,
+  gameBranches,
+  machineGames,
+  gameStatuses,
+  notInstalled,
   membershipPlans,
   subscriptionPlans,
   memberships,

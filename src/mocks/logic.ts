@@ -6,18 +6,21 @@ import type {
   Alert,
   AlertCategory,
   AlertSeverity,
+  Game,
   PublicUser,
   Session,
   SessionUpdateEvent,
   Station,
   StationDetail,
+  StationGame,
+  StationGameOverrides,
   StationStatusEvent,
   TelemetrySnapshot,
   TransactionType,
   WalletTransaction,
 } from '../api/types';
 import { publish } from './bus';
-import { db, newId, nowIso, round3, type MockStation, type MockUser } from './db';
+import { db, newId, nowIso, round3, type GameStatus, type MockStation, type MockUser } from './db';
 import { MockHttpError } from './router';
 
 export function publicUser(u: MockUser): PublicUser {
@@ -89,6 +92,93 @@ export function setOnline(s: MockStation, online: boolean): void {
   s.lastSeenAt = nowIso();
   if (!online) s.runningGameId = null;
   publishStation(s);
+  // The agent syncs its catalog on every (re)connect.
+  if (online && s.enrollmentStatus === 'APPROVED') reportCatalog(s);
+}
+
+// ---------- games ----------
+
+/**
+ * The station's resolved catalog, like GamesRepository.resolvedFor: enabled
+ * games offered at its branch or assigned to the station itself.
+ */
+export function resolvedGames(s: MockStation): { game: Game; override: StationGameOverrides | undefined }[] {
+  const own = db.machineGames.get(s.id);
+  return db.games
+    .filter((g) => g.enabled && (db.gameBranches.get(g.id)?.has(s.branchId) || own?.has(g.id)))
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
+    .map((game) => ({ game, override: own?.get(game.id) }));
+}
+
+/** GET /api/v1/stations/:id/games: overrides applied, plus the station's last report per game. */
+export function stationGames(s: MockStation): StationGame[] {
+  const statuses = db.gameStatuses.get(s.id);
+  return resolvedGames(s).map(({ game, override }) => {
+    const status = statuses?.get(game.gameId);
+    return {
+      id: game.id,
+      gameId: game.gameId,
+      name: game.name,
+      launchType: game.launchType,
+      target: override?.target ?? game.target,
+      // Same rules as the agent: epic takes no arguments, only exe has a working directory.
+      arguments: game.launchType === 'epic' ? null : (override?.arguments ?? game.arguments),
+      workingDirectory: game.launchType === 'exe' ? (override?.workingDirectory ?? game.workingDirectory) : null,
+      processName: game.processName,
+      installed: status?.installed ?? null,
+      reason: status?.reason ?? null,
+      reportedAt: status?.reportedAt ?? null,
+    };
+  });
+}
+
+/** The fake agent's install check: seeded failures, and any target containing "missing". */
+function checkInstalled(s: MockStation, g: StationGame): Omit<GameStatus, 'reportedAt'> {
+  const seeded = db.notInstalled.get(s.id)?.get(g.gameId);
+  if (seeded) return { installed: false, reason: seeded };
+  if (g.target.toLowerCase().includes('missing')) return { installed: false, reason: `Executable not found: ${g.target}` };
+  return { installed: true, reason: null };
+}
+
+/**
+ * The agent's catalog sync: it pulls its resolved catalog and reports every
+ * entry (catalog_status), which replaces its previous report.
+ */
+export function reportCatalog(s: MockStation, announce = true): void {
+  const reportedAt = nowIso();
+  const games = stationGames(s).map((g) => ({ gameId: g.gameId, ...checkInstalled(s, g) }));
+  db.gameStatuses.set(s.id, new Map(games.map(({ gameId, ...status }) => [gameId, { ...status, reportedAt }])));
+  if (announce) publish('catalog_status', { machineId: s.id, serialNumber: s.serialNumber, branchId: s.branchId, reportedAt, games });
+}
+
+/**
+ * A catalog changed for these branches / stations. The real backend sends
+ * CATALOG_UPDATE to the online ones; here they just re-sync shortly after.
+ * Offline stations sync when they come back (setOnline).
+ */
+export function syncCatalogs(change: { branchIds?: string[]; machineIds?: string[] }): void {
+  for (const s of db.stations) {
+    const hit = change.branchIds?.includes(s.branchId) || change.machineIds?.includes(s.id);
+    if (hit && s.online && s.enrollmentStatus === 'APPROVED') setTimeout(() => reportCatalog(s), 600);
+  }
+}
+
+/** LAUNCH_GAME pre-checks, in the backend's order (GamesService.findLaunchable). */
+export function findLaunchable(s: MockStation, wireGameId: string): Game {
+  const game = db.games.find((g) => g.gameId === wireGameId);
+  if (!game) throw new MockHttpError(404, 'GAME_NOT_FOUND', 'game not found');
+  if (!game.enabled) throw new MockHttpError(409, 'GAME_DISABLED', 'game is disabled');
+  if (!resolvedGames(s).some((r) => r.game.id === game.id)) {
+    throw new MockHttpError(409, 'GAME_NOT_ASSIGNED', "game is not in this station's catalog");
+  }
+  const status = db.gameStatuses.get(s.id)?.get(game.gameId);
+  if (!status) {
+    throw new MockHttpError(409, 'GAME_STATUS_UNKNOWN', 'station has not reported this game yet (waiting for its catalog_status)');
+  }
+  if (!status.installed) {
+    throw new MockHttpError(409, 'GAME_NOT_INSTALLED', `game is not launchable on this station${status.reason ? `: ${status.reason}` : ''}`);
+  }
+  return game;
 }
 
 // ---------- telemetry ----------

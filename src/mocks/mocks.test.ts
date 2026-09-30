@@ -14,6 +14,7 @@ import type {
   Reservation,
   SessionView,
   Station,
+  StationGame,
   TelemetrySnapshot,
   WalletTransaction,
 } from '../api/types';
@@ -157,6 +158,68 @@ describe('alerts', () => {
   });
 });
 
+describe('games', () => {
+  it('validates the launch spec and the unique gameId; writes need a manager', async () => {
+    const manager = await login('manager.tunis');
+    const bad = await call('POST', '/api/v1/games', { gameId: 'x1', name: 'X', launchType: 'exe', target: 'x.exe' }, manager);
+    expect(bad).toMatchObject({ status: 400, data: { code: 'INVALID_LAUNCH_SPEC' } });
+    const taken = await call('POST', '/api/v1/games', { gameId: 'cs2', name: 'CS', launchType: 'steam', target: '730' }, manager);
+    expect(taken).toMatchObject({ status: 409, data: { code: 'GAME_ID_TAKEN' } });
+    const staff = await call('POST', '/api/v1/games', { gameId: 'x2', name: 'X', launchType: 'steam', target: '1' }, await login('staff.tunis'));
+    expect(staff.status).toBe(403);
+  });
+
+  it("a station's games carry the agent's report; a new assignment is reported after the sync", async () => {
+    const manager = await login('manager.tunis');
+    const rt = createFakeRealtime();
+    const reports: DashboardEvents['catalog_status'][] = [];
+    rt.on('catalog_status', (e) => reports.push(e));
+    rt.connect(() => manager);
+    await vi.advanceTimersByTimeAsync(400);
+
+    const tun3 = byName('TUN-03');
+    const list = (await call('GET', `/api/v1/stations/${tun3.id}/games`, undefined, manager)).data as StationGame[];
+    expect(list.find((g) => g.gameId === 'valorant')).toMatchObject({ installed: false, reason: expect.stringContaining('not found') });
+    expect(list.find((g) => g.gameId === 'cs2')).toMatchObject({ installed: true });
+
+    const created = await call('POST', '/api/v1/games', { gameId: 'notepad', name: 'Notepad', launchType: 'exe', target: 'C:\\Windows\\notepad.exe' }, manager);
+    expect(created.status).toBe(200);
+    const game = created.data as { id: string };
+    await call('PUT', `/api/v1/games/${game.id}/stations/${byName('TUN-01').id}`, {}, manager);
+    const before = (await call('GET', `/api/v1/stations/${byName('TUN-01').id}/games`, undefined, manager)).data as StationGame[];
+    expect(before.find((g) => g.gameId === 'notepad')).toMatchObject({ installed: null });
+
+    await vi.advanceTimersByTimeAsync(700);
+    const report = reports.find((r) => r.machineId === byName('TUN-01').id);
+    expect(report?.games).toContainEqual({ gameId: 'notepad', installed: true, reason: null });
+
+    const branchOffer = await call('DELETE', `/api/v1/games/${game.id}/branches/${db.branches[0].id}`, undefined, manager);
+    expect(branchOffer).toMatchObject({ status: 404, data: { code: 'ASSIGNMENT_NOT_FOUND' } });
+    rt.disconnect();
+  });
+
+  it('LAUNCH_GAME takes the wire gameId: not assigned / not installed are refused, cs2 launches', async () => {
+    const manager = await login('manager.tunis');
+    const station = byName('TUN-02'); // gamer2's session
+    station.locked = false;
+    station.sessionId ??= 'test-session';
+    const launch = (gameId: string) => call('POST', `/api/v1/stations/${station.id}/commands`, { type: 'LAUNCH_GAME', gameId }, manager);
+
+    expect(await launch('nope')).toMatchObject({ status: 404, data: { code: 'GAME_NOT_FOUND' } });
+    expect(await launch('rocket-league')).toMatchObject({ status: 409, data: { code: 'GAME_NOT_ASSIGNED' } });
+    db.notInstalled.set(station.id, new Map([['lol', 'Executable not found']]));
+    await call('PATCH', `/api/v1/games/${db.games.find((g) => g.gameId === 'lol')!.id}`, { sortOrder: 0 }, manager); // re-sync
+    await vi.advanceTimersByTimeAsync(700);
+    expect(await launch('lol')).toMatchObject({ status: 409, data: { code: 'GAME_NOT_INSTALLED' } });
+
+    const ok = await launch('cs2');
+    const cmd = ok.data as Command;
+    expect(cmd.gameId).toBe(db.games.find((g) => g.gameId === 'cs2')!.id);
+    await vi.advanceTimersByTimeAsync(600);
+    expect(station.runningGameId).toBe('cs2');
+  });
+});
+
 describe('HQ (multi-agency)', () => {
   it('?branchId narrows HQ lists to one branch; staff cannot widen theirs', async () => {
     const sousse = db.branches[1].id;
@@ -238,7 +301,7 @@ describe('commands and realtime', () => {
     const manager = await login('manager.tunis');
     const station = byName('TUN-03'); // locked, no session
     const game = db.games[0];
-    const launch = await call('POST', `/api/v1/stations/${station.id}/commands`, { type: 'LAUNCH_GAME', gameId: game.id }, manager);
+    const launch = await call('POST', `/api/v1/stations/${station.id}/commands`, { type: 'LAUNCH_GAME', gameId: game.gameId }, manager);
     expect(launch).toMatchObject({ status: 409, data: { code: 'STATION_NOT_IN_SESSION' } });
     const end = await call('POST', `/api/v1/stations/${station.id}/commands`, { type: 'END_SESSION' }, manager);
     expect(end).toMatchObject({ status: 409, data: { code: 'NO_ACTIVE_SESSION' } });

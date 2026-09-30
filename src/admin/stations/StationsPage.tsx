@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 
-import type { Alert, CommandType, SessionView, Station } from '../../api/types';
+import type { Alert, CommandType, Game, SessionView, Station } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { hasRole } from '../../auth/roles';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
@@ -10,6 +10,7 @@ import { formatDuration, secondsSince, useNow } from '../../shared/format';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
 import { ALERTS_PATH } from '../alerts/labels';
+import { GAMES_PATH } from '../games/games';
 import { useGamerNames } from '../useLookups';
 import { CommandNotices } from './CommandNotices';
 import { applyStatus, isOnline, screenText, stationLabel, STATIONS_PATH } from './station';
@@ -34,7 +35,7 @@ export function StationsPage() {
   const sessions = useApiQuery<SessionView[]>(scoped('/sessions?status=ACTIVE'));
   const alerts = useApiQuery<Alert[]>(scoped(`${ALERTS_PATH}?status=open&limit=500`));
   const gamerNames = useGamerNames();
-  const games = useApiQuery<{ id: string; title: string }[]>('/games');
+  const games = useApiQuery<Game[]>(GAMES_PATH);
   // machineId -> latest metrics, from telemetry_update only (no per-row snapshot call).
   const [telemetry, setTelemetry] = useState<Record<string, Record<string, number>>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -85,7 +86,8 @@ export function StationsPage() {
     const s = stations.data?.find((x) => x.id === id);
     return s ? stationLabel(s) : id.slice(0, 8);
   };
-  const gameTitle = (id: string | null) => (id ? (games.data?.find((g) => g.id === id)?.title ?? 'a game') : null);
+  // runningGameId is the catalog's wire gameId.
+  const gameTitle = (wire: string | null) => (wire ? (games.data?.find((g) => g.gameId === wire)?.name ?? wire) : null);
 
   async function run(machineIds: string[], type: CommandType) {
     setActionError(null);

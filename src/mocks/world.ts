@@ -10,7 +10,7 @@
  */
 import { publish } from './bus';
 import { db, FLAKY_STATION_ID, newId, nowIso, type MockStation } from './db';
-import { endSession, nextTelemetry, publishStation, raiseAlert, sessionUpdate, setOnline, startSession } from './logic';
+import { endSession, nextTelemetry, publishStation, raiseAlert, reportCatalog, sessionUpdate, setOnline, startSession } from './logic';
 
 const TELEMETRY_MS = 2_000;
 const SESSION_MS = 10_000;
@@ -95,7 +95,6 @@ function newEnrollmentRequest(): void {
     lastSeenAt: nowIso(),
   };
   db.stations.push(s);
-  db.stationGames.set(s.id, []);
   publishStation(s);
 }
 
@@ -104,6 +103,8 @@ export function startWorld(): void {
   if (started) return;
   started = true;
   for (const s of liveStations()) nextTelemetry(s);
+  // Every enrolled station has synced its catalog once (offline ones before they went down).
+  for (const s of db.stations) if (s.enrollmentStatus === 'APPROVED') reportCatalog(s, false);
   setInterval(tickTelemetry, TELEMETRY_MS);
   setInterval(tickSessions, SESSION_MS);
   setInterval(flipFlaky, FLAKY_MS);

@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 
-import type { Alert, Command, CommandStatus, Game, IssueCommandBody, SessionView, StationDetail, TelemetrySnapshot } from '../../api/types';
+import type { Alert, Command, CommandStatus, IssueCommandBody, SessionView, StationDetail, StationGame, TelemetrySnapshot } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatAgo, formatClock, formatDateTime, formatDuration, secondsSince, useNow } from '../../shared/format';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
 import { ALERTS_PATH, alertDetail, isSevere, repeatText, typeLabel } from '../alerts/labels';
+import { applyCatalogStatus } from '../games/games';
 import { useGamerNames } from '../useLookups';
 import { applyStatus, isOnline, screenText, stationLabel, STATIONS_PATH } from './station';
 import { describeMetric, formatMetric, isHot, sortedMetrics } from './telemetry';
@@ -40,7 +41,8 @@ export function StationDetailPage() {
   const station = useApiQuery<StationDetail>(`${STATIONS_PATH}/${id}`);
   // 404 TELEMETRY_NOT_AVAILABLE once the server's cache expired: shown as "no reading", not an error.
   const snapshot = useApiQuery<TelemetrySnapshot>(`${STATIONS_PATH}/${id}/telemetry`);
-  const games = useApiQuery<Game[]>(`/stations/${id}/games`);
+  // Resolved catalog + what the agent last reported: only installed games can be launched.
+  const games = useApiQuery<StationGame[]>(`${STATIONS_PATH}/${id}/games`);
   const log = useApiQuery<Command[]>(`${STATIONS_PATH}/${id}/commands?limit=${LOG_SIZE}`);
   // The API filters alerts by branch, not by station: take the station's branch and keep this station's rows.
   const alertBranch = station.data?.branchId;
@@ -75,6 +77,7 @@ export function StationDetailPage() {
     alerts.setData((list) => (list?.some((a) => a.id === e.id) ? list.map((a) => (a.id === e.id ? e : a)) : [e, ...(list ?? [])]));
   };
   useRealtimeEvent('alert', upsertAlert);
+  useRealtimeEvent('catalog_status', (e) => e.machineId === id && games.setData((list) => applyCatalogStatus(list, e)));
   useRealtimeEvent('alert_resolved', upsertAlert);
   useRealtimeEvent('session_update', (e) => {
     if (e.machineId === id && e.sessionId === sessionId) session.reload();
@@ -84,6 +87,7 @@ export function StationDetailPage() {
     snapshot.reload();
     log.reload();
     alerts.reload();
+    games.reload();
   });
 
   async function run(body: IssueCommandBody) {
@@ -121,7 +125,9 @@ export function StationDetailPage() {
     return values.length ? { min: Math.min(...values), max: Math.max(...values) } : null;
   };
   const stationAlerts = (alerts.data ?? []).filter((a) => a.machineId === id).slice(0, 10);
-  const gameTitle = (gid: string | null) => (gid ? (games.data?.find((g) => g.id === gid)?.title ?? 'unknown game') : '—');
+  // runningGameId is the wire gameId; a command's gameId is the game's row id.
+  const runningName = (wire: string | null) => (wire ? (games.data?.find((g) => g.gameId === wire)?.name ?? wire) : '—');
+  const gameName = (rowId: string) => games.data?.find((g) => g.id === rowId)?.name ?? 'unknown game';
 
   return (
     <>
@@ -165,7 +171,7 @@ export function StationDetailPage() {
           </tr>
           <tr>
             <th>Running game</th>
-            <td>{gameTitle(s.runningGameId)}</td>
+            <td>{runningName(s.runningGameId)}</td>
           </tr>
           {isHq && (
             <tr>
@@ -213,8 +219,9 @@ export function StationDetailPage() {
         <select value={gameId} onChange={(e) => setGameId(e.target.value)} aria-label="Game to launch">
           <option value="">— choose a game —</option>
           {(games.data ?? []).map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.title}
+            <option key={g.id} value={g.gameId} disabled={g.installed !== true}>
+              {g.name}
+              {g.installed === null ? ' (not reported yet)' : g.installed ? '' : ' (not installed)'}
             </option>
           ))}
         </select>{' '}
@@ -272,7 +279,7 @@ export function StationDetailPage() {
               <td>{formatClock(c.issuedAt)}</td>
               <td>
                 {COMMAND_LABEL[c.type]}
-                {c.type === 'LAUNCH_GAME' && c.gameId && ` (${gameTitle(c.gameId)})`}
+                {c.type === 'LAUNCH_GAME' && c.gameId && ` (${gameName(c.gameId)})`}
               </td>
               <td className={c.status === 'ACKED' ? 'status-ok' : isOpen(c.status) ? '' : 'status-bad'}>
                 {STATUS_TEXT[c.status]}

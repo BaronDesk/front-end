@@ -9,7 +9,7 @@ import type { Command, CommandStatus, CommandType } from '../../api/types';
 import { publish } from '../bus';
 import { db, newId, nowIso } from '../db';
 import { assertBranch, badRequest, branchFilter, findStation, requireStaff } from '../guards';
-import { endSession, publishStation, setOnline } from '../logic';
+import { endSession, findLaunchable, publishStation, setOnline } from '../logic';
 import { MockHttpError, route } from '../router';
 
 const COMMAND_TYPES: CommandType[] = ['LOCK', 'UNLOCK', 'SHUTDOWN', 'LAUNCH_GAME', 'END_SESSION', 'CATALOG_UPDATE'];
@@ -48,7 +48,8 @@ function execute(cmd: Command): { code: string; reason: string } | null {
       break;
     case 'LAUNCH_GAME':
       if (s.locked || !s.sessionId) return { code: 'EXEC_FAILED', reason: 'must be unlocked with an active session' };
-      s.runningGameId = cmd.gameId;
+      // The station reports the wire gameId; the command row holds the game's row id.
+      s.runningGameId = db.games.find((g) => g.id === cmd.gameId)?.gameId ?? null;
       break;
     case 'END_SESSION': {
       const session = db.sessions.find((x) => x.id === s.sessionId);
@@ -88,14 +89,13 @@ route('POST', '/api/v1/stations/:id/commands', (ctx) => {
     throw new MockHttpError(409, 'STATION_NOT_ENROLLED', 'station is not approved');
   }
   if (!s.online) throw new MockHttpError(409, 'STATION_OFFLINE', 'station is not online');
+  // LAUNCH_GAME takes the wire gameId; the command row records the game's row id.
+  let gameRowId: string | null = null;
   if (type === 'LAUNCH_GAME') {
     if (s.locked || !s.sessionId) {
       throw new MockHttpError(409, 'STATION_NOT_IN_SESSION', 'station must be unlocked with an active session to launch a game');
     }
-    // The mock's games have no separate wire id yet: gameId is the game's row id.
-    if (!(db.stationGames.get(s.id) ?? []).includes(gameId)) {
-      throw new MockHttpError(409, 'GAME_NOT_ASSIGNED', "game is not in this station's catalog");
-    }
+    gameRowId = findLaunchable(s, gameId).id;
   }
   if (type === 'END_SESSION' && !s.sessionId) {
     throw new MockHttpError(409, 'NO_ACTIVE_SESSION', 'station has no active session');
@@ -106,7 +106,7 @@ route('POST', '/api/v1/stations/:id/commands', (ctx) => {
     machineId: s.id,
     branchId: s.branchId,
     type,
-    gameId: type === 'LAUNCH_GAME' ? gameId : null,
+    gameId: gameRowId,
     status: 'PENDING',
     issuedBy: caller.id,
     issuedAt: nowIso(),

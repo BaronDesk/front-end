@@ -1,15 +1,13 @@
 /*
- * station/ endpoints: branches, stations, enrollment, telemetry snapshot,
- * availability, games and station games.
+ * station/ endpoints: branches, stations, enrollment, telemetry snapshot and
+ * availability. Games and a station's games are in games.ts.
  */
-import type { BranchSummary, Game, StationAvailability } from '../../api/types';
-import { db, newId, nowIso } from '../db';
+import type { BranchSummary, StationAvailability } from '../../api/types';
+import { db } from '../db';
 import {
   assertBranch,
-  badRequest,
   branchFilter,
   findStation,
-  notFound,
   requireHq,
   requireManager,
   requireStaff,
@@ -124,78 +122,3 @@ function enrollmentAction(to: 'APPROVED' | 'REJECTED' | 'REVOKED', from: string[
 route('POST', '/enrollment/:machineId/approve', enrollmentAction('APPROVED', ['PENDING']));
 route('POST', '/enrollment/:machineId/reject', enrollmentAction('REJECTED', ['PENDING']));
 route('POST', '/enrollment/:machineId/revoke', enrollmentAction('REVOKED', ['APPROVED']));
-
-// ---------- games ----------
-
-function findGame(id: string): Game {
-  return db.games.find((g) => g.id === id) ?? notFound('game');
-}
-
-function readGame(body: Record<string, unknown>, base?: Game): Omit<Game, 'id'> {
-  const title = String(body.title ?? base?.title ?? '').trim();
-  const executablePath = String(body.executablePath ?? base?.executablePath ?? '').trim();
-  if (!title) badRequest('title is required');
-  if (!executablePath) badRequest('executablePath is required');
-  return {
-    title,
-    executablePath,
-    genre: String(body.genre ?? base?.genre ?? ''),
-    cover: (body.cover as string | null | undefined) ?? base?.cover ?? null,
-  };
-}
-
-route('GET', '/games', (ctx) => {
-  requireStaff(ctx);
-  return db.games;
-});
-
-route('POST', '/games', (ctx) => {
-  requireManager(ctx);
-  const game: Game = { id: newId(), ...readGame(ctx.body) };
-  db.games.push(game);
-  return game;
-});
-
-route('PATCH', '/games/:id', (ctx) => {
-  requireManager(ctx);
-  const game = findGame(ctx.params.id);
-  Object.assign(game, readGame(ctx.body, game));
-  return game;
-});
-
-route('DELETE', '/games/:id', (ctx) => {
-  requireManager(ctx);
-  findGame(ctx.params.id);
-  db.games.splice(db.games.findIndex((g) => g.id === ctx.params.id), 1);
-  for (const [machineId, ids] of db.stationGames) {
-    db.stationGames.set(machineId, ids.filter((id) => id !== ctx.params.id));
-  }
-  return undefined;
-});
-
-route('GET', '/stations/:id/games', (ctx) => {
-  const caller = requireStaff(ctx);
-  const s = findStation(ctx.params.id);
-  assertBranch(caller, s.branchId);
-  const ids = db.stationGames.get(s.id) ?? [];
-  return db.games.filter((g) => ids.includes(g.id));
-});
-
-route('POST', '/stations/:id/games', (ctx) => {
-  const caller = requireManager(ctx);
-  const s = findStation(ctx.params.id);
-  assertBranch(caller, s.branchId);
-  const game = findGame(ctx.body.gameId);
-  const ids = db.stationGames.get(s.id) ?? [];
-  if (ids.includes(game.id)) throw new MockHttpError(409, 'ALREADY_ASSIGNED', 'game is already on this station');
-  db.stationGames.set(s.id, [...ids, game.id]);
-  return { machineId: s.id, gameId: game.id, assignedAt: nowIso() };
-});
-
-route('DELETE', '/stations/:id/games/:gameId', (ctx) => {
-  const caller = requireManager(ctx);
-  const s = findStation(ctx.params.id);
-  assertBranch(caller, s.branchId);
-  db.stationGames.set(s.id, (db.stationGames.get(s.id) ?? []).filter((id) => id !== ctx.params.gameId));
-  return undefined;
-});

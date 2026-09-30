@@ -118,12 +118,82 @@ export interface TelemetrySnapshot {
   metrics: Record<string, number>;
 }
 
+/**
+ * exe: target is the full path of the .exe. steam: target is the Steam app id.
+ * epic: target is the Epic AppName (no arguments, no working directory).
+ */
+export type GameLaunchType = 'exe' | 'steam' | 'epic';
+
+/** GET / POST / PATCH /api/v1/games (games/services/games.service.ts toGameDto). */
 export interface Game {
+  /** Row id (uuid): what the /games/:id routes and Command.gameId use. */
   id: string;
-  title: string;
-  executablePath: string;
-  genre: string;
-  cover: string | null;
+  /** Wire id (e.g. "cs2"): what LAUNCH_GAME, the agent's catalog and runningGameId use. */
+  gameId: string;
+  name: string;
+  launchType: GameLaunchType;
+  target: string;
+  arguments: string | null;
+  workingDirectory: string | null;
+  /** e.g. cs2.exe: lets the agent track the game and close it at session end. */
+  processName: string | null;
+  iconUrl: string | null;
+  /** No delete on the API: a retired game is disabled. */
+  enabled: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** POST /api/v1/games body (PATCH takes any subset). */
+export interface GameInput {
+  gameId: string;
+  name: string;
+  launchType: GameLaunchType;
+  target: string;
+  arguments?: string | null;
+  workingDirectory?: string | null;
+  processName?: string | null;
+  iconUrl?: string | null;
+  enabled?: boolean;
+  sortOrder?: number;
+}
+
+/**
+ * GET /api/v1/stations/:id/games: the station's resolved catalog (offered at
+ * its branch or on the station itself, per-station overrides applied) with
+ * what the agent last reported. It does not say which of the two assignments
+ * put a game there.
+ */
+export interface StationGame {
+  id: string;
+  gameId: string;
+  name: string;
+  launchType: GameLaunchType;
+  target: string;
+  arguments: string | null;
+  workingDirectory: string | null;
+  processName: string | null;
+  /** null until the station has reported on this game (after its next catalog sync). */
+  installed: boolean | null;
+  reason: string | null;
+  reportedAt: string | null;
+}
+
+/** PUT /api/v1/games/:id/stations/:stationId body: per-station overrides, null = the game's own value. */
+export interface StationGameOverrides {
+  target?: string | null;
+  arguments?: string | null;
+  workingDirectory?: string | null;
+}
+
+/** The catalog_status event: sent after every agent catalog sync (games/services/games.service.ts recordStationStatus). */
+export interface CatalogStatusEvent {
+  machineId: string;
+  serialNumber: string;
+  branchId: string;
+  reportedAt: string;
+  games: { gameId: string; installed: boolean; reason: string | null }[];
 }
 
 /** The commands staff can issue (ops/schemas/command.schemas.ts STATION_COMMAND_TYPES). */
@@ -370,6 +440,7 @@ export interface DashboardEvents {
   session_update: SessionUpdateEvent;
   /** Every status change of a command, from PENDING to its final status. */
   command_update: Command;
+  catalog_status: CatalogStatusEvent;
 }
 
 export type DashboardEventName = keyof DashboardEvents;
