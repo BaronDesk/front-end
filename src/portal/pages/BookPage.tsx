@@ -47,8 +47,9 @@ function explain(err: unknown): never {
  * Advance Reservation (brief §6.8). The stations are those of the gamer's
  * branch (Settings), each with whether it is free; the desk's booking link
  * (a QR code on a PC) preselects one, and PCs booked before stay listed. The
- * wallet must cover the booking. The gamer gets the PIN for the lock screen
- * here: at once for Play now, from 15 minutes before the booked time otherwise.
+ * wallet must cover the booking. Every booking comes with its PIN, shown here:
+ * it works on that PC from the booking's start until 30 minutes later (after
+ * that the booking is a no-show and the PC is free again).
  */
 export function BookPage() {
   const { user } = useAuth();
@@ -71,17 +72,17 @@ export function BookPage() {
   const [start, setStart] = useState(nextHourLocal);
   const [minutes, setMinutes] = useState(60);
   const [made, setMade] = useState<Reservation | null>(null);
-  const [pin, setPin] = useState<{ checkIn: CheckIn; station: string } | null>(null);
+  const [pin, setPin] = useState<{ checkIn: CheckIn; station: string; validFrom: string } | null>(null);
   const station = machineId || stations[0]?.id || '';
 
   async function book(e: FormEvent) {
     e.preventDefault();
     const startTime = new Date(start);
     const body = { machineId: station, startTime: startTime.toISOString(), endTime: new Date(startTime.getTime() + minutes * 60_000).toISOString() };
-    const r = await action.run('book', () => api<Reservation>('POST', '/reservations', body).catch(explain), 'Booked.');
+    const r = await action.run('book', () => api<WalkIn>('POST', '/reservations', body).catch(explain), 'Booked.');
     if (r) {
       setMade(r);
-      setPin(null);
+      setPin(r.checkIn ? { checkIn: r.checkIn, station: stationOf(r), validFrom: r.startTime } : null);
       bookings.reload();
       branchStations.reload();
     }
@@ -91,19 +92,23 @@ export function BookPage() {
     const r = await action.run(
       'now',
       () => api<WalkIn>('POST', '/reservations/walk-in', { machineId: station, durationMinutes: minutes }).catch(explain),
-      (w) => (w.checkIn ? 'The PC is yours now: type the PIN below on its lock screen.' : 'The PC is yours now. No PIN yet: tap Get PIN below in a moment.'),
+      (w) => (w.checkIn ? 'The PC is yours now: type the PIN below on its lock screen.' : 'The PC is yours now. No PIN yet: tap New PIN below in a moment.'),
     );
     if (r) {
       setMade(null);
-      setPin(r.checkIn ? { checkIn: r.checkIn, station: stationOf(r) } : null);
+      setPin(r.checkIn ? { checkIn: r.checkIn, station: stationOf(r), validFrom: r.startTime } : null);
       bookings.reload();
       branchStations.reload();
     }
   }
 
   async function getPin(r: Reservation) {
+    if (r.pin && !window.confirm('Get a new PIN? The one you have stops working.')) return;
     const c = await action.run(r.id, () => requestPin(r));
-    if (c) setPin({ checkIn: c, station: stationOf(r) });
+    if (c) {
+      setPin({ checkIn: c, station: stationOf(r), validFrom: r.startTime });
+      bookings.reload();
+    }
   }
 
   async function cancel(r: Reservation) {
@@ -131,11 +136,10 @@ export function BookPage() {
         </p>
       )}
 
-      {pin && <PinBox checkIn={pin.checkIn} station={pin.station} />}
-      {made && (
+      {pin && <PinBox pin={pin.checkIn.pin} station={pin.station} validFrom={pin.validFrom} validUntil={pin.checkIn.pinExpiresAt} />}
+      {made && !pin && (
         <div className="msg">
-          <b>{stationOf(made)}</b>, {formatDateTime(made.startTime)}. Your PIN for the PC is here (or on My session) from 15 minutes
-          before: tap <i>Get PIN</i>.
+          <b>{stationOf(made)}</b>, {formatDateTime(made.startTime)}. Your PIN will show on the booking below.
         </div>
       )}
 
@@ -194,6 +198,7 @@ export function BookPage() {
             <th>Station</th>
             <th>When</th>
             <th>Status</th>
+            <th>PIN</th>
             <th />
           </tr>
         </thead>
@@ -205,10 +210,20 @@ export function BookPage() {
                 {formatDateTime(r.startTime)} – {formatDateTime(r.endTime).split(' ')[1]}
               </td>
               <td>{RESERVATION_TEXT[r.status]}</td>
+              <td>
+                {r.pin ? (
+                  <>
+                    <b className="pin">{r.pin.pin}</b>
+                    <div className="muted">from {formatDateTime(r.pin.validFrom).split(' ')[1]}</div>
+                  </>
+                ) : (
+                  <span className="muted">{r.status === 'ACTIVE' ? 'used' : '—'}</span>
+                )}
+              </td>
               <td className="nowrap">
                 {canCheckIn(r) && (
-                  <button type="button" disabled={action.busy === r.id} onClick={() => getPin(r)}>
-                    Get PIN
+                  <button type="button" className="secondary" disabled={action.busy === r.id} onClick={() => getPin(r)}>
+                    New PIN
                   </button>
                 )}{' '}
                 {isCancellable(r) && (
@@ -221,7 +236,7 @@ export function BookPage() {
           ))}
           {!bookings.loading && upcoming.length === 0 && (
             <tr>
-              <td colSpan={4} className="muted">
+              <td colSpan={5} className="muted">
                 No booking ahead.
               </td>
             </tr>

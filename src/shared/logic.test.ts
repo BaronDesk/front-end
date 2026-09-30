@@ -57,7 +57,8 @@ describe('portal bookings', () => {
 
   it('only a booking that has not started can be cancelled', () => {
     expect(isCancellable(booking({}), at('2026-09-30T09:00:00Z'))).toBe(true);
-    expect(isCancellable(booking({}), at('2026-09-30T10:30:00Z'))).toBe(false);
+    expect(isCancellable(booking({}), at('2026-09-30T10:15:00Z'))).toBe(true); // started, nobody logged in yet
+    expect(isCancellable(booking({}), at('2026-09-30T10:30:00Z'))).toBe(false); // no-show deadline
     expect(isCancellable(booking({ status: 'CANCELLED' }), at('2026-09-30T09:00:00Z'))).toBe(false);
   });
 

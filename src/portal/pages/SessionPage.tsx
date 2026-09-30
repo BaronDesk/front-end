@@ -71,8 +71,12 @@ export function SessionPage() {
   });
 
   async function getPin(r: Reservation) {
+    if (r.pin && !window.confirm('Get a new PIN? The one you have stops working.')) return;
     const c = await action.run('pin', () => requestPin(r));
-    if (c) setPin(c);
+    if (c) {
+      setPin(c);
+      bookings.reload();
+    }
   }
 
   async function extend(minutes: number) {
@@ -174,7 +178,14 @@ export function SessionPage() {
         </>
       ) : booking ? (
         <>
-          {pin?.reservationId === booking.id && <PinBox checkIn={pin} station={stationOf(booking)} />}
+          {(pin?.reservationId === booking.id || booking.pin) && (
+            <PinBox
+              pin={pin?.reservationId === booking.id ? pin.pin : booking.pin!.pin}
+              station={stationOf(booking)}
+              validFrom={booking.startTime}
+              validUntil={pin?.reservationId === booking.id ? pin.pinExpiresAt : (booking.pin?.validUntil ?? null)}
+            />
+          )}
           <table className="kv">
             <tbody>
               <tr>
@@ -192,10 +203,10 @@ export function SessionPage() {
               <tr>
                 <th>PIN</th>
                 <td>
-                  <button type="button" disabled={action.busy === 'pin'} onClick={() => getPin(booking)}>
-                    {pin?.reservationId === booking.id ? 'Get a new PIN' : 'Get my PIN'}
+                  <button type="button" className="secondary" disabled={action.busy === 'pin'} onClick={() => getPin(booking)}>
+                    New PIN
                   </button>
-                  <div className="muted">Type it on the PC&apos;s lock screen to start playing.</div>
+                  <div className="muted">Lost it, or too many wrong tries? A new PIN replaces the old one.</div>
                 </td>
               </tr>
             </tbody>

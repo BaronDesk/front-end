@@ -522,6 +522,8 @@ export interface Reservation {
   createdAt: string;
   updatedAt: string;
   machine?: { id: string; name: string | null; serialNumber: string; branchId: string };
+  /** GET /reservations (own): the booking's PIN while unused. It works on that PC from validFrom (the start) until validUntil (the no-show deadline). */
+  pin?: { pin: string; validFrom: string; validUntil: string | null } | null;
 }
 
 /** POST /reservations/:id/check-in: the PIN the gamer types on the station's lock screen. */
@@ -532,7 +534,7 @@ export interface CheckIn {
   pinExpiresAt: string;
 }
 
-/** POST /reservations/walk-in: the booking, with its PIN (null when the station can't take it yet). */
+/** POST /reservations and /reservations/walk-in: the booking, with its PIN (null if it could not be issued yet). */
 export interface WalkIn extends Reservation {
   checkIn: CheckIn | null;
 }

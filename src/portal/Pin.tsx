@@ -1,10 +1,10 @@
 import { api, ApiError } from '../api/http';
 import type { CheckIn, Reservation } from '../api/types';
-import { formatClock } from '../shared/format';
+import { formatClock, formatDateTime } from '../shared/format';
 
 /** The server's check-in refusals, in words a gamer understands. */
 const PIN_REFUSALS: Record<string, string> = {
-  RESERVATION_NOT_STARTED: 'Too early: you can get your PIN 15 minutes before your booking.',
+  RESERVATION_EXPIRED: 'This booking is over: nobody logged in within 30 minutes of its start.',
   STATION_OFFLINE: 'The PC is switched off or offline right now. Try again in a moment or ask the desk.',
   SESSION_ALREADY_STARTED: 'Your session on this PC is already running.',
   PRICING_NOT_SET: 'Play is not open yet at this branch. Ask the desk.',
@@ -12,8 +12,9 @@ const PIN_REFUSALS: Record<string, string> = {
 };
 
 /**
- * Gets the PIN for the gamer's own booking. Asking again gives a new PIN
- * (the previous one stops working), so a lost PIN is never a dead end.
+ * A new PIN for the gamer's own booking (every booking already comes with
+ * one): the previous one stops working, so a PIN burned by wrong tries is
+ * never a dead end.
  */
 export function requestPin(r: Reservation): Promise<CheckIn> {
   return api<CheckIn>('POST', `/reservations/${r.id}/check-in`).catch((err: unknown) => {
@@ -22,12 +23,16 @@ export function requestPin(r: Reservation): Promise<CheckIn> {
   });
 }
 
-/** The PIN to type on the station's lock screen. */
-export function PinBox({ checkIn, station }: { checkIn: CheckIn; station: string }) {
+/** The PIN to type on the station's lock screen, and when it works. */
+export function PinBox({ pin, station, validFrom, validUntil }: { pin: string; station: string; validFrom: string; validUntil: string | null }) {
+  const started = Date.parse(validFrom) <= Date.now();
   return (
     <div className="msg">
-      <b>Your PIN for {station}:</b> <span className="pin">{checkIn.pin}</span>
-      <div className="muted">Type it on the PC&apos;s lock screen to start playing. It works until {formatClock(checkIn.pinExpiresAt)}.</div>
+      <b>Your PIN for {station}:</b> <span className="pin">{pin}</span>
+      <div className="muted">
+        Type it on that PC&apos;s lock screen {started ? 'now' : `from ${formatDateTime(validFrom)}`}
+        {validUntil ? `, until ${formatClock(validUntil)} (after that the booking is lost)` : ''}.
+      </div>
     </div>
   );
 }

@@ -9,29 +9,41 @@ export const RESERVATION_TEXT: Record<ReservationStatus, string> = {
   NO_SHOW: 'Missed',
 };
 
-/** The gamer can get their PIN from 15 minutes before the booked time. */
-const EARLY_MS = 15 * 60_000;
+/** A booked one shows as "now" on the home and session pages from this long before its start. */
+const SOON_MS = 15 * 60_000;
+
+/** A booking nobody logged into this long after its start becomes a no-show (the server's NO_SHOW_GRACE_MINUTES). */
+export const NO_SHOW_MS = 30 * 60_000;
 
 /**
  * The booking the gamer is on now: a running one (ACTIVE), else a booked one
- * whose time has come (or comes within 15 minutes).
+ * whose time has come (or comes within 15 minutes) and isn't a no-show yet.
  */
 export function currentBooking(list: Reservation[] | undefined, now = Date.now()): Reservation | undefined {
   if (!list) return undefined;
   return (
     list.find((r) => r.status === 'ACTIVE') ??
-    list.find((r) => canCheckIn(r, now))
+    list.find((r) => r.status === 'CONFIRMED' && Date.parse(r.startTime) - SOON_MS <= now && pinDeadline(r) > now)
   );
 }
 
-/** The gamer can get the PIN from 15 minutes before the booked time until it ends (the server checks the same). */
-export function canCheckIn(r: Reservation, now = Date.now()): boolean {
-  return r.status === 'CONFIRMED' && Date.parse(r.startTime) - EARLY_MS <= now && Date.parse(r.endTime) > now;
+/** When the booking's PIN stops working: 30 min after the start (a no-show then), never past the end. */
+export function pinDeadline(r: Reservation): number {
+  return Math.min(Date.parse(r.startTime) + NO_SHOW_MS, Date.parse(r.endTime));
 }
 
-/** Still ahead, so it can be cancelled (the server refuses once it has started). */
+/** A booking whose PIN can still be used or replaced (the server checks the same). */
+export function canCheckIn(r: Reservation, now = Date.now()): boolean {
+  return r.status === 'CONFIRMED' && pinDeadline(r) > now;
+}
+
+/**
+ * Nobody plays on it yet, so it can be cancelled: a booking ahead, or one
+ * that started without a login, until its no-show deadline (the server
+ * refuses once a session is in play).
+ */
 export function isCancellable(r: Reservation, now = Date.now()): boolean {
-  return (r.status === 'PENDING' || r.status === 'CONFIRMED') && Date.parse(r.startTime) > now;
+  return (r.status === 'PENDING' || r.status === 'CONFIRMED') && pinDeadline(r) > now;
 }
 
 export function stationOf(r: Reservation): string {
