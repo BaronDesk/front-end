@@ -4,7 +4,7 @@ import { Link, NavLink, Outlet } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 import { hasRole, ROLE_LABEL } from '../auth/roles';
 import { ConnectionBanner, LiveTag } from '../shared/ConnectionBanner';
-import { MockBadge } from '../shared/MockBadge';
+import { PageErrorBoundary } from '../shared/PageErrorBoundary';
 import { AlertBanner } from './alerts/AlertBanner';
 import { AlertFeedProvider, useAlertFeed } from './alerts/AlertFeedContext';
 import { BranchProvider, BranchSwitcher, useBranchScope } from './branch/BranchContext';
@@ -17,7 +17,6 @@ function TopBar({ children }: { children?: ReactNode }) {
         <Link to="/" className="brand">
           BARONDESK<small>Venue administration</small>
         </Link>
-        <MockBadge />
       </div>
       <div className="userbox">{children}</div>
     </div>
@@ -81,7 +80,9 @@ function AdminShell() {
         </nav>
         <main className="content">
           {/* A new branch starts every page fresh: lists, forms and selections. */}
-          <Outlet key={branchId ?? 'all'} />
+          <PageErrorBoundary>
+            <Outlet key={branchId ?? 'all'} />
+          </PageErrorBoundary>
         </main>
       </div>
 

@@ -1,140 +1,144 @@
+import { useEffect } from 'react';
 import { Link, useParams } from 'react-router';
 
 import { api } from '../../api/http';
-import type { SessionView } from '../../api/types';
-import { useRealtimeEvent } from '../../realtime/RealtimeContext';
+import type { Command, Session } from '../../api/types';
 import { ErrorBox } from '../../shared/ErrorBox';
-import { formatClock, formatDateTime, formatDuration, formatMoney, secondsSince, useNow } from '../../shared/format';
+import { formatDateTime, formatDuration, formatMillimes } from '../../shared/format';
 import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
-import { useGamerNames, useStationNames } from '../useLookups';
-import { endReasonLabel } from './labels';
+import { isOpenSession, SESSION_STATUS_TEXT } from './labels';
 
-/** One session: live numbers while it runs, the billing breakdown once it ended. */
+/** The backend pushes no session event: an open session is re-read this often. */
+const POLL_MS = 5_000;
+
+/**
+ * One session and its bill (GET /sessions/:id). Ending it sends END_SESSION
+ * to the station; the bill is settled once the station reports the session
+ * gone, so the page keeps reading until `settledAt` is set.
+ */
 export function SessionBillPage() {
   const { id = '' } = useParams();
-  const now = useNow(1_000);
-  const session = useApiQuery<SessionView>(`/sessions/${id}`);
-  const gamerNames = useGamerNames();
-  const stationNames = useStationNames();
+  const session = useApiQuery<Session>(`/sessions/${id}`);
   const action = useAction();
-
-  useRealtimeEvent('session_update', (e) => {
-    if (e.sessionId === id) session.reload();
-  });
-
-  if (session.error && !session.data) return <ErrorBox error={session.error} />;
   const s = session.data;
-  if (!s) return <p className="muted">Loading…</p>;
-  const b = s.billing;
-  const ended = s.status === 'ENDED';
+  const open = s ? isOpenSession(s.status) || !s.settledAt : true;
+
+  const { reload } = session;
+  useEffect(() => {
+    if (!open) return;
+    const timer = setInterval(reload, POLL_MS);
+    return () => clearInterval(timer);
+  }, [open, reload]);
 
   async function end() {
-    if (!window.confirm('End this session and bill it now?')) return;
-    const done = await action.run('end', () => api<SessionView>('POST', `/sessions/${id}/end`, { reason: 'STAFF_ENDED' }));
-    if (done) session.setData(() => done);
+    if (!window.confirm('End this session and bill it now? The station locks.')) return;
+    const cmd = await action.run(
+      'end',
+      () => api<Command>('POST', `/sessions/${id}/end`, { reason: 'staff_end' }),
+      'End sent to the station. The bill appears here once the station confirms.',
+    );
+    if (cmd) reload();
   }
+
+  if (session.error && !s) {
+    return (
+      <>
+        <h1>Session</h1>
+        <ErrorBox error={session.error} />
+        <Link to="/sessions">« Back to sessions</Link>
+      </>
+    );
+  }
+  if (!s) return <p className="muted">Loading…</p>;
+
+  const bill = s.billingBreakdown;
 
   return (
     <>
       <p>
         <Link to="/sessions">« Back to sessions</Link>
       </p>
-      <h1>
-        Session on {stationNames.get(s.machineId) ?? '…'} &middot; {gamerNames.get(s.userId) ?? 'gamer'}
-      </h1>
+      <h1>Session {s.id.slice(0, 8)}</h1>
       <ActionMessages action={action} />
 
       <table className="kv">
         <tbody>
           <tr>
             <th>Status</th>
-            <td className={s.status === 'WARNED' ? 'status-bad' : 'status-ok'}>
-              {ended ? 'Ended' : s.status === 'WARNED' ? 'Running, LOW BALANCE' : 'Running'}
+            <td className={isOpenSession(s.status) ? 'status-ok' : ''}>{SESSION_STATUS_TEXT[s.status]}</td>
+          </tr>
+          <tr>
+            <th>Booking code</th>
+            <td>
+              <code>{s.reservationId}</code>
             </td>
           </tr>
           <tr>
             <th>Started</th>
-            <td>{formatDateTime(s.startedAt)}</td>
+            <td>{formatDateTime(s.startTime)}</td>
           </tr>
-          {ended ? (
-            <>
-              <tr>
-                <th>Ended</th>
-                <td>{formatDateTime(s.endedAt)}</td>
-              </tr>
-              <tr>
-                <th>Why</th>
-                <td>{endReasonLabel(s.endReason)}</td>
-              </tr>
-            </>
-          ) : (
-            <>
-              <tr>
-                <th>Time played</th>
-                <td>{formatDuration(secondsSince(s.startedAt, now))}</td>
-              </tr>
-              <tr>
-                <th>Cost so far</th>
-                <td>{formatMoney(s.estimatedCost)}</td>
-              </tr>
-              <tr>
-                <th>Balance left</th>
-                <td>
-                  {formatMoney(s.balance)} {s.runoutAt && <span className="muted">(runs out at {formatClock(s.runoutAt)})</span>}
-                </td>
-              </tr>
-            </>
+          <tr>
+            <th>Ended</th>
+            <td>{formatDateTime(s.endTime)}</td>
+          </tr>
+          {s.lockedAt && (
+            <tr>
+              <th>Locked at</th>
+              <td>{formatDateTime(s.lockedAt)}</td>
+            </tr>
           )}
+          <tr>
+            <th>Rate</th>
+            <td>
+              {s.rateCentsPerMinute != null ? `${formatMillimes(s.rateCentsPerMinute)} / minute` : '—'}
+              {s.appliedMembershipId && <span className="muted"> (member discount included)</span>}
+            </td>
+          </tr>
+          <tr>
+            <th>Time played</th>
+            <td>{formatDuration(s.meteredSeconds)}</td>
+          </tr>
         </tbody>
       </table>
 
-      {!ended && (
-        <button type="button" disabled={action.busy === 'end'} onClick={end}>
-          End &amp; bill now
-        </button>
+      {isOpenSession(s.status) && (
+        <p>
+          <button type="button" disabled={action.busy === 'end'} onClick={end}>
+            End &amp; bill
+          </button>
+        </p>
       )}
 
-      {ended && b && (
-        <>
-          <h2>Bill</h2>
-          <table className="grid bill">
-            <tbody>
-              <tr>
-                <td>Time played</td>
-                <td>{b.minutes} min</td>
-              </tr>
-              <tr>
-                <td>Rate</td>
-                <td>{formatMoney(b.ratePerHour)} / hour</td>
-              </tr>
-              {b.hoursFromPass > 0 && (
-                <tr>
-                  <td>Covered by hour pass</td>
-                  <td>{b.hoursFromPass} h</td>
-                </tr>
-              )}
-              <tr>
-                <td>Subtotal</td>
-                <td>{formatMoney(b.subtotal)}</td>
-              </tr>
-              <tr>
-                <td>Membership discount ({b.discountPercent} %)</td>
-                <td>−{formatMoney(b.discount)}</td>
-              </tr>
-              <tr className="bill-total">
-                <td>Charged to wallet</td>
-                <td>{formatMoney(b.total)}</td>
-              </tr>
-            </tbody>
-          </table>
-          {b.total + 0.0005 < b.subtotal - b.discount && (
-            <p className="status-bad">The wallet did not cover the full amount; the gamer was charged what was left.</p>
-          )}
-          <p>
-            <Link to={`/wallet?user=${s.userId}`}>Gamer's wallet »</Link>
-          </p>
-        </>
+      <h2>Bill</h2>
+      {bill ? (
+        <table className="kv">
+          <tbody>
+            <tr>
+              <th>Time billed</th>
+              <td>{formatDuration(bill.meteredSeconds)}</td>
+            </tr>
+            <tr>
+              <th>Rate</th>
+              <td>{formatMillimes(bill.rateCentsPerMinute)} / minute</td>
+            </tr>
+            <tr>
+              <th>Total charged</th>
+              <td>
+                <b>{formatMillimes(bill.totalCents)}</b>
+              </td>
+            </tr>
+            <tr>
+              <th>Settled</th>
+              <td>{formatDateTime(s.settledAt)}</td>
+            </tr>
+          </tbody>
+        </table>
+      ) : (
+        <p className="muted">
+          {isOpenSession(s.status) ? 'The session is still running.' : 'Waiting for the station to confirm the end…'} Amounts come from the
+          server only.
+        </p>
       )}
     </>
   );

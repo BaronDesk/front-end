@@ -1,21 +1,20 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 
-import type { Alert, CommandType, Game, SessionView, Station } from '../../api/types';
+import type { Alert, CommandType, Game, Station } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { hasRole } from '../../auth/roles';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
-import { formatDuration, secondsSince, useNow } from '../../shared/format';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
 import { ALERTS_PATH } from '../alerts/labels';
 import { GAMES_PATH } from '../games/games';
-import { useGamerNames } from '../useLookups';
 import { CommandNotices } from './CommandNotices';
-import { applyStatus, isOnline, screenText, stationLabel, STATIONS_PATH } from './station';
+import { applyStatus, isOnline, screenText, stationLabel } from './station';
 import { formatMetric, isHot } from './telemetry';
 import { COMMAND_LABEL, useCommands } from './useCommands';
+import { useStationList } from './useStationList';
 
 function Temp({ metrics, metric }: { metrics: Record<string, number> | undefined; metric: string }) {
   const value = metrics?.[metric];
@@ -25,16 +24,13 @@ function Temp({ metrics, metric }: { metrics: Record<string, number> | undefined
 
 export function StationsPage() {
   const { user } = useAuth();
-  const { isHq, branchId, branchName, scoped, inScope } = useBranchScope();
+  const { isHq, branchId, branchName, scoped, inScope, reloadMachines } = useBranchScope();
   // One branch picked: the column would say the same thing on every row.
   const showBranch = isHq && branchId === null;
   const canBulk = hasRole(user, 'MANAGER');
-  const now = useNow(10_000);
 
-  const stations = useApiQuery<Station[]>(scoped(STATIONS_PATH));
-  const sessions = useApiQuery<SessionView[]>(scoped('/sessions?status=ACTIVE'));
+  const stations = useStationList();
   const alerts = useApiQuery<Alert[]>(scoped(`${ALERTS_PATH}?status=open&limit=500`));
-  const gamerNames = useGamerNames();
   const games = useApiQuery<Game[]>(GAMES_PATH);
   // machineId -> latest metrics, from telemetry_update only (no per-row snapshot call).
   const [telemetry, setTelemetry] = useState<Record<string, Record<string, number>>>({});
@@ -46,7 +42,10 @@ export function StationsPage() {
 
   function reloadSoon() {
     if (reloadTimer.current) clearTimeout(reloadTimer.current);
-    reloadTimer.current = setTimeout(stations.reload, 300);
+    reloadTimer.current = setTimeout(() => {
+      reloadMachines(); // a newly approved PC brings its branch
+      stations.reload();
+    }, 300);
   }
 
   useRealtimeEvent('station_status', (e) => {
@@ -56,30 +55,22 @@ export function StationsPage() {
       reloadSoon(); // a station we don't list yet (just approved, or another branch for HQ)
       return;
     }
-    if (current.sessionId !== e.sessionId) sessions.reload();
     stations.setData((list) => list?.map((s) => (s.serialNumber === e.serialNumber ? applyStatus(s, e) : s)));
   });
 
   useRealtimeEvent('telemetry_update', (e) => setTelemetry((t) => ({ ...t, [e.machineId]: e.metrics })));
   useRealtimeEvent('alert', (e) => inScope(e.branchId) && alerts.setData((list) => [e, ...(list ?? []).filter((a) => a.id !== e.id)]));
   useRealtimeEvent('alert_resolved', (e) => alerts.setData((list) => list?.filter((a) => a.id !== e.id)));
-  useRealtimeEvent('session_update', (e) => {
-    if (!inScope(e.branchId)) return;
-    if (e.status === 'ENDED' || !sessions.data?.some((s) => s.id === e.sessionId)) sessions.reload();
-  });
 
   useOnReconnect(() => {
     stations.reload();
-    sessions.reload();
     alerts.reload();
   });
 
-  // The real list has no branchId yet: those rows sort (and show) without a branch.
   const branchOf = (s: Station) => (s.branchId ? branchName(s.branchId) : '—');
   const list = [...(stations.data ?? [])].sort(
     (a, b) => branchOf(a).localeCompare(branchOf(b)) || stationLabel(a).localeCompare(stationLabel(b)),
   );
-  const sessionById = new Map((sessions.data ?? []).map((s) => [s.id, s]));
   const openAlerts = (machineId: string) =>
     (alerts.data ?? []).filter((a) => a.machineId === machineId && !a.acknowledged).length;
   const stationName = (id: string) => {
@@ -170,7 +161,6 @@ export function StationsPage() {
         </thead>
         <tbody>
           {list.map((s) => {
-            const session = s.sessionId ? sessionById.get(s.sessionId) : undefined;
             const waiting = commands.pendingFor(s.id);
             const alertCount = openAlerts(s.id);
             return (
@@ -193,10 +183,7 @@ export function StationsPage() {
                 </td>
                 <td>
                   {s.sessionId ? (
-                    <>
-                      {session ? (gamerNames.get(session.userId) ?? 'gamer') : 'in session'}
-                      {session && <span className="muted"> ({formatDuration(secondsSince(session.startedAt, now))})</span>}
-                    </>
+                    <Link to={`/sessions/${s.sessionId}`}>in session »</Link>
                   ) : (
                     <span className="muted">—</span>
                   )}

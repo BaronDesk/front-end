@@ -1,236 +1,233 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 
 import { api } from '../../api/http';
-import type { SessionView, Station } from '../../api/types';
+import type { Command, Session, StartedSession, Station } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
-import { formatClock, formatDuration, formatMoney, secondsSince, useNow } from '../../shared/format';
+import { formatClock, formatDuration, formatMillimes, secondsSince, useNow } from '../../shared/format';
 import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
-import { GamerSelect, StationSelect } from '../pickers';
-import { isOnline } from '../stations/station';
-import { useGamerNames, useStationNames } from '../useLookups';
-import { endReasonLabel } from './labels';
+import { applyStatus, stationLabel } from '../stations/station';
+import { useStationList } from '../stations/useStationList';
+import { useStationNames } from '../useLookups';
+import { isOpenSession, SESSION_STATUS_TEXT } from './labels';
+import { useRecentSessions } from './recent';
 
-interface EndedNotice {
-  sessionId: string;
-  text: string;
-}
-
-/** Session & financial control (brief §6.6): live time and cost, walk-in start, end → bill. */
+/**
+ * Session & Financial Control at the desk (brief §6.6). The backend starts a
+ * session from a booking (the gamer books in the portal; a walk-in is a
+ * booking starting now) and answers with a one-time PIN the gamer types on
+ * the station's lock screen. There is no list of sessions on the API, so
+ * "running now" is every station that reports a session, and the desk keeps
+ * the sessions it started (this browser only) to find their bills.
+ */
 export function SessionsPage() {
-  const navigate = useNavigate();
-  const now = useNow(1_000);
-  const { scoped, inScope } = useBranchScope();
-  const active = useApiQuery<SessionView[]>(scoped('/sessions?status=ACTIVE'));
-  const ended = useApiQuery<SessionView[]>(scoped('/sessions?status=ENDED'));
-  const gamerNames = useGamerNames();
-  const stationNames = useStationNames();
   const action = useAction();
-  const [form, setForm] = useState({ userId: '', machineId: '' });
-  const [endedNotices, setEndedNotices] = useState<EndedNotice[]>([]);
-  // Bumped to refresh the free-station list after a start/end.
-  const [stationsVersion, setStationsVersion] = useState(0);
+  const { inScope } = useBranchScope();
+  const stations = useStationList();
+  const stationNames = useStationNames();
+  const recent = useRecentSessions();
+  const [code, setCode] = useState('');
+  const [started, setStarted] = useState<StartedSession | null>(null);
+  const [warnings, setWarnings] = useState<{ sessionId: string; machineId: string; at: string }[]>([]);
 
-  const station = (id: string) => stationNames.get(id) ?? id.slice(0, 8);
-  const gamer = (id: string) => gamerNames.get(id) ?? 'gamer';
-
-  // Live numbers come from the server; the browser only moves the clock between updates.
-  useRealtimeEvent('session_update', (e) => {
+  useRealtimeEvent('station_status', (e) => {
     if (!inScope(e.branchId)) return;
-    if (e.status === 'ENDED') {
-      active.setData((list) => list?.filter((s) => s.id !== e.sessionId));
-      ended.reload();
-      setStationsVersion((v) => v + 1);
-      setEndedNotices((n) =>
-        [
-          {
-            sessionId: e.sessionId,
-            text: `${formatClock(new Date().toISOString())} Session on ${station(e.machineId)} (${gamer(e.userId)}) ended${
-              e.balance <= 0 ? ': balance empty, station locked' : ''
-            }. Charged ${formatMoney(e.billing?.total ?? e.estimatedCost)}.`,
-          },
-          ...n,
-        ].slice(0, 5),
-      );
-      return;
-    }
-    if (!active.data?.some((s) => s.id === e.sessionId)) {
-      active.reload();
-      return;
-    }
-    active.setData((list) =>
-      list?.map((s) =>
-        s.id === e.sessionId
-          ? { ...s, status: e.status, elapsedSeconds: e.elapsedSeconds, estimatedCost: e.estimatedCost, balance: e.balance, runoutAt: e.runoutAt }
-          : s,
-      ),
-    );
+    stations.setData((list) => list?.map((s) => (s.serialNumber === e.serialNumber ? applyStatus(s, e) : s)));
   });
-  useOnReconnect(() => {
-    active.reload();
-    ended.reload();
-  });
+  useRealtimeEvent('session_runout_warning', (e) =>
+    setWarnings((w) => [{ ...e, at: new Date().toISOString() }, ...w.filter((x) => x.sessionId !== e.sessionId)].slice(0, 5)),
+  );
+  useOnReconnect(stations.reload);
 
   async function start(e: FormEvent) {
     e.preventDefault();
-    const s = await action.run(
+    const reservationId = code.trim();
+    const session = await action.run(
       'start',
-      () => api<SessionView>('POST', '/sessions', form),
-      (x) => `Session started on ${station(x.machineId)} for ${gamer(x.userId)}. The station unlocks.`,
+      () => api<StartedSession>('POST', '/sessions', { reservationId }),
+      'Session created. Give the gamer the PIN: the station unlocks when it is typed on the lock screen.',
     );
-    if (s) {
-      setForm({ userId: '', machineId: '' });
-      setStationsVersion((v) => v + 1);
-      active.reload();
+    if (session) {
+      setStarted(session);
+      recent.add(session.id);
+      setCode('');
     }
   }
 
-  async function end(s: SessionView) {
-    if (!window.confirm(`End the session of ${gamer(s.userId)} on ${station(s.machineId)} and bill it now?`)) return;
-    const done = await action.run(s.id, () => api<SessionView>('POST', `/sessions/${s.id}/end`, { reason: 'STAFF_ENDED' }));
-    if (done) navigate(`/sessions/${s.id}`);
-  }
-
-  const running = [...(active.data ?? [])].sort((a, b) => station(a.machineId).localeCompare(station(b.machineId)));
-  const recent = [...(ended.data ?? [])].sort((a, b) => (b.endedAt ?? '').localeCompare(a.endedAt ?? '')).slice(0, 15);
+  const running = (stations.data ?? []).filter((s) => s.sessionId);
 
   return (
     <>
       <h1>Sessions</h1>
       <ActionMessages action={action} />
-      <ErrorBox error={active.error} />
-      {endedNotices.length > 0 && (
+      {warnings.map((w) => (
+        <div key={w.sessionId} className="msg msg-error">
+          {formatClock(w.at)} &nbsp; <b>{stationNames.get(w.machineId) ?? 'A station'}</b>: the gamer&apos;s balance runs out soon, then the
+          station locks. <Link to={`/sessions/${w.sessionId}`}>Session »</Link>
+        </div>
+      ))}
+
+      <form onSubmit={start}>
+        <fieldset>
+          <legend>Start a session</legend>
+          <p className="muted">
+            The gamer books the station in the BaronDesk app (or picks <i>Play now</i> for a walk-in) and shows you the booking code.
+          </p>
+          <div className="form-row">
+            <label htmlFor="s-code">Booking code</label>
+            <input
+              id="s-code"
+              required
+              size={40}
+              placeholder="e.g. 3f2c9a1e-…"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              title="The booking code shown in the gamer's app"
+            />{' '}
+            <button type="submit" disabled={action.busy === 'start'}>
+              Start session
+            </button>
+          </div>
+        </fieldset>
+      </form>
+
+      {started && (
         <div className="msg">
-          <b>Just ended</b>
-          <ul className="notices">
-            {endedNotices.map((n) => (
-              <li key={n.sessionId}>
-                {n.text} <Link to={`/sessions/${n.sessionId}`}>Bill »</Link>
-              </li>
-            ))}
-          </ul>
+          <b>PIN for the lock screen:</b> <span className="pin">{started.pin}</span>
+          <div className="muted">
+            Shown once. The session starts when the gamer types it on the station. <Link to={`/sessions/${started.id}`}>Session »</Link>{' '}
+            <button type="button" className="secondary" onClick={() => setStarted(null)}>
+              Hide
+            </button>
+          </div>
         </div>
       )}
 
       <h2>Running now ({running.length})</h2>
+      <ErrorBox error={stations.error} />
       <table className="grid">
         <thead>
           <tr>
             <th>Station</th>
-            <th>Gamer</th>
-            <th>Started</th>
-            <th>Time played</th>
-            <th>Cost so far</th>
-            <th>Balance left</th>
-            <th>Runs out at</th>
             <th>Status</th>
+            <th>Started</th>
+            <th>Rate</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {running.map((s) => (
-            <tr key={s.id}>
-              <td>
-                <Link to={`/stations/${s.machineId}`}>
-                  <b>{station(s.machineId)}</b>
-                </Link>
-              </td>
-              <td>{gamer(s.userId)}</td>
-              <td>{formatClock(s.startedAt)}</td>
-              <td>{formatDuration(secondsSince(s.startedAt, now))}</td>
-              <td>{formatMoney(s.estimatedCost)}</td>
-              <td className={s.status === 'WARNED' ? 'status-bad' : ''}>{formatMoney(s.balance)}</td>
-              <td>{s.runoutAt ? formatClock(s.runoutAt) : '—'}</td>
-              <td className={s.status === 'WARNED' ? 'status-bad' : 'status-ok'}>{s.status === 'WARNED' ? 'LOW BALANCE' : 'Playing'}</td>
-              <td className="nowrap">
-                <button type="button" disabled={action.busy === s.id} onClick={() => end(s)}>
-                  End &amp; bill
-                </button>{' '}
-                <Link to={`/sessions/${s.id}`}>Details »</Link>
-              </td>
-            </tr>
+            <RunningRow key={s.id} station={s} action={action} />
           ))}
-          {!active.loading && running.length === 0 && (
+          {!stations.loading && running.length === 0 && (
             <tr>
-              <td colSpan={9} className="muted">
-                No session running.
+              <td colSpan={5} className="muted">
+                No station reports a session.
               </td>
             </tr>
           )}
         </tbody>
       </table>
-      <p className="muted">Cost and balance are the server's estimate, updated every few seconds.</p>
 
-      <div className="columns">
-        <form onSubmit={start}>
-          <h2>Start a walk-in session</h2>
-          <fieldset>
-            <legend>Walk-in</legend>
-            <div className="form-row">
-              <label htmlFor="w-gamer">Gamer</label>
-              <GamerSelect id="w-gamer" required value={form.userId} onChange={(v) => setForm({ ...form, userId: v })} />
-            </div>
-            <div className="form-row">
-              <label htmlFor="w-station">Free station</label>
-              <StationSelect
-                key={stationsVersion}
-                id="w-station"
-                required
-                value={form.machineId}
-                onChange={(v) => setForm({ ...form, machineId: v })}
-                filter={(s: Station) => isOnline(s) && !s.sessionId}
-              />
-            </div>
-            <div className="form-row">
-              <label />
-              <button type="submit" disabled={action.busy === 'start'}>
-                {action.busy === 'start' ? 'Starting…' : 'Start session'}
-              </button>
-            </div>
-          </fieldset>
-          <p className="muted">Booked gamers: use Check in on the Reservations page.</p>
-        </form>
-
-        <div>
-          <h2>Recently ended</h2>
-          <table className="grid">
-            <thead>
-              <tr>
-                <th>Station</th>
-                <th>Gamer</th>
-                <th>Ended</th>
-                <th>Charged</th>
-                <th>Why</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {recent.map((s) => (
-                <tr key={s.id}>
-                  <td>{station(s.machineId)}</td>
-                  <td>{gamer(s.userId)}</td>
-                  <td>{formatClock(s.endedAt)}</td>
-                  <td>{formatMoney(s.billing?.total)}</td>
-                  <td>{endReasonLabel(s.endReason)}</td>
-                  <td>
-                    <Link to={`/sessions/${s.id}`}>Bill »</Link>
-                  </td>
-                </tr>
-              ))}
-              {!ended.loading && recent.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="muted">
-                    Nothing yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <h2>Started at this desk</h2>
+      <table className="grid">
+        <thead>
+          <tr>
+            <th>Session</th>
+            <th>Status</th>
+            <th>Played</th>
+            <th>Bill</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {recent.ids.map((id) => (
+            <RecentRow key={id} id={id} />
+          ))}
+          {recent.ids.length === 0 && (
+            <tr>
+              <td colSpan={5} className="muted">
+                Nothing yet.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+      {recent.ids.length > 0 && (
+        <p>
+          <button type="button" className="secondary" onClick={recent.clear}>
+            Clear this list
+          </button>
+        </p>
+      )}
     </>
+  );
+}
+
+function RunningRow({ station, action }: { station: Station; action: ReturnType<typeof useAction> }) {
+  const now = useNow(1_000);
+  const session = useApiQuery<Session>(`/sessions/${station.sessionId}`);
+  const s = session.data;
+
+  async function end() {
+    if (!s || !window.confirm(`End the session on ${stationLabel(station)} and bill it now?`)) return;
+    const cmd = await action.run(
+      s.id,
+      () => api<Command>('POST', `/sessions/${s.id}/end`, { reason: 'staff_end' }),
+      'End sent to the station. The bill is ready once the station confirms (see the session page).',
+    );
+    if (cmd) session.reload();
+  }
+
+  return (
+    <tr>
+      <td>
+        <Link to={`/stations/${station.id}`}>
+          <b>{stationLabel(station)}</b>
+        </Link>
+      </td>
+      <td>{s ? SESSION_STATUS_TEXT[s.status] : session.error ? <span className="status-bad">unknown session</span> : '…'}</td>
+      <td>
+        {s?.startTime ? (
+          <>
+            {formatClock(s.startTime)} <span className="muted">({formatDuration(secondsSince(s.startTime, now))})</span>
+          </>
+        ) : (
+          <span className="muted">—</span>
+        )}
+      </td>
+      <td>{s?.rateCentsPerMinute != null ? `${formatMillimes(s.rateCentsPerMinute)} / min` : '—'}</td>
+      <td className="nowrap">
+        {s && isOpenSession(s.status) && (
+          <>
+            <button type="button" disabled={action.busy === s.id} onClick={end}>
+              End &amp; bill
+            </button>{' '}
+          </>
+        )}
+        <Link to={`/sessions/${station.sessionId}`}>Details »</Link>
+      </td>
+    </tr>
+  );
+}
+
+function RecentRow({ id }: { id: string }) {
+  const session = useApiQuery<Session>(`/sessions/${id}`);
+  const s = session.data;
+  return (
+    <tr>
+      <td>
+        <code>{id.slice(0, 8)}</code>
+      </td>
+      <td>{s ? SESSION_STATUS_TEXT[s.status] : session.error ? <span className="status-bad">not found</span> : '…'}</td>
+      <td>{s ? formatDuration(s.meteredSeconds) : '—'}</td>
+      <td>{s?.billingBreakdown ? <b>{formatMillimes(s.billingBreakdown.totalCents)}</b> : <span className="muted">not billed yet</span>}</td>
+      <td>
+        <Link to={`/sessions/${id}`}>Details »</Link>
+      </td>
+    </tr>
   );
 }

@@ -1,17 +1,19 @@
 import { useMemo } from 'react';
 
-import type { PublicUser, Station } from '../api/types';
-import { useApiQuery } from '../shared/useApiQuery';
-import { stationLabel, STATIONS_PATH } from './stations/station';
+import { useBranchScope } from './branch/BranchContext';
+import { stationLabel } from './stations/station';
 
-/** id → username for gamers, to show "who is playing". */
-export function useGamerNames(): Map<string, string> {
-  const { data } = useApiQuery<PublicUser[]>('/users?role=GAMER');
-  return useMemo(() => new Map((data ?? []).map((u) => [u.id, u.username])), [data]);
-}
-
-/** id → station name, for pages that only have machine ids (alerts). */
+/**
+ * id → "PC-01 (MNR-PC-01)", for pages that only have machine ids (alerts,
+ * sessions). From GET /machines, so it covers every station the user may see.
+ */
 export function useStationNames(): Map<string, string> {
-  const { data } = useApiQuery<Station[]>(STATIONS_PATH);
-  return useMemo(() => new Map((data ?? []).map((s) => [s.id, stationLabel(s)])), [data]);
+  const { machines } = useBranchScope();
+  return useMemo(
+    () =>
+      new Map(
+        machines.map((m) => [m.id, m.name && m.name !== m.serialNumber ? `${stationLabel(m)} (${m.serialNumber})` : m.serialNumber]),
+      ),
+    [machines],
+  );
 }

@@ -1,7 +1,7 @@
 import { Link, Outlet, useLocation } from 'react-router';
 
 import { useAuth } from '../auth/AuthContext';
-import { MockBadge } from '../shared/MockBadge';
+import { PageErrorBoundary } from '../shared/PageErrorBoundary';
 
 export function PortalLayout() {
   const { pathname } = useLocation();
@@ -14,7 +14,6 @@ export function PortalLayout() {
           <Link to="/" className="brand">
             BARONDESK
           </Link>
-          <MockBadge />
         </div>
         {user && (
           <div className="userbox">
@@ -38,7 +37,9 @@ export function PortalLayout() {
             <Link to="/">« Menu</Link>
           </p>
         )}
-        <Outlet />
+        <PageErrorBoundary>
+          <Outlet />
+        </PageErrorBoundary>
       </main>
       <div className="footer">BaronDesk &copy; 2026</div>
     </div>

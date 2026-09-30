@@ -98,17 +98,6 @@ p {
   color: var(--gold);
 }
 
-.mock-badge {
-  background: var(--red);
-  color: var(--white);
-  border: 1px solid var(--white);
-  font-size: 10px;
-  font-weight: bold;
-  padding: 0 4px;
-  margin-left: 8px;
-  vertical-align: middle;
-}
-
 .live-tag {
   font-size: 10px;
   font-weight: bold;
@@ -267,6 +256,15 @@ code {
   font-size: 11px;
 }
 
+/* The session PIN read out to the gamer: big and easy to read aloud. */
+.pin {
+  font-family: 'Courier New', monospace;
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 4px;
+  margin-left: 6px;
+}
+
 /* A secret to copy once (enrollment token): selectable, wraps instead of scrolling. */
 pre.token {
   font-family: 'Courier New', monospace;
@@ -392,6 +390,12 @@ textarea {
 
 .form-row {
   margin-bottom: 6px;
+}
+
+/* A checkbox label inside a form row (e.g. the days of a pass). */
+label.inline {
+  min-width: 0;
+  margin-right: 8px;
 }
 
 /* ---------- Buttons ---------- */

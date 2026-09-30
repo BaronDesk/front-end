@@ -1,12 +1,11 @@
 /*
- * Shapes the frontend reads from the backend. Auth, user and station shapes
- * mirror back-end/src as it is today. Everything else still follows
- * Step 0 — Frozen Contracts and the Frontend brief §7/§8; the backend does
- * not serve those yet, so the mock layer (src/mocks) is the only producer.
+ * Shapes the frontend reads from the backend (back-end/src DTOs, checked
+ * against the running API). Money: Int columns are millimes (1 DT = 1000);
+ * plan prices and discount percents are Prisma Decimals, sent as strings.
  */
 
 export type Role = 'GAMER' | 'EMPLOYEE' | 'MANAGER' | 'ADMIN';
-export type AccountStatus = 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
+export type AccountStatus = 'ACTIVE' | 'SUSPENDED' | 'INACTIVE' | 'DELETED';
 
 /** identity/util/public-user.ts */
 export interface PublicUser {
@@ -31,18 +30,14 @@ export interface ApiErrorBody {
   issues?: unknown;
 }
 
+/**
+ * A branch as the frontend knows it. The backend has no branch list or names
+ * (no GET /branches), so ids come from GET /machines and the label is built
+ * from the branch's PC serial numbers (admin/branch/branches.ts).
+ */
 export interface Branch {
   id: string;
   name: string;
-}
-
-export interface BranchSummary {
-  branchId: string;
-  name: string;
-  stationsTotal: number;
-  stationsOnline: number;
-  stationsInSession: number;
-  openAlerts: number;
 }
 
 export type MachineStatus = 'ONLINE' | 'OFFLINE';
@@ -61,7 +56,7 @@ export interface Station {
   /** The catalog's wire gameId, set only from the agent's state_report. */
   runningGameId: string | null;
   ip: string | null;
-  /** Not in the real list yet (backend gap); the mock sends it. */
+  /** Not in the backend's list: the frontend fills it from GET /machines. */
   branchId?: string;
 }
 
@@ -104,15 +99,6 @@ export interface Machine {
 export interface EnrollmentToken {
   token: string;
   expiresAt: string;
-}
-
-export interface StationAvailability {
-  machineId: string;
-  branchId: string;
-  name: string;
-  /** Free = online, not in a session, no reservation starting within 30 min. */
-  free: boolean;
-  nextReservationAt: string | null;
 }
 
 /**
@@ -295,128 +281,164 @@ export interface Alert {
   createdAt: string;
 }
 
-export type TransactionType =
-  | 'TOPUP'
-  | 'SESSION_CHARGE'
-  | 'BOOKING_FEE'
-  | 'MEMBERSHIP'
-  | 'SUBSCRIPTION'
-  | 'REFUND'
-  | 'REVERSAL';
+/** wallet ledger entry types (Prisma TransactionType). A session charge is a PAYMENT with a sessionId. */
+export type TransactionType = 'PAYMENT' | 'REFUND' | 'ADJUSTMENT' | 'CREDIT' | 'DEBIT';
 
-export interface WalletTransaction {
+/** GET /wallets/me, GET /wallets/:gamerProfileId (wallet/util/public-wallet.ts). */
+export interface Wallet {
   id: string;
-  userId: string;
-  type: TransactionType;
-  /** Positive = credit, negative = debit. */
+  /** The gamer's profile id: what every staff wallet route takes (the "member code"). */
+  gamerProfileId: string;
+  /** Millimes. */
+  balance: number;
+  updatedAt: string;
+}
+
+/** GET …/entries, POST …/credit and …/debit. */
+export interface WalletEntry {
+  id: string;
+  walletId: string;
+  /** Millimes: positive = credit, negative = debit. */
   amount: number;
   balanceAfter: number;
-  method: string | null;
-  note: string | null;
-  reversedById: string | null;
+  type: TransactionType;
+  /** Set on a session charge. */
+  sessionId: string | null;
   createdAt: string;
 }
 
-export interface Wallet {
-  userId: string;
-  balance: number;
+/** POST /wallets/:gamerProfileId/credit|debit body. */
+export interface WalletMovement {
+  /** Millimes, a positive whole number. */
+  amount: number;
+  type?: TransactionType;
+  sessionId?: string;
+  idempotencyKey?: string;
 }
 
+/** GET/POST/PATCH /membership-plans. price and discountPercent are Decimals (strings on the wire). */
 export interface MembershipPlan {
   id: string;
   name: string;
-  price: number;
-  discountPercent: number;
+  /** Dinars, e.g. "15". */
+  price: string;
   durationDays: number;
+  discountPercent: string;
+  /** How many days ahead a member may book. */
+  bookingAdvanceDays: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface SubscriptionPlan {
-  id: string;
+export interface MembershipPlanInput {
   name: string;
   price: number;
-  hoursIncluded: number;
   durationDays: number;
-}
-
-export interface Membership {
-  id: string;
-  userId: string;
-  planId: string;
-  planName: string;
   discountPercent: number;
-  startsAt: string;
-  endsAt: string;
-}
-
-export interface Subscription {
-  id: string;
-  userId: string;
-  planId: string;
-  planName: string;
-  hoursLeft: number;
-  startsAt: string;
-  endsAt: string;
-}
-
-export interface GamerProfile {
-  userId: string;
-  xp: number;
-  level: number;
-}
-
-export type ReservationStatus = 'BOOKED' | 'CHECKED_IN' | 'CANCELLED' | 'NO_SHOW';
-
-export interface Reservation {
-  id: string;
-  userId: string;
-  machineId: string;
-  branchId: string;
-  start: string;
-  end: string;
-  status: ReservationStatus;
-  createdAt: string;
-}
-
-export type SessionStatus = 'ACTIVE' | 'WARNED' | 'ENDED';
-
-export interface BillingBreakdown {
-  minutes: number;
-  ratePerHour: number;
-  subtotal: number;
-  discountPercent: number;
-  discount: number;
-  hoursFromPass: number;
-  total: number;
-}
-
-export interface Session {
-  id: string;
-  userId: string;
-  machineId: string;
-  branchId: string;
-  status: SessionStatus;
-  startedAt: string;
-  endedAt: string | null;
-  endReason: string | null;
-  billing: BillingBreakdown | null;
-}
-
-/** A session plus the server's live estimate, so a page has numbers before the first session_update. */
-export interface SessionView extends Session {
-  elapsedSeconds: number;
-  estimatedCost: number;
-  balance: number;
-  runoutAt: string | null;
+  bookingAdvanceDays?: number;
 }
 
 /**
- * Mock only (GET /pricing): the portal's booking fee and the fake billing.
- * The backend's prices are per branch: BranchPricing.
+ * A pass's benefits. The create schema takes time windows; the seed also
+ * stores other shapes (free_hours, unlimited_free_play), so anything is shown.
  */
-export interface Pricing {
-  ratePerHour: number;
-  bookingFee: number;
-  lowBalanceMinutes: number;
+export interface SubscriptionBenefits {
+  windows?: { daysOfWeek: number[]; startTime: string; endTime: string; discountPercent: number }[];
+  [key: string]: unknown;
+}
+
+/** GET/POST/PATCH /subscription-plans. */
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: string;
+  durationDays: number;
+  benefits: SubscriptionBenefits;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscriptionPlanInput {
+  name: string;
+  price: number;
+  durationDays: number;
+  benefits: { windows: NonNullable<SubscriptionBenefits['windows']> };
+}
+
+export type PlanStatus = 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'SUSPENDED' | 'PENDING';
+
+/** GET /memberships/me item, and POST /membership-plans/:id/purchase. */
+export interface Membership {
+  id: string;
+  gamerProfileId: string;
+  membershipPlanId: string;
+  discountPercentSnapshot: string;
+  startDate: string;
+  endDate: string;
+  status: PlanStatus;
+  membershipPlan?: MembershipPlan;
+}
+
+/** GET /subscriptions/me item, and POST /subscription-plans/:id/purchase. */
+export interface Subscription {
+  id: string;
+  gamerProfileId: string;
+  subscriptionPlanId: string;
+  benefitsSnapshot: SubscriptionBenefits;
+  startDate: string;
+  endDate: string;
+  status: PlanStatus;
+  subscriptionPlan?: SubscriptionPlan;
+}
+
+/** Prisma ReservationStatus. A booking is CONFIRMED at once; ACTIVE while its session runs. */
+export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+
+/** GET /reservations (the gamer's own), POST /reservations, POST /reservations/walk-in. */
+export interface Reservation {
+  id: string;
+  gamerProfileId: string;
+  machineId: string;
+  startTime: string;
+  endTime: string;
+  status: ReservationStatus;
+  createdAt: string;
+  updatedAt: string;
+  machine?: { id: string; name: string | null; serialNumber: string; branchId: string };
+}
+
+/** Prisma SessionStatus. PENDING = waiting for the PIN on the station; PAUSED = locked mid-session. */
+export type SessionStatus = 'PENDING' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
+
+/** Session.billingBreakdown once settled. Amounts are millimes despite the "Cents" names. */
+export interface BillingBreakdown {
+  totalCents: number;
+  meteredSeconds: number;
+  rateCentsPerMinute: number;
+  appliedMembershipId: string | null;
+  [key: string]: unknown;
+}
+
+/** GET /sessions/:id, POST /sessions (session-billing/util/public-session.ts). */
+export interface Session {
+  id: string;
+  reservationId: string;
+  appliedMembershipId: string | null;
+  status: SessionStatus;
+  /** Millimes per minute, the member discount already applied. */
+  rateCentsPerMinute: number | null;
+  meteredSeconds: number;
+  startTime: string | null;
+  endTime: string | null;
+  lockedAt: string | null;
+  settledAt: string | null;
+  billingBreakdown: BillingBreakdown | null;
+  createdAt: string;
+}
+
+/** POST /sessions answer: the session plus the one-time PIN the gamer types on the lock screen. */
+export interface StartedSession extends Session {
+  pin: string;
 }
 
 /**
@@ -449,18 +471,10 @@ export interface StationStatusEvent {
   branchId: string;
 }
 
-export interface SessionUpdateEvent {
+/** session_runout_warning: the gamer's balance runs out soon (session-billing runout timer). */
+export interface SessionRunoutWarningEvent {
   sessionId: string;
   machineId: string;
-  branchId: string;
-  userId: string;
-  status: SessionStatus;
-  startedAt: string;
-  elapsedSeconds: number;
-  estimatedCost: number;
-  balance: number;
-  runoutAt: string | null;
-  billing: BillingBreakdown | null;
 }
 
 export interface DashboardEvents {
@@ -469,7 +483,7 @@ export interface DashboardEvents {
   /** A new alert, or a repeat of an open one (same id, higher value.repeatCount). */
   alert: Alert;
   alert_resolved: Alert;
-  session_update: SessionUpdateEvent;
+  session_runout_warning: SessionRunoutWarningEvent;
   /** Every status change of a command, from PENDING to its final status. */
   command_update: Command;
   catalog_status: CatalogStatusEvent;

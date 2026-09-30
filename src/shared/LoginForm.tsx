@@ -2,16 +2,13 @@ import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
 
 import { useAuth } from '../auth/AuthContext';
-import { config } from '../config';
 import { ErrorBox } from './ErrorBox';
 
 interface LoginFormProps {
   legend: string;
-  /** Shown under the form when mocks are on. */
-  mockHint: string;
 }
 
-export function LoginForm({ legend, mockHint }: LoginFormProps) {
+export function LoginForm({ legend }: LoginFormProps) {
   const { state, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -74,7 +71,6 @@ export function LoginForm({ legend, mockHint }: LoginFormProps) {
           </button>
         </div>
       </fieldset>
-      {config.useMocks && <p className="muted">Fake data is on. {mockHint}</p>}
     </form>
   );
 }

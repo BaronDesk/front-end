@@ -30,9 +30,13 @@ export function formatAgo(iso: string | null | undefined, now = Date.now()): str
 /** Both branches are in Tunisia: dinars, 3 decimals (millimes). */
 export const CURRENCY = 'DT';
 
-/** "12.500 DT". Only formats what the server sent; never computes money. */
-export function formatMoney(amount: number | null | undefined): string {
-  return amount === null || amount === undefined ? '—' : `${amount.toFixed(3)} ${CURRENCY}`;
+/**
+ * A dinar amount → "12.500 DT". Accepts the backend's Decimal columns too
+ * (plan prices come as strings like "15"). Only formats; never computes money.
+ */
+export function formatMoney(amount: number | string | null | undefined): string {
+  const value = amount === null || amount === undefined || amount === '' ? NaN : Number(amount);
+  return Number.isFinite(value) ? `${value.toFixed(3)} ${CURRENCY}` : '—';
 }
 
 /** 1 dinar = 1000 millimes: the backend stores every money amount as integer millimes (prisma/seed.ts). */

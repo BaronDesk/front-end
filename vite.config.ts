@@ -2,9 +2,24 @@ import { resolve } from 'node:path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// /api covers the /api/v1 modules (stations, commands, alerts, games). The
-// others sit at the root: add each one here when its screen is linked.
-const BACKEND_PATHS = ['/auth', '/users', '/employees', '/health', '/api', '/machines', '/branches'];
+// Every top-level path the backend serves. /api covers the /api/v1 modules
+// (stations, commands, alerts, games); the newer modules sit at the root.
+const BACKEND_PATHS = [
+  '/auth',
+  '/users',
+  '/employees',
+  '/health',
+  '/api',
+  '/machines',
+  '/branches',
+  '/wallets',
+  '/membership-plans',
+  '/memberships',
+  '/subscription-plans',
+  '/subscriptions',
+  '/reservations',
+  '/sessions',
+];
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');

@@ -5,7 +5,6 @@ import { AuthProvider, useAuth } from '../auth/AuthContext';
 import { RequireAuth, RequireRole } from '../auth/guards';
 import { RealtimeProvider } from '../realtime/RealtimeContext';
 import { LoginForm } from '../shared/LoginForm';
-import { Placeholder } from '../shared/Placeholder';
 import { AdminLayout, AdminLoginLayout } from './AdminLayout';
 import { AlertsPage } from './alerts/AlertsPage';
 import { GamesPage } from './games/GamesPage';
@@ -13,19 +12,16 @@ import { HqPage } from './hq/HqPage';
 import { ADMIN_MENU } from './menu';
 import { AccessDenied } from './pages/AccessDenied';
 import { PlansPage } from './plans/PlansPage';
-import { ReservationsPage } from './reservations/ReservationsPage';
 import { SessionBillPage } from './sessions/SessionBillPage';
 import { SessionsPage } from './sessions/SessionsPage';
-import { LiveEventCounter } from './pages/LiveEventCounter';
 import { NotFound } from './pages/NotFound';
 import { EnrollmentPage } from './stations/EnrollmentPage';
 import { StationDetailPage } from './stations/StationDetailPage';
 import { StationsPage } from './stations/StationsPage';
-import { GamerProfilePage } from './users/GamerProfilePage';
 import { UsersPage } from './users/UsersPage';
 import { WalletPage } from './wallet/WalletPage';
 
-/** Built pages by menu path. Menu items not listed here are still placeholders. */
+/** The page of each menu path. */
 const PAGES: Record<string, ReactNode> = {
   '/stations': <StationsPage />,
   '/enrollment': <EnrollmentPage />,
@@ -34,7 +30,6 @@ const PAGES: Record<string, ReactNode> = {
   '/wallet': <WalletPage />,
   '/plans': <PlansPage />,
   '/games': <GamesPage />,
-  '/reservations': <ReservationsPage />,
   '/sessions': <SessionsPage />,
   '/hq': <HqPage />,
 };
@@ -60,7 +55,7 @@ export function AdminApp() {
                 element={
                   <>
                     <h1>Staff login</h1>
-                    <LoginForm legend="Log in to BaronDesk" mockHint="Try staff.tunis / password123." />
+                    <LoginForm legend="Log in to BaronDesk" />
                   </>
                 }
               />
@@ -70,12 +65,7 @@ export function AdminApp() {
               <Route element={<AdminLayout />}>
                 <Route index element={<Home />} />
                 {ADMIN_MENU.map((item) => {
-                  const page = PAGES[item.path] ?? (
-                    <>
-                      <Placeholder title={item.label} step={item.step} />
-                      <LiveEventCounter />
-                    </>
-                  );
+                  const page = PAGES[item.path];
                   return (
                     <Route
                       key={item.path}
@@ -86,14 +76,6 @@ export function AdminApp() {
                 })}
                 <Route path="/stations/:id" element={<StationDetailPage />} />
                 <Route path="/sessions/:id" element={<SessionBillPage />} />
-                <Route
-                  path="/users/:id"
-                  element={
-                    <RequireRole min="MANAGER">
-                      <GamerProfilePage />
-                    </RequireRole>
-                  }
-                />
                 <Route path="/denied" element={<AccessDenied />} />
                 <Route path="*" element={<NotFound />} />
               </Route>

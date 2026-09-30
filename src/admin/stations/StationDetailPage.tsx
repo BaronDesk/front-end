@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 
-import type { Alert, Command, CommandStatus, IssueCommandBody, SessionView, StationDetail, StationGame, TelemetrySnapshot } from '../../api/types';
+import type { Alert, Command, CommandStatus, IssueCommandBody, Session, StationDetail, StationGame, TelemetrySnapshot } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
+import { CopyButton } from '../../shared/CopyButton';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatAgo, formatClock, formatDateTime, formatDuration, secondsSince, useNow } from '../../shared/format';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
 import { ALERTS_PATH, alertDetail, isSevere, repeatText, typeLabel } from '../alerts/labels';
 import { applyCatalogStatus } from '../games/games';
-import { useGamerNames } from '../useLookups';
-import { applyStatus, isOnline, screenText, stationLabel, STATIONS_PATH } from './station';
+import { SESSION_STATUS_TEXT } from '../sessions/labels';
+import { applyStatus, bookingLink, isOnline, screenText, stationLabel, STATIONS_PATH } from './station';
 import { describeMetric, formatMetric, isHot, sortedMetrics } from './telemetry';
 import { COMMAND_LABEL, isOpen, useCommands } from './useCommands';
 
@@ -48,8 +49,8 @@ export function StationDetailPage() {
   const alertBranch = station.data?.branchId;
   const alerts = useApiQuery<Alert[]>(alertBranch ? `${ALERTS_PATH}?branchId=${alertBranch}&limit=500` : null);
   const sessionId = station.data?.sessionId ?? null;
-  const session = useApiQuery<SessionView>(sessionId ? `/sessions/${sessionId}` : null);
-  const gamerNames = useGamerNames();
+  const session = useApiQuery<Session>(sessionId ? `/sessions/${sessionId}` : null);
+  const [runoutWarned, setRunoutWarned] = useState<string | null>(null);
   const { isHq, branchName } = useBranchScope();
 
   const [history, setHistory] = useState<Reading[]>([]);
@@ -79,9 +80,7 @@ export function StationDetailPage() {
   useRealtimeEvent('alert', upsertAlert);
   useRealtimeEvent('catalog_status', (e) => e.machineId === id && games.setData((list) => applyCatalogStatus(list, e)));
   useRealtimeEvent('alert_resolved', upsertAlert);
-  useRealtimeEvent('session_update', (e) => {
-    if (e.machineId === id && e.sessionId === sessionId) session.reload();
-  });
+  useRealtimeEvent('session_runout_warning', (e) => e.machineId === id && setRunoutWarned(e.sessionId));
   useOnReconnect(() => {
     station.reload();
     snapshot.reload();
@@ -157,13 +156,18 @@ export function StationDetailPage() {
             <td>
               {s.sessionId && session.data ? (
                 <>
-                  {gamerNames.get(session.data.userId) ?? 'gamer'} since {formatClock(session.data.startedAt)} (
-                  {formatDuration(secondsSince(session.data.startedAt, now))}) &middot; running cost{' '}
-                  <b>{session.data.estimatedCost.toFixed(3)}</b> &middot; balance left <b>{session.data.balance.toFixed(3)}</b>
-                  {session.data.status === 'WARNED' && <span className="status-bad"> &middot; LOW BALANCE</span>}
+                  {SESSION_STATUS_TEXT[session.data.status]}
+                  {session.data.startTime && (
+                    <>
+                      {' '}
+                      since {formatClock(session.data.startTime)} ({formatDuration(secondsSince(session.data.startTime, now))})
+                    </>
+                  )}{' '}
+                  &middot; <Link to={`/sessions/${session.data.id}`}>session and bill »</Link>
+                  {runoutWarned === session.data.id && <span className="status-bad"> &middot; BALANCE RUNS OUT SOON</span>}
                 </>
               ) : s.sessionId ? (
-                'in session'
+                <Link to={`/sessions/${s.sessionId}`}>in session »</Link>
               ) : (
                 <span className="muted">none</span>
               )}
@@ -188,6 +192,13 @@ export function StationDetailPage() {
           <tr>
             <th>Enrollment</th>
             <td>{s.enrollmentStatus}</td>
+          </tr>
+          <tr>
+            <th>Booking link</th>
+            <td>
+              <CopyButton text={bookingLink(s)} label="Copy the gamers' booking link" />{' '}
+              <span className="muted">(print it as a QR code on the PC: the app books this station)</span>
+            </td>
           </tr>
         </tbody>
       </table>

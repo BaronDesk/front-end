@@ -31,3 +31,12 @@ export function applyStatus<T extends Station>(s: T, e: StationStatusEvent): T {
     branchId: e.branchId,
   };
 }
+
+/**
+ * The gamer app's booking page for this station. Gamers can't list stations
+ * on the backend, so the desk hands them this link (or a QR code of it).
+ */
+export function bookingLink(s: Pick<Station, 'id' | 'name' | 'serialNumber'>): string {
+  const params = new URLSearchParams({ station: s.id, name: stationLabel(s) });
+  return `${window.location.origin}/portal/#/book?${params}`;
+}

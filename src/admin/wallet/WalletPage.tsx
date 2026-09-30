@@ -1,190 +1,202 @@
-import { useState, type FormEvent } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { useEffect, useState, type FormEvent } from 'react';
 
 import { api, newIdempotencyKey } from '../../api/http';
-import type { TransactionType, Wallet, WalletTransaction } from '../../api/types';
+import type { Wallet, WalletEntry, WalletMovement } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { hasRole } from '../../auth/roles';
-import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
+import { useOnReconnect } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
-import { CURRENCY, formatDateTime, formatMoney, formatSignedMoney } from '../../shared/format';
+import { dinarsToMillimes, formatDateTime, formatMillimes, formatSignedMillimes } from '../../shared/format';
 import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
-import { GamerSelect } from '../pickers';
+import { entryText } from '../../shared/wallet';
+import { useRecentMemberCodes } from './wallet';
 
-const TYPE_LABEL: Record<TransactionType, string> = {
-  TOPUP: 'Top-up',
-  SESSION_CHARGE: 'Play time',
-  BOOKING_FEE: 'Booking fee',
-  MEMBERSHIP: 'Membership',
-  SUBSCRIPTION: 'Hour pass',
-  REFUND: 'Refund',
-  REVERSAL: 'Reversal',
-};
+const QUICK_DINARS = ['5', '10', '20', '50'];
 
-/** Electronic wallet (brief §6.7): balance, ledger, cash top-up, reversal. */
+/**
+ * Electronic Wallet at the desk (brief §6.7). The backend keys every staff
+ * wallet route by the gamer's profile id and has no gamer list, so the desk
+ * opens a wallet with the gamer's member code (shown in their app, under
+ * My profile). Top-ups and refunds are idempotent: a double click never
+ * credits twice.
+ */
 export function WalletPage() {
   const { user } = useAuth();
-  const canReverse = hasRole(user, 'MANAGER');
-  const [params, setParams] = useSearchParams();
-  const gamerId = params.get('user') ?? '';
-
-  const wallet = useApiQuery<Wallet>(gamerId ? `/wallet/${gamerId}` : null);
-  const ledger = useApiQuery<WalletTransaction[]>(gamerId ? `/wallet/${gamerId}/transactions` : null);
+  const canRefund = hasRole(user, 'MANAGER');
+  const recent = useRecentMemberCodes();
+  const [input, setInput] = useState('');
+  const [code, setCode] = useState('');
+  const wallet = useApiQuery<Wallet>(code ? `/wallets/${code}` : null);
+  const entries = useApiQuery<WalletEntry[]>(code ? `/wallets/${code}/entries?take=50` : null);
   const action = useAction();
-
-  const [amount, setAmount] = useState('');
-  const [method, setMethod] = useState('CASH');
-  // Generated once per top-up and reused if the same submit is retried (brief §12, rule 4).
+  const [amount, setAmount] = useState('10');
   const [topupKey, setTopupKey] = useState(newIdempotencyKey);
 
   function reload() {
     wallet.reload();
-    ledger.reload();
+    entries.reload();
+  }
+  useOnReconnect(reload);
+
+  function open(e?: FormEvent, value = input) {
+    e?.preventDefault();
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    setCode(trimmed);
+    setInput(trimmed);
+    action.clear();
   }
 
-  // A session ending (or a charge from another desk) changes the balance.
-  useRealtimeEvent('session_update', (e) => {
-    if (e.userId === gamerId && e.status === 'ENDED') reload();
-  });
-  useOnReconnect(() => gamerId && reload());
+  // Remember a code once it opened a real wallet.
+  const openedId = wallet.data?.gamerProfileId;
+  const { add } = recent;
+  useEffect(() => {
+    if (openedId) add(openedId);
+  }, [openedId, add]);
 
-  async function topUp(e: FormEvent) {
+  async function topup(e: FormEvent) {
     e.preventDefault();
-    const tx = await action.run(
+    const millimes = dinarsToMillimes(amount);
+    if (!millimes || millimes <= 0) return;
+    const body: WalletMovement = { amount: millimes, type: 'CREDIT', idempotencyKey: topupKey };
+    const entry = await action.run(
       'topup',
-      () => api<WalletTransaction>('POST', `/wallet/${gamerId}/topup`, { amount: Number(amount), method, idempotencyKey: topupKey }),
-      (t) => `Top-up of ${formatMoney(t.amount)} recorded. New balance ${formatMoney(t.balanceAfter)}.`,
+      () => api<WalletEntry>('POST', `/wallets/${code}/credit`, body),
+      (x) => `Added ${formatMillimes(x.amount)}. New balance ${formatMillimes(x.balanceAfter)}.`,
     );
-    if (tx) {
-      setAmount('');
+    if (entry) {
       setTopupKey(newIdempotencyKey());
       reload();
     }
   }
 
-  async function reverse(tx: WalletTransaction) {
-    const reason = window.prompt(`Reverse this ${TYPE_LABEL[tx.type].toLowerCase()} of ${formatMoney(tx.amount)}? Reason:`);
-    if (!reason?.trim()) return;
+  async function refund(entry: WalletEntry) {
+    if (!window.confirm(`Refund ${formatMillimes(-entry.amount)} to this gamer?`)) return;
+    // Keyed on the refunded entry: refunding it twice is a no-op.
+    const body: WalletMovement = {
+      amount: -entry.amount,
+      type: 'REFUND',
+      sessionId: entry.sessionId ?? undefined,
+      idempotencyKey: `refund:${entry.id}`,
+    };
     const done = await action.run(
-      tx.id,
-      () => api<WalletTransaction>('POST', `/transactions/${tx.id}/reverse`, { reason: reason.trim() }),
-      (r) => `Reversed. New balance ${formatMoney(r.balanceAfter)}.`,
+      entry.id,
+      () => api<WalletEntry>('POST', `/wallets/${code}/credit`, body),
+      (x) => `Refunded ${formatMillimes(x.amount)}. New balance ${formatMillimes(x.balanceAfter)}.`,
     );
     if (done) reload();
   }
 
+  const lines = entries.data ?? [];
+
   return (
     <>
       <h1>Wallet</h1>
-      <div className="toolbar">
-        <label htmlFor="w-gamer">Gamer</label>
-        <GamerSelect
-          id="w-gamer"
-          value={gamerId}
-          onChange={(v) => {
-            action.clear();
-            setParams(v ? { user: v } : {});
-          }}
-        />
-        {gamerId && (
+      <ActionMessages action={action} />
+
+      <form className="toolbar" onSubmit={open}>
+        <label htmlFor="w-code">Member code</label>{' '}
+        <input id="w-code" size={40} placeholder="from the gamer's app, My profile" value={input} onChange={(e) => setInput(e.target.value)} />{' '}
+        <button type="submit">Open wallet</button>
+        {recent.codes.length > 0 && (
           <>
-            {' '}
-            <Link to={`/users/${gamerId}`}>Profile »</Link>
+            <span className="sep-v" />
+            <label htmlFor="w-recent">Recent</label>{' '}
+            <select id="w-recent" value="" onChange={(e) => e.target.value && open(undefined, e.target.value)}>
+              <option value="">— opened before —</option>
+              {recent.codes.map((c) => (
+                <option key={c} value={c}>
+                  {c.slice(0, 8)}…
+                </option>
+              ))}
+            </select>
           </>
         )}
-      </div>
-      <ActionMessages action={action} />
-      <ErrorBox error={wallet.error ?? ledger.error} />
+      </form>
 
-      {!gamerId ? (
-        <p className="muted">Choose a gamer to see their balance and transactions.</p>
-      ) : (
+      {!code && <p className="muted">Ask the gamer for their member code: it is in their app under My profile.</p>}
+      {code && <ErrorBox error={wallet.error ?? entries.error} />}
+
+      {wallet.data && (
         <>
-          <div className="columns">
-            <fieldset>
-              <legend>Balance</legend>
-              <div className="big-number">{wallet.loading && !wallet.data ? '…' : formatMoney(wallet.data?.balance)}</div>
-            </fieldset>
-
-            <form onSubmit={topUp}>
-              <fieldset>
-                <legend>Top up at the desk</legend>
-                <div className="form-row">
-                  <label htmlFor="w-amount">Amount ({CURRENCY})</label>
-                  <input
-                    id="w-amount"
-                    type="number"
-                    min="0.001"
-                    max="500"
-                    step="0.001"
-                    required
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
-                </div>
-                <div className="form-row">
-                  <label htmlFor="w-method">Paid by</label>
-                  <select id="w-method" value={method} onChange={(e) => setMethod(e.target.value)}>
-                    <option value="CASH">Cash</option>
-                    <option value="CARD">Card</option>
-                  </select>
-                </div>
-                <div className="form-row">
-                  <label />
-                  <button type="submit" disabled={action.busy === 'topup'}>
-                    {action.busy === 'topup' ? 'Saving…' : 'Top up'}
-                  </button>
-                </div>
-              </fieldset>
-            </form>
+          <div className="big-figure">
+            Balance
+            <b className={wallet.data.balance <= 0 ? 'status-bad' : ''}>{formatMillimes(wallet.data.balance)}</b>
+            <span className="muted">member {wallet.data.gamerProfileId.slice(0, 8)}…</span>
           </div>
 
-          <h2>Transactions</h2>
+          <form onSubmit={topup}>
+            <fieldset>
+              <legend>Top up (cash at the desk)</legend>
+              <div className="form-row">
+                <label htmlFor="w-amount">Amount (DT)</label>
+                <input
+                  id="w-amount"
+                  type="number"
+                  min="0.001"
+                  step="0.001"
+                  required
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                />{' '}
+                {QUICK_DINARS.map((q) => (
+                  <button key={q} type="button" className="secondary" onClick={() => setAmount(q)}>
+                    {q}
+                  </button>
+                ))}
+              </div>
+              <div className="form-row">
+                <label />
+                <button type="submit" disabled={action.busy === 'topup'}>
+                  Add to wallet
+                </button>
+              </div>
+            </fieldset>
+          </form>
+
+          <h2>History</h2>
           <table className="grid">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Type</th>
+                <th>When</th>
+                <th>What</th>
                 <th>Amount</th>
                 <th>Balance after</th>
-                <th>Paid by</th>
-                <th>Note</th>
-                {canReverse && <th>Actions</th>}
+                {canRefund && <th />}
               </tr>
             </thead>
             <tbody>
-              {(ledger.data ?? []).map((t) => (
-                <tr key={t.id} className={t.reversedById ? 'row-muted' : ''}>
-                  <td className="nowrap">{formatDateTime(t.createdAt)}</td>
-                  <td>{TYPE_LABEL[t.type] ?? t.type}</td>
-                  <td className={t.amount >= 0 ? 'money-credit' : 'money-debit'}>{formatSignedMoney(t.amount)}</td>
-                  <td>{formatMoney(t.balanceAfter)}</td>
-                  <td>{t.method ?? '—'}</td>
+              {lines.map((x) => (
+                <tr key={x.id}>
+                  <td>{formatDateTime(x.createdAt)}</td>
                   <td>
-                    {t.note ?? ''}
-                    {t.reversedById && <i> (reversed)</i>}
+                    {entryText(x)}
+                    {x.sessionId && <span className="muted"> (session {x.sessionId.slice(0, 8)})</span>}
                   </td>
-                  {canReverse && (
+                  <td className={x.amount < 0 ? 'status-bad' : 'status-ok'}>{formatSignedMillimes(x.amount)}</td>
+                  <td>{formatMillimes(x.balanceAfter)}</td>
+                  {canRefund && (
                     <td>
-                      {!t.reversedById && t.type !== 'REVERSAL' && (
-                        <button type="button" className="secondary" disabled={action.busy === t.id} onClick={() => reverse(t)}>
-                          Reverse
+                      {x.amount < 0 && (
+                        <button type="button" className="secondary" disabled={action.busy === x.id} onClick={() => refund(x)}>
+                          Refund
                         </button>
                       )}
                     </td>
                   )}
                 </tr>
               ))}
-              {!ledger.loading && (ledger.data ?? []).length === 0 && (
+              {!entries.loading && lines.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="muted">
-                    No transactions yet.
+                  <td colSpan={canRefund ? 5 : 4} className="muted">
+                    No movement yet.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+          {!canRefund && <p className="muted">Refunds are done by a branch admin.</p>}
         </>
       )}
     </>

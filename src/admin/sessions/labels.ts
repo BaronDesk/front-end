@@ -1,11 +1,14 @@
-/** Why a session ended (backend endReason). Unknown reasons show as-is. */
-const END_REASON: Record<string, string> = {
-  STAFF_ENDED: 'Ended by staff',
-  USER_ENDED: 'Ended by the gamer',
-  BALANCE_EXHAUSTED: 'Balance ran out (station auto-locked)',
-  SHUTDOWN: 'Station shut down',
+import type { SessionStatus } from '../../api/types';
+
+export const SESSION_STATUS_TEXT: Record<SessionStatus, string> = {
+  PENDING: 'Waiting for the PIN on the station',
+  ACTIVE: 'Playing',
+  PAUSED: 'Paused (station locked)',
+  COMPLETED: 'Ended',
+  CANCELLED: 'Cancelled',
 };
 
-export function endReasonLabel(reason: string | null): string {
-  return reason ? (END_REASON[reason] ?? reason) : '—';
+/** Still running: can be ended, and not billed yet. */
+export function isOpenSession(status: SessionStatus): boolean {
+  return status === 'PENDING' || status === 'ACTIVE' || status === 'PAUSED';
 }

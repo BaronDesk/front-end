@@ -1,8 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import type { Branch } from '../../api/types';
+import type { Branch, Machine } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
+import { useOnReconnect } from '../../realtime/RealtimeContext';
 import { useApiQuery } from '../../shared/useApiQuery';
+import { deriveBranches, shortId } from './branches';
 
 /**
  * Which branch the admin app works on (Multi-Agency, brief §6.12).
@@ -14,6 +16,12 @@ import { useApiQuery } from '../../shared/useApiQuery';
 interface BranchScope {
   isHq: boolean;
   branches: Branch[];
+  /**
+   * Every PC the user may see (GET /machines, all branches for HQ): the
+   * source of branch ids and labels, and of each station's branch.
+   */
+  machines: Machine[];
+  reloadMachines(): void;
   /** Branch that lists and actions cover. null = all branches (HQ only). */
   branchId: string | null;
   /** HQ only; ignored for everyone else. */
@@ -50,18 +58,22 @@ function writeStored(id: string | null): void {
 export function BranchProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const isHq = user?.branchId === null;
-  // GET /branches isn't on the real backend yet: names then fall back to the id.
-  const { data } = useApiQuery<Branch[]>(user ? '/branches' : null);
-  const branches = useMemo(() => data ?? [], [data]);
+  // No GET /branches on the backend: branches come from the PCs the user can see.
+  const machineQuery = useApiQuery<Machine[]>(user ? '/machines' : null);
+  const data = machineQuery.data;
+  const machines = useMemo(() => data ?? [], [data]);
+  const branches = useMemo(() => deriveBranches(machines, [user?.branchId]), [machines, user?.branchId]);
+  const reloadMachines = machineQuery.reload;
+  useOnReconnect(reloadMachines);
   const [picked, setPicked] = useState<string | null>(() => (isHq ? readStored() : null));
 
   // A stored branch that no longer exists (or another server's) means "all".
   useEffect(() => {
-    if (picked && data && !data.some((b) => b.id === picked)) {
+    if (picked && data && !branches.some((b) => b.id === picked)) {
       setPicked(null);
       writeStored(null);
     }
-  }, [picked, data]);
+  }, [picked, data, branches]);
 
   const branchId = isHq ? picked : (user?.branchId ?? null);
 
@@ -77,11 +89,9 @@ export function BranchProvider({ children }: { children: ReactNode }) {
   const branchName = useCallback(
     (id: string | null) => {
       if (!id) return 'All branches';
-      // The mock maps a branch it doesn't know onto its first one.
-      const branch = branches.find((b) => b.id === id) ?? (!isHq && branches.length === 1 ? branches[0] : undefined);
-      return branch?.name ?? id.slice(0, 8);
+      return branches.find((b) => b.id === id)?.name ?? shortId(id);
     },
-    [branches, isHq],
+    [branches],
   );
 
   const scoped = useCallback(
@@ -96,8 +106,8 @@ export function BranchProvider({ children }: { children: ReactNode }) {
   const inScope = useCallback((id: string | null) => !isHq || !branchId || id === branchId, [isHq, branchId]);
 
   const value = useMemo(
-    () => ({ isHq, branches, branchId, setBranchId, branchName, scoped, inScope }),
-    [isHq, branches, branchId, setBranchId, branchName, scoped, inScope],
+    () => ({ isHq, branches, machines, reloadMachines, branchId, setBranchId, branchName, scoped, inScope }),
+    [isHq, branches, machines, reloadMachines, branchId, setBranchId, branchName, scoped, inScope],
   );
   return <BranchContext.Provider value={value}>{children}</BranchContext.Provider>;
 }

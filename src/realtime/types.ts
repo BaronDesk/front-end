@@ -3,8 +3,8 @@ import type { DashboardEventName, DashboardEvents } from '../api/types';
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected';
 
 /**
- * What the screens listen to. Implemented by the fake source in src/mocks
- * and by the Socket.IO client for /dashboard-io (socketRealtime.ts).
+ * What the screens listen to: the Socket.IO client for /dashboard-io
+ * (socketRealtime.ts).
  */
 export interface RealtimeSource {
   /**
