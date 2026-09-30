@@ -78,7 +78,7 @@ route('POST', '/reservations', (ctx) => {
   assertSelfOrStaff(caller, userId);
   const s = findStation(String(ctx.body.machineId ?? ''));
   if (isStaff(caller)) assertBranch(caller, s.branchId);
-  if (s.enrollmentStatus !== 'APPROVED') badRequest('station is not available for booking');
+  if (s.enrollmentStatus !== 'ENROLLED') badRequest('station is not available for booking');
 
   const start = Date.parse(ctx.body.start);
   const end = Date.parse(ctx.body.end);

@@ -1,6 +1,6 @@
 /*
- * station/ endpoints: branches, stations, enrollment, telemetry snapshot and
- * availability. Games and a station's games are in games.ts.
+ * station/ endpoints: branches, stations, telemetry snapshot and availability.
+ * Enrollment is in machines.ts, games in games.ts.
  */
 import type { BranchSummary, StationAvailability } from '../../api/types';
 import { db } from '../db';
@@ -9,12 +9,11 @@ import {
   branchFilter,
   findStation,
   requireHq,
-  requireManager,
   requireStaff,
   requireUser,
 } from '../guards';
-import { publishStation, toStationDetail, toStationDto } from '../logic';
-import { MockHttpError, route, type MockContext } from '../router';
+import { toStationDetail, toStationDto } from '../logic';
+import { MockHttpError, route } from '../router';
 
 // ---------- branches ----------
 
@@ -27,7 +26,7 @@ route('GET', '/branches', (ctx) => {
 route('GET', '/branches/summary', (ctx) => {
   requireHq(ctx);
   return db.branches.map<BranchSummary>((b) => {
-    const st = db.stations.filter((s) => s.branchId === b.id && s.enrollmentStatus === 'APPROVED');
+    const st = db.stations.filter((s) => s.branchId === b.id && s.enrollmentStatus === 'ENROLLED');
     return {
       branchId: b.id,
       name: b.name,
@@ -47,7 +46,7 @@ route('GET', '/api/v1/stations', (ctx) => {
   const caller = requireStaff(ctx);
   const branch = branchFilter(caller, ctx.query.get('branchId'));
   return db.stations
-    .filter((s) => s.enrollmentStatus === 'APPROVED' && (!branch || s.branchId === branch))
+    .filter((s) => s.enrollmentStatus === 'ENROLLED' && (!branch || s.branchId === branch))
     .map(toStationDto);
 });
 
@@ -57,7 +56,7 @@ route('GET', '/stations/availability', (ctx) => {
   const branch = ctx.query.get('branchId');
   const soon = Date.now() + 30 * 60_000;
   return db.stations
-    .filter((s) => s.enrollmentStatus === 'APPROVED' && (!branch || s.branchId === branch))
+    .filter((s) => s.enrollmentStatus === 'ENROLLED' && (!branch || s.branchId === branch))
     .map<StationAvailability>((s) => {
       const next = db.reservations
         .filter((r) => r.machineId === s.id && r.status === 'BOOKED' && Date.parse(r.end) > Date.now())
@@ -89,36 +88,3 @@ route('GET', '/api/v1/stations/:id/telemetry', (ctx) => {
   if (!snapshot) throw new MockHttpError(404, 'TELEMETRY_NOT_AVAILABLE', 'no live telemetry for this station');
   return snapshot;
 });
-
-// ---------- enrollment ----------
-
-route('GET', '/enrollment', (ctx) => {
-  const caller = requireManager(ctx);
-  const status = ctx.query.get('status');
-  const branch = branchFilter(caller, ctx.query.get('branchId'));
-  return db.stations.filter(
-    (s) => (!status || s.enrollmentStatus === status) && (!branch || s.branchId === branch),
-  );
-});
-
-function enrollmentAction(to: 'APPROVED' | 'REJECTED' | 'REVOKED', from: string[]) {
-  return (ctx: MockContext) => {
-    const caller = requireManager(ctx);
-    const s = findStation(ctx.params.machineId);
-    assertBranch(caller, s.branchId);
-    if (!from.includes(s.enrollmentStatus)) {
-      throw new MockHttpError(409, 'INVALID_ENROLLMENT_STATE', `station is ${s.enrollmentStatus}`);
-    }
-    s.enrollmentStatus = to;
-    if (to !== 'APPROVED') {
-      s.online = false;
-      s.sessionId = null;
-    }
-    publishStation(s);
-    return to === 'APPROVED' ? { credentialIssued: true } : undefined;
-  };
-}
-
-route('POST', '/enrollment/:machineId/approve', enrollmentAction('APPROVED', ['PENDING']));
-route('POST', '/enrollment/:machineId/reject', enrollmentAction('REJECTED', ['PENDING']));
-route('POST', '/enrollment/:machineId/revoke', enrollmentAction('REVOKED', ['APPROVED']));

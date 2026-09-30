@@ -8,12 +8,12 @@ import type {
   Command,
   Game,
   GamerProfile,
+  MachineEnrollmentStatus,
   Membership,
   MembershipPlan,
   Pricing,
   Reservation,
   Role,
-  EnrollmentStation,
   Session,
   StationGameOverrides,
   Subscription,
@@ -35,12 +35,22 @@ export interface MockUser {
 }
 
 /**
- * A station as the mock keeps it: the enrollment record plus live agent
- * state. Handlers turn it into the real API shapes (logic.ts toStationDto,
- * stationStatus).
+ * A station as the mock keeps it: the MACHINE row plus live agent state.
+ * Handlers turn it into the real API shapes (logic.ts toStationDto,
+ * toStationDetail, toMachine, stationStatus).
  */
-export interface MockStation extends EnrollmentStation {
+export interface MockStation {
+  id: string;
   serialNumber: string;
+  branchId: string;
+  name: string;
+  ip: string;
+  /** Only ENROLLED stations can connect: PENDING and DEACTIVATED ones stay offline. */
+  enrollmentStatus: MachineEnrollmentStatus;
+  online: boolean;
+  lastSeenAt: string | null;
+  /** When the PC asked to join. */
+  createdAt: string;
   locked: boolean;
   sessionId: string | null;
   runningGameId: string | null;
@@ -119,10 +129,10 @@ function station(n: number, branchId: string, name: string, extra: Partial<MockS
     serialNumber: `SN-${name}`,
     branchId,
     name,
-    mac: `00:1A:2B:3C:4D:${n.toString(16).padStart(2, '0').toUpperCase()}`,
     ip: `192.168.${branchId === B1 ? 10 : 20}.${100 + n}`,
-    enrollmentStatus: 'APPROVED',
+    enrollmentStatus: 'ENROLLED',
     online: true,
+    createdAt: minutesAgo(60 * 24 * 30),
     locked: true,
     sessionId: null,
     runningGameId: null,
@@ -139,7 +149,8 @@ const stations: MockStation[] = [
   station(3, B1, 'TUN-03'),
   station(4, B1, 'TUN-04', { online: false, lastSeenAt: minutesAgo(42) }),
   station(5, B1, 'TUN-05'),
-  station(6, B1, 'TUN-06', { enrollmentStatus: 'PENDING', online: true, lastSeenAt: nowIso() }),
+  // Asked to join a few minutes ago: waits on New stations.
+  station(6, B1, 'TUN-06', { enrollmentStatus: 'PENDING', online: false, lastSeenAt: null, createdAt: minutesAgo(5) }),
   station(11, B2, 'SOU-01'),
   station(12, B2, 'SOU-02'),
   // Flips online/offline every 30 s so Node Tracking has something to show.

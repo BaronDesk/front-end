@@ -12,6 +12,7 @@ import type { HttpMethod } from '../api/http';
 import './handlers/auth';
 import './handlers/users';
 import './handlers/stations';
+import './handlers/machines';
 import './handlers/games';
 import './handlers/ops';
 import './handlers/money';

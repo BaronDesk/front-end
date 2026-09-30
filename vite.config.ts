@@ -2,9 +2,9 @@ import { resolve } from 'node:path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Identity routes sit at the root (/auth, /users, /employees); every newer
-// module (stations, commands, alerts, games) lives under /api/v1.
-const BACKEND_PATHS = ['/auth', '/users', '/employees', '/health', '/api'];
+// /api covers the /api/v1 modules (stations, commands, alerts, games). The
+// others sit at the root: add each one here when its screen is linked.
+const BACKEND_PATHS = ['/auth', '/users', '/employees', '/health', '/api', '/machines'];
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');

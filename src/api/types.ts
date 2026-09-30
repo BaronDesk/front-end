@@ -65,7 +65,10 @@ export interface Station {
   branchId?: string;
 }
 
-/** Backend MachineEnrollmentStatus. */
+/**
+ * Backend MachineEnrollmentStatus. PENDING = asked to join, waiting for an
+ * admin; ENROLLED = approved, may connect; DEACTIVATED = rejected or revoked.
+ */
 export type MachineEnrollmentStatus = 'PENDING' | 'ENROLLED' | 'INACTIVE' | 'DEACTIVATED';
 
 /** GET /api/v1/stations/:id */
@@ -77,20 +80,30 @@ export interface StationDetail extends Station {
 }
 
 /**
- * Mock only: the backend has no enrollment admin endpoints yet, so the
- * "New stations" page still uses the draft shape and statuses.
+ * GET /machines[/:id] and POST /machines/:id/approve|reject|revoke
+ * (machines/util/public-machine.ts toPublicMachine): the enrollment view of a PC.
  */
-export type EnrollmentStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVOKED';
-
-export interface EnrollmentStation {
+export interface Machine {
   id: string;
+  serialNumber: string;
   branchId: string;
-  name: string;
-  mac: string;
-  ip: string;
-  enrollmentStatus: EnrollmentStatus;
-  online: boolean;
-  lastSeenAt: string | null;
+  agentPublicKey: string;
+  enrollmentStatus: MachineEnrollmentStatus;
+  /** The PC's name as the agent sent it. */
+  name: string | null;
+  status: MachineStatus;
+  lastSeen: string | null;
+  /** When it asked to join. */
+  createdAt: string;
+}
+
+/**
+ * POST /machines/enrollment-tokens ({ branchId, ttlMinutes? }) and
+ * POST /machines/:id/rotate-token. Shown once: the server keeps only its hash.
+ */
+export interface EnrollmentToken {
+  token: string;
+  expiresAt: string;
 }
 
 export interface StationAvailability {

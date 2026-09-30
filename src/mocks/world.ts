@@ -10,7 +10,7 @@
  */
 import { publish } from './bus';
 import { db, FLAKY_STATION_ID, newId, nowIso, type MockStation } from './db';
-import { endSession, nextTelemetry, publishStation, raiseAlert, reportCatalog, sessionUpdate, setOnline, startSession } from './logic';
+import { endSession, nextTelemetry, raiseAlert, reportCatalog, sessionUpdate, setOnline, startSession } from './logic';
 
 const TELEMETRY_MS = 2_000;
 const SESSION_MS = 10_000;
@@ -21,7 +21,7 @@ const ENROLL_AFTER_MS = 60_000;
 let started = false;
 
 function liveStations(): MockStation[] {
-  return db.stations.filter((s) => s.enrollmentStatus === 'APPROVED' && s.online);
+  return db.stations.filter((s) => s.enrollmentStatus === 'ENROLLED' && s.online);
 }
 
 function tickTelemetry(): void {
@@ -48,7 +48,7 @@ export function tickSessions(): void {
 
 function flipFlaky(): void {
   const s = db.stations.find((x) => x.id === FLAKY_STATION_ID);
-  if (s && s.enrollmentStatus === 'APPROVED' && !s.sessionId) setOnline(s, !s.online);
+  if (s && s.enrollmentStatus === 'ENROLLED' && !s.sessionId) setOnline(s, !s.online);
 }
 
 let alertCount = 0;
@@ -72,7 +72,7 @@ export function randomAlert(): void {
 export function startDemoSession(username: string): string {
   const user = db.users.find((u) => u.username === username);
   if (!user) throw new Error(`no user ${username}`);
-  const free = db.stations.find((s) => s.enrollmentStatus === 'APPROVED' && s.online && !s.sessionId);
+  const free = db.stations.find((s) => s.enrollmentStatus === 'ENROLLED' && s.online && !s.sessionId);
   if (!free) throw new Error('no free station');
   startSession(user.id, free.id);
   return free.name;
@@ -85,17 +85,17 @@ function newEnrollmentRequest(): void {
     serialNumber: 'SN-TUN-07',
     branchId,
     name: 'TUN-07',
-    mac: '00:1A:2B:3C:4D:77',
     ip: '192.168.10.107',
     enrollmentStatus: 'PENDING',
-    online: true,
+    // Not allowed to connect before approval, so no station_status either: New stations polls.
+    online: false,
+    createdAt: nowIso(),
     locked: true,
     sessionId: null,
     runningGameId: null,
-    lastSeenAt: nowIso(),
+    lastSeenAt: null,
   };
   db.stations.push(s);
-  publishStation(s);
 }
 
 /** Starts the timers once, on the first mock request or realtime connect. */
@@ -104,7 +104,7 @@ export function startWorld(): void {
   started = true;
   for (const s of liveStations()) nextTelemetry(s);
   // Every enrolled station has synced its catalog once (offline ones before they went down).
-  for (const s of db.stations) if (s.enrollmentStatus === 'APPROVED') reportCatalog(s, false);
+  for (const s of db.stations) if (s.enrollmentStatus === 'ENROLLED') reportCatalog(s, false);
   setInterval(tickTelemetry, TELEMETRY_MS);
   setInterval(tickSessions, SESSION_MS);
   setInterval(flipFlaky, FLAKY_MS);

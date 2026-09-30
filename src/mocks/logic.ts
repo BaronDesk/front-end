@@ -7,6 +7,7 @@ import type {
   AlertCategory,
   AlertSeverity,
   Game,
+  Machine,
   PublicUser,
   Session,
   SessionUpdateEvent,
@@ -36,13 +37,6 @@ export function publicUser(u: MockUser): PublicUser {
 
 // ---------- stations ----------
 
-const ENROLLMENT_TO_BACKEND: Record<MockStation['enrollmentStatus'], StationDetail['enrollmentStatus']> = {
-  PENDING: 'PENDING',
-  APPROVED: 'ENROLLED',
-  REJECTED: 'INACTIVE',
-  REVOKED: 'DEACTIVATED',
-};
-
 /** GET /api/v1/stations item. Unlike the real list, it carries branchId (HQ scoping). */
 export function toStationDto(s: MockStation): Station {
   return {
@@ -64,8 +58,23 @@ export function toStationDetail(s: MockStation): StationDetail {
   return {
     ...toStationDto(s),
     branchId: s.branchId,
-    enrollmentStatus: ENROLLMENT_TO_BACKEND[s.enrollmentStatus],
+    enrollmentStatus: s.enrollmentStatus,
     leaseExpiresAt: null,
+  };
+}
+
+/** GET /machines item: the enrollment view (no IP or lock state). */
+export function toMachine(s: MockStation): Machine {
+  return {
+    id: s.id,
+    serialNumber: s.serialNumber,
+    branchId: s.branchId,
+    agentPublicKey: `fake-key-${s.serialNumber}`,
+    enrollmentStatus: s.enrollmentStatus,
+    name: s.name,
+    status: s.online ? 'ONLINE' : 'OFFLINE',
+    lastSeen: s.lastSeenAt,
+    createdAt: s.createdAt,
   };
 }
 
@@ -93,7 +102,7 @@ export function setOnline(s: MockStation, online: boolean): void {
   if (!online) s.runningGameId = null;
   publishStation(s);
   // The agent syncs its catalog on every (re)connect.
-  if (online && s.enrollmentStatus === 'APPROVED') reportCatalog(s);
+  if (online && s.enrollmentStatus === 'ENROLLED') reportCatalog(s);
 }
 
 // ---------- games ----------
@@ -159,7 +168,7 @@ export function reportCatalog(s: MockStation, announce = true): void {
 export function syncCatalogs(change: { branchIds?: string[]; machineIds?: string[] }): void {
   for (const s of db.stations) {
     const hit = change.branchIds?.includes(s.branchId) || change.machineIds?.includes(s.id);
-    if (hit && s.online && s.enrollmentStatus === 'APPROVED') setTimeout(() => reportCatalog(s), 600);
+    if (hit && s.online && s.enrollmentStatus === 'ENROLLED') setTimeout(() => reportCatalog(s), 600);
   }
 }
 
@@ -340,7 +349,7 @@ export function sessionUpdate(session: Session): SessionUpdateEvent {
 export function startSession(userId: string, machineId: string): Session {
   const s = db.stations.find((x) => x.id === machineId);
   if (!s) throw new MockHttpError(404, 'NOT_FOUND', 'station not found');
-  if (s.enrollmentStatus !== 'APPROVED') throw new MockHttpError(409, 'STATION_NOT_ENROLLED', 'station is not approved');
+  if (s.enrollmentStatus !== 'ENROLLED') throw new MockHttpError(409, 'STATION_NOT_ENROLLED', 'station is not approved');
   if (!s.online) throw new MockHttpError(409, 'STATION_OFFLINE', 'station is offline');
   if (s.sessionId) throw new MockHttpError(409, 'STATION_BUSY', 'station already has an active session');
   if (db.sessions.some((x) => x.userId === userId && x.status !== 'ENDED')) {

@@ -10,6 +10,8 @@ import type {
   Alert,
   BranchSummary,
   Command,
+  EnrollmentToken,
+  Machine,
   DashboardEvents,
   Reservation,
   SessionView,
@@ -91,8 +93,8 @@ describe('branch scope and roles', () => {
     expect(res.data).toMatchObject({ code: 'FORBIDDEN_BRANCH' });
   });
 
-  it('403 FORBIDDEN for an employee on a manager page', async () => {
-    const res = await call('GET', '/enrollment?status=PENDING', undefined, await login('staff.tunis'));
+  it('403 FORBIDDEN for an employee on a manager action', async () => {
+    const res = await call('PUT', `/api/v1/games/${db.games[0].id}/branches/${db.branches[0].id}`, undefined, await login('staff.tunis'));
     expect(res.status).toBe(403);
     expect(res.data).toMatchObject({ code: 'FORBIDDEN' });
   });
@@ -220,6 +222,48 @@ describe('games', () => {
   });
 });
 
+describe('enrollment (machines)', () => {
+  it('approve: PENDING → ENROLLED, the PC connects and joins the station list; a second approve is 409', async () => {
+    const manager = await login('manager.tunis');
+    const pending = (await call('GET', '/machines?status=PENDING', undefined, manager)).data as Machine[];
+    const tun6 = pending.find((m) => m.name === 'TUN-06')!;
+    expect(tun6).toMatchObject({ enrollmentStatus: 'PENDING', status: 'OFFLINE' });
+    const before = (await call('GET', '/api/v1/stations', undefined, manager)).data as Station[];
+    expect(before.some((s) => s.id === tun6.id)).toBe(false);
+
+    const approved = await call('POST', `/machines/${tun6.id}/approve`, undefined, manager);
+    expect(approved.data).toMatchObject({ enrollmentStatus: 'ENROLLED' });
+    await vi.advanceTimersByTimeAsync(2_100);
+    const after = (await call('GET', '/api/v1/stations', undefined, manager)).data as Station[];
+    expect(after.find((s) => s.id === tun6.id)).toMatchObject({ status: 'ONLINE' });
+
+    const again = await call('POST', `/machines/${tun6.id}/approve`, undefined, manager);
+    expect(again).toMatchObject({ status: 409, data: { code: 'MACHINE_NOT_PENDING' } });
+  });
+
+  it('enrollment tokens: manager of the branch only, ttl checked; rotate needs an enrolled machine', async () => {
+    const [tunis, sousse] = db.branches.map((b) => b.id);
+    const manager = await login('manager.tunis');
+    const res = await call('POST', '/machines/enrollment-tokens', { branchId: tunis, ttlMinutes: 120 }, manager);
+    const token = res.data as EnrollmentToken;
+    expect(token.token.length).toBeGreaterThanOrEqual(20);
+    expect(Date.parse(token.expiresAt) - Date.now()).toBeGreaterThan(119 * 60_000);
+
+    expect((await call('POST', '/machines/enrollment-tokens', { branchId: sousse }, manager)).status).toBe(403);
+    expect((await call('POST', '/machines/enrollment-tokens', { branchId: tunis }, await login('staff.tunis'))).status).toBe(403);
+    expect((await call('POST', '/machines/enrollment-tokens', { branchId: tunis, ttlMinutes: 5000 }, manager)).status).toBe(400);
+
+    const enrolled = await call('POST', `/machines/${byName('TUN-01').id}/rotate-token`, undefined, manager);
+    expect(enrolled.status).toBe(200);
+    const rejected = byName('TUN-05');
+    await call('POST', `/machines/${rejected.id}/revoke`, undefined, manager);
+    const rotate = await call('POST', `/machines/${rejected.id}/rotate-token`, undefined, manager);
+    expect(rotate).toMatchObject({ status: 409, data: { code: 'MACHINE_NOT_ENROLLED' } });
+    rejected.enrollmentStatus = 'ENROLLED'; // other tests use TUN-05
+    rejected.online = true;
+  });
+});
+
 describe('HQ (multi-agency)', () => {
   it('?branchId narrows HQ lists to one branch; staff cannot widen theirs', async () => {
     const sousse = db.branches[1].id;
@@ -239,7 +283,7 @@ describe('HQ (multi-agency)', () => {
     const rows = res.data as BranchSummary[];
     expect(rows.map((r) => r.name).sort()).toEqual(db.branches.map((b) => b.name).sort());
     const tunis = rows.find((r) => r.branchId === db.branches[0].id)!;
-    const approved = db.stations.filter((s) => s.branchId === db.branches[0].id && s.enrollmentStatus === 'APPROVED');
+    const approved = db.stations.filter((s) => s.branchId === db.branches[0].id && s.enrollmentStatus === 'ENROLLED');
     expect(tunis.stationsTotal).toBe(approved.length);
     expect(tunis.stationsOnline).toBe(approved.filter((s) => s.online).length);
   });

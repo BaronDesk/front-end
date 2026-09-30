@@ -15,17 +15,47 @@ cp .env.example .env.local   # mocks on by default; edit to use the real backend
 npm run dev                  # http://localhost:5173
 ```
 
-The dev server proxies backend routes (`/auth`, `/users`, `/employees`, `/health`, `/api`, `/dashboard-io`) to `VITE_BACKEND_URL` (default `http://localhost:3000`, which `back-end/docker-compose.dev.yml` exposes). Add new backend paths to `BACKEND_PATHS` in `vite.config.ts`.
+The dev server proxies backend routes (`/auth`, `/users`, `/employees`, `/health`, `/api`, `/machines`, `/dashboard-io`) to `VITE_BACKEND_URL` (default `http://localhost:3000`, which `back-end/docker-compose.dev.yml` exposes). Add new backend paths to `BACKEND_PATHS` in `vite.config.ts`.
+
+## Real backend
+
+What the frontend reads from the real backend today (the rest is still fake data; progress and what's missing are in `../Frontend Implementation Plan.md`, "Linking to the real backend" and §6):
+
+| Module | Real paths | Live events |
+|---|---|---|
+| Login, users | `/auth/*`, `POST /users`, `POST /employees`, `PATCH /users/:id/role` | – |
+| Stations, telemetry | `GET /api/v1/stations[/:id]`, `GET /api/v1/stations/:id/telemetry` | `station_status`, `telemetry_update` |
+| Remote commands | `POST`/`GET /api/v1/stations/:id/commands` | `command_update` |
+| Alerts | `GET /api/v1/alerts`, `POST /api/v1/alerts/:id/resolve` | `alert`, `alert_resolved` |
+| Games | `/api/v1/games…`, `GET /api/v1/stations/:id/games` | `catalog_status` |
+| New stations (enrollment) | `GET /machines`, `POST /machines/:id/approve\|reject\|revoke`, `POST /machines/enrollment-tokens`, `POST /machines/:id/rotate-token` | – (the page polls every 15 s) |
+
+The types in `src/api/types.ts` mirror the backend DTOs for these, and the fake data answers the same paths with the same shapes and error codes, so one screen can be switched at a time.
+
+**Run against the backend**
+
+1. In `back-end/`: `npm run docker:dev`, then seed the HQ admin once: `npm run dc -- run --rm migrate npx prisma db seed` (`hq-admin` / `change-me-immediately`).
+2. In `.env.local`: `VITE_USE_MOCKS=true` and `VITE_REAL_PREFIXES=/auth,/users,/employees,/api,/machines,/dashboard-io`. Restart `npm run dev`.
+3. Log in at http://localhost:5173/admin/ as `hq-admin`. The **Users & Staff** form creates real staff and gamer accounts (`POST /employees`, `POST /users`); the user list itself is still fake.
+4. To add a real PC: on **New stations**, pick its branch and generate an enrollment token; on the PC run `BaronDeskAgent.ServiceCore.exe --set-enrollment-token` (admin PowerShell), paste the token and start the agent; approve its request when it shows up. The backend team's manual route (station console) is in `back-end/docs/STATION_PHYSICAL_TEST.md` §0 and `back-end/docs/STATION_AGENT.md` §11.
+
+**Good to know**
+
+- Branch names, the HQ branch dropdown and the HQ overview are still fake (`GET /branches` and `/branches/summary` don't exist yet). With real data, keep HQ on *All branches*: a fake branch id sent as `?branchId=` matches nothing.
+- The real station list has no `branchId` yet, so the Branch column shows "—". It also lists pending and rejected PCs next to enrolled ones (no enrollment status per row).
+- HQ needs a branch picked in the top bar to generate an enrollment token, and the dropdown's branches are fake: until `GET /branches` exists, generate tokens as a branch manager.
+- Sessions, reservations, wallet, plans and the gamer portal stay fake. Their fake stations are not the real ones, so e.g. a walk-in session can't be started on a real PC from the Sessions page yet.
+- New backend modules sit at the root (`/machines`, `/wallets`, `/sessions`, …), not under `/api/v1`: add each one to `BACKEND_PATHS` in `vite.config.ts` and to `VITE_REAL_PREFIXES` when its screen is linked.
 
 ## Fake data (mocks)
 
-Most backend endpoints don't exist yet, so the app can answer them in the browser (`src/mocks`). Switches in `.env.local`:
+Screens the backend doesn't serve yet are answered in the browser (`src/mocks`). Switches in `.env.local`:
 
 | Variable | Meaning |
 |---|---|
 | `VITE_USE_MOCKS=true` | Every endpoint is answered with fake data. A red **FAKE DATA** tag shows in the top bar |
 | `VITE_REAL_PREFIXES=/auth,/users,/employees` | With mocks on, these paths still go to the real backend (e.g. real login, fake stations) |
-| `VITE_REAL_PREFIXES=/auth,/users,/employees,/api,/dashboard-io` | Everything the backend serves today is real (identity, and `/api/v1` stations, commands, alerts, games); the rest stays fake |
+| `VITE_REAL_PREFIXES=/auth,/users,/employees,/api,/machines,/dashboard-io` | Every linked screen is real (identity, `/api/v1` stations, commands, alerts, games, and `/machines` enrollment); the rest stays fake |
 | `VITE_USE_MOCKS=false` | Everything goes to the real backend |
 
 Restart `npm run dev` after changing them. Reload the page to reset the fake data.
@@ -40,9 +70,9 @@ Restart `npm run dev` after changing them. Reload the page to reset the fake dat
 | `gamer1` … `gamer5` | GAMER | – | gamer1: Gold (−10 %), gamer2: in a session on TUN-02, gamer3: 10-hour pass |
 | `lowbalance` | GAMER | – | 0.400 balance: low-balance warning at once, auto-lock after ~8 min of play |
 
-**What happens on its own:** telemetry every 2 s, session updates every 10 s, SOU-03 goes online/offline every 30 s, a random alert every 45 s, a new station TUN-07 asks to enroll after 60 s. Commands go PENDING → SENT → ACKED in ~0.5 s (`command_update`), like the real backend; an offline station is refused at once (409 `STATION_OFFLINE`). A shut-down station comes back after 30 s.
+**What happens on its own:** telemetry every 2 s, session updates every 10 s, SOU-03 goes online/offline every 30 s, a random alert every 45 s, a new PC TUN-07 asks to enroll after 60 s (TUN-06 is already waiting; an approved PC connects 2 s later). Commands go PENDING → SENT → ACKED in ~0.5 s (`command_update`), like the real backend; an offline station is refused at once (409 `STATION_OFFLINE`). A shut-down station comes back after 30 s.
 
-**Mixing real and fake:** with `VITE_REAL_PREFIXES=/auth,…`, the mock reads the real JWT's claims (`sub`, `role`, `branchId`) to know who is calling. A branch id it doesn't know is treated as the first seeded branch (Tunis Centre).
+**Mixing real and fake:** with `VITE_REAL_PREFIXES=/auth,…`, the mock reads the real JWT's claims (`sub`, `role`, `branchId`) to know who is calling. A branch id it doesn't know is treated as the first seeded branch (Tunis Centre). Fake and real records don't know each other: fake sessions and bookings point at fake stations.
 
 ## Login
 
@@ -93,7 +123,7 @@ src/admin/           admin layout, menu, pages
 src/portal/          portal layout, menu, pages
 src/api/             types + api() (real fetch or mock)
 src/mocks/           fake backend: seed db, handlers, timers, fake /dashboard-io
-src/realtime/        RealtimeSource interface (Socket.IO client comes in step 4)
+src/realtime/        live updates: Socket.IO client for /dashboard-io, or the fake one
 src/shared/          code used by both apps
 src/styles/classic.css   the whole theme (black / white / gold / red)
 ```

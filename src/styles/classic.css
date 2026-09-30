@@ -267,6 +267,19 @@ code {
   font-size: 11px;
 }
 
+/* A secret to copy once (enrollment token): selectable, wraps instead of scrolling. */
+pre.token {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  padding: 4px 6px;
+  margin: 6px 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: all;
+}
+
 /* Row of buttons / filters above a table. */
 .toolbar {
   margin: 0 0 8px;

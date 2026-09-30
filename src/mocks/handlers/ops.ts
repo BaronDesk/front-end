@@ -85,7 +85,7 @@ route('POST', '/api/v1/stations/:id/commands', (ctx) => {
 
   const s = findStation(ctx.params.id);
   assertBranch(caller, s.branchId);
-  if (s.enrollmentStatus !== 'APPROVED') {
+  if (s.enrollmentStatus !== 'ENROLLED') {
     throw new MockHttpError(409, 'STATION_NOT_ENROLLED', 'station is not approved');
   }
   if (!s.online) throw new MockHttpError(409, 'STATION_OFFLINE', 'station is not online');
