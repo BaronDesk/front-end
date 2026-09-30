@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 
 // /api covers the /api/v1 modules (stations, commands, alerts, games). The
 // others sit at the root: add each one here when its screen is linked.
-const BACKEND_PATHS = ['/auth', '/users', '/employees', '/health', '/api', '/machines'];
+const BACKEND_PATHS = ['/auth', '/users', '/employees', '/health', '/api', '/machines', '/branches'];
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');

@@ -15,7 +15,7 @@ cp .env.example .env.local   # mocks on by default; edit to use the real backend
 npm run dev                  # http://localhost:5173
 ```
 
-The dev server proxies backend routes (`/auth`, `/users`, `/employees`, `/health`, `/api`, `/machines`, `/dashboard-io`) to `VITE_BACKEND_URL` (default `http://localhost:3000`, which `back-end/docker-compose.dev.yml` exposes). Add new backend paths to `BACKEND_PATHS` in `vite.config.ts`.
+The dev server proxies backend routes (`/auth`, `/users`, `/employees`, `/health`, `/api`, `/machines`, `/branches`, `/dashboard-io`) to `VITE_BACKEND_URL` (default `http://localhost:3000`, which `back-end/docker-compose.dev.yml` exposes). Add new backend paths to `BACKEND_PATHS` in `vite.config.ts`.
 
 ## Real backend
 
@@ -28,6 +28,7 @@ What the frontend reads from the real backend today (the rest is still fake data
 | Remote commands | `POST`/`GET /api/v1/stations/:id/commands` | `command_update` |
 | Alerts | `GET /api/v1/alerts`, `POST /api/v1/alerts/:id/resolve` | `alert`, `alert_resolved` |
 | Games | `/api/v1/games…`, `GET /api/v1/stations/:id/games` | `catalog_status` |
+| Prices (Plans page) | `GET`/`PUT /branches/:branchId/pricing` | – |
 | New stations (enrollment) | `GET /machines`, `POST /machines/:id/approve\|reject\|revoke`, `POST /machines/enrollment-tokens`, `POST /machines/:id/rotate-token` | – (the page polls every 15 s) |
 
 The types in `src/api/types.ts` mirror the backend DTOs for these, and the fake data answers the same paths with the same shapes and error codes, so one screen can be switched at a time.
@@ -35,7 +36,7 @@ The types in `src/api/types.ts` mirror the backend DTOs for these, and the fake 
 **Run against the backend**
 
 1. In `back-end/`: `npm run docker:dev`, then seed the HQ admin once: `npm run dc -- run --rm migrate npx prisma db seed` (`hq-admin` / `change-me-immediately`).
-2. In `.env.local`: `VITE_USE_MOCKS=true` and `VITE_REAL_PREFIXES=/auth,/users,/employees,/api,/machines,/dashboard-io`. Restart `npm run dev`.
+2. In `.env.local`: `VITE_USE_MOCKS=true` and `VITE_REAL_PREFIXES=/auth,/users,/employees,/api,/machines,/branches/*/pricing,/dashboard-io`. Restart `npm run dev`.
 3. Log in at http://localhost:5173/admin/ as `hq-admin`. The **Users & Staff** form creates real staff and gamer accounts (`POST /employees`, `POST /users`); the user list itself is still fake.
 4. To add a real PC: on **New stations**, pick its branch and generate an enrollment token; on the PC run `BaronDeskAgent.ServiceCore.exe --set-enrollment-token` (admin PowerShell), paste the token and start the agent; approve its request when it shows up. The backend team's manual route (station console) is in `back-end/docs/STATION_PHYSICAL_TEST.md` §0 and `back-end/docs/STATION_AGENT.md` §11.
 
@@ -44,7 +45,9 @@ The types in `src/api/types.ts` mirror the backend DTOs for these, and the fake 
 - Branch names, the HQ branch dropdown and the HQ overview are still fake (`GET /branches` and `/branches/summary` don't exist yet). With real data, keep HQ on *All branches*: a fake branch id sent as `?branchId=` matches nothing.
 - The real station list has no `branchId` yet, so the Branch column shows "—". It also lists pending and rejected PCs next to enrolled ones (no enrollment status per row).
 - HQ needs a branch picked in the top bar to generate an enrollment token, and the dropdown's branches are fake: until `GET /branches` exists, generate tokens as a branch manager.
-- Sessions, reservations, wallet, plans and the gamer portal stay fake. Their fake stations are not the real ones, so e.g. a walk-in session can't be started on a real PC from the Sessions page yet.
+- **Money:** the backend counts integer cents (1/100 dinar). Linked screens show dinars with 2 decimals (`formatCents`, `dinarsToCents` in `src/shared/format.ts`); the fake screens still show 3.
+- Prices are per branch: HQ picks a branch in the top bar first. The backend has no booking fee or low-balance setting, so the Plans page no longer edits them (the fake portal keeps its own).
+- Sessions, reservations, wallet, membership and pass plans, and the gamer portal stay fake. Their fake stations are not the real ones, so e.g. a walk-in session can't be started on a real PC from the Sessions page yet.
 - New backend modules sit at the root (`/machines`, `/wallets`, `/sessions`, …), not under `/api/v1`: add each one to `BACKEND_PATHS` in `vite.config.ts` and to `VITE_REAL_PREFIXES` when its screen is linked.
 
 ## Fake data (mocks)
@@ -55,7 +58,7 @@ Screens the backend doesn't serve yet are answered in the browser (`src/mocks`).
 |---|---|
 | `VITE_USE_MOCKS=true` | Every endpoint is answered with fake data. A red **FAKE DATA** tag shows in the top bar |
 | `VITE_REAL_PREFIXES=/auth,/users,/employees` | With mocks on, these paths still go to the real backend (e.g. real login, fake stations) |
-| `VITE_REAL_PREFIXES=/auth,/users,/employees,/api,/machines,/dashboard-io` | Every linked screen is real (identity, `/api/v1` stations, commands, alerts, games, and `/machines` enrollment); the rest stays fake |
+| `VITE_REAL_PREFIXES=/auth,/users,/employees,/api,/machines,/branches/*/pricing,/dashboard-io` | Every linked screen is real (identity, `/api/v1` stations, commands, alerts, games, `/machines` enrollment, branch prices); the rest stays fake. A `*` stands for one path segment |
 | `VITE_USE_MOCKS=false` | Everything goes to the real backend |
 
 Restart `npm run dev` after changing them. Reload the page to reset the fake data.

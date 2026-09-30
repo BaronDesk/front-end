@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
 
-import { api } from '../../api/http';
-import type { MembershipPlan, Pricing, SubscriptionPlan } from '../../api/types';
+import { api, ApiError } from '../../api/http';
+import type { BranchPricing, MembershipPlan, SubscriptionPlan } from '../../api/types';
 import { ErrorBox } from '../../shared/ErrorBox';
-import { CURRENCY, formatMoney } from '../../shared/format';
+import { centsToDinars, CURRENCY, dinarsToCents, formatCents, formatDateTime, formatMoney } from '../../shared/format';
 import { ActionMessages, useAction, type Action } from '../../shared/useAction';
 import { useApiQuery, type ApiQuery } from '../../shared/useApiQuery';
+import { useBranchScope } from '../branch/BranchContext';
 
 type Kind = 'membership' | 'subscription';
 
@@ -150,47 +151,86 @@ function PlanSection({ kind, plans, action }: { kind: Kind; plans: ApiQuery<Plan
   );
 }
 
+/**
+ * Play prices of one branch (GET / PUT /branches/:branchId/pricing), in dinars
+ * on screen and integer cents on the wire. A branch without prices can't start
+ * sessions, so the empty form says so.
+ */
 function PricingForm({ action }: { action: Action }) {
-  const pricing = useApiQuery<Pricing>('/pricing');
-  const [form, setForm] = useState({ ratePerHour: '', bookingFee: '', lowBalanceMinutes: '' });
+  const { branchId, branchName } = useBranchScope();
+  const pricing = useApiQuery<BranchPricing>(branchId ? `/branches/${branchId}/pricing` : null);
+  const [form, setForm] = useState({ paygRate: '', bookingRate: '' });
+  const notSet = pricing.error instanceof ApiError && pricing.error.code === 'PRICING_NOT_SET';
 
   useEffect(() => {
     if (pricing.data) {
-      setForm({
-        ratePerHour: String(pricing.data.ratePerHour),
-        bookingFee: String(pricing.data.bookingFee),
-        lowBalanceMinutes: String(pricing.data.lowBalanceMinutes),
-      });
+      setForm({ paygRate: centsToDinars(pricing.data.paygRate), bookingRate: centsToDinars(pricing.data.bookingRate) });
+    } else if (notSet) {
+      setForm({ paygRate: '', bookingRate: '' });
     }
-  }, [pricing.data]);
+  }, [pricing.data, notSet]);
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    const body = { ratePerHour: Number(form.ratePerHour), bookingFee: Number(form.bookingFee), lowBalanceMinutes: Number(form.lowBalanceMinutes) };
-    const saved = await action.run('pricing', () => api<Pricing>('PUT', '/pricing', body), 'Prices saved.');
-    if (saved) pricing.setData(() => saved);
+    const paygRate = dinarsToCents(form.paygRate);
+    const bookingRate = dinarsToCents(form.bookingRate);
+    if (!branchId || paygRate === null || bookingRate === null) return;
+    const saved = await action.run(
+      'pricing',
+      () => api<BranchPricing>('PUT', `/branches/${branchId}/pricing`, { paygRate, bookingRate }),
+      `Prices of ${branchName(branchId)} saved.`,
+    );
+    if (saved) {
+      pricing.setData(() => saved);
+      pricing.reload(); // clears a PRICING_NOT_SET error
+    }
+  }
+
+  if (!branchId) {
+    return <p className="muted">Pick a branch in the top bar to see and change its prices: each branch has its own.</p>;
   }
 
   return (
     <form onSubmit={save}>
-      <ErrorBox error={pricing.error} />
+      {!notSet && <ErrorBox error={pricing.error} />}
       <fieldset className="wide-labels">
-        <legend>Prices</legend>
+        <legend>Prices of {branchName(branchId)}</legend>
+        {notSet && (
+          <p className="status-bad">No prices set for this branch yet: sessions can&apos;t start until they are.</p>
+        )}
         <div className="form-row">
-          <label htmlFor="p-rate">Play time ({CURRENCY} / hour)</label>
-          <input id="p-rate" type="number" min="0.001" step="0.001" required value={form.ratePerHour} onChange={(e) => setForm({ ...form, ratePerHour: e.target.value })} />
+          <label htmlFor="p-payg">Walk-in play ({CURRENCY} / hour)</label>
+          <input
+            id="p-payg"
+            type="number"
+            min="0.01"
+            step="0.01"
+            required
+            value={form.paygRate}
+            onChange={(e) => setForm({ ...form, paygRate: e.target.value })}
+          />
         </div>
         <div className="form-row">
-          <label htmlFor="p-fee">Booking fee ({CURRENCY})</label>
-          <input id="p-fee" type="number" min="0" step="0.001" required value={form.bookingFee} onChange={(e) => setForm({ ...form, bookingFee: e.target.value })} />
+          <label htmlFor="p-booking">Booked play ({CURRENCY} / hour)</label>
+          <input
+            id="p-booking"
+            type="number"
+            min="0.01"
+            step="0.01"
+            required
+            value={form.bookingRate}
+            onChange={(e) => setForm({ ...form, bookingRate: e.target.value })}
+          />
         </div>
-        <div className="form-row">
-          <label htmlFor="p-low">Low-balance warning (minutes left)</label>
-          <input id="p-low" type="number" min="0" step="1" required value={form.lowBalanceMinutes} onChange={(e) => setForm({ ...form, lowBalanceMinutes: e.target.value })} />
-        </div>
+        {pricing.data && (
+          <p className="muted">
+            Now: walk-in {formatCents(pricing.data.paygRate)} / hour, booked {formatCents(pricing.data.bookingRate)} / hour (changed{' '}
+            {formatDateTime(pricing.data.updatedAt)}). Membership discounts apply on top.
+          </p>
+        )}
         <div className="form-row">
           <label />
-          <button type="submit" disabled={action.busy === 'pricing' || !pricing.data}>
+          <button type="submit" disabled={action.busy === 'pricing' || pricing.loading}>
             Save prices
           </button>
         </div>

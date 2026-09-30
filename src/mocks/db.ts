@@ -5,6 +5,7 @@
 import type {
   Alert,
   Branch,
+  BranchPricing,
   Command,
   Game,
   GamerProfile,
@@ -347,7 +348,13 @@ const alerts: Alert[] = [
   alert(1, 5, B1, { category: 'hardware', type: 'TEMPERATURE_WARNING', severity: 'MEDIUM' }, 'GPU temperature 84 °C (threshold 80 °C)', minutesAgo(8)),
 ];
 
+/** Fake-only settings: the portal's booking fee and the low-balance warning (the backend has neither). */
 const pricing: Pricing = { ratePerHour: 3, bookingFee: 1, lowBalanceMinutes: 10 };
+
+/** branchId → its play prices in cents per hour (the backend's Pricing). Sousse has none yet: PRICING_NOT_SET. */
+const branchPricing = new Map<string, BranchPricing>([
+  [B1, { id: sid(13, 1), branchId: B1, paygRate: 300, bookingRate: 250, updatedAt: minutesAgo(60 * 24 * 7) }],
+]);
 
 /** machineId → latest snapshot (the backend keeps these in Redis, 30 s TTL). */
 const telemetry = new Map<string, TelemetrySnapshot>();
@@ -377,6 +384,7 @@ export const db = {
   reservations,
   alerts,
   pricing,
+  branchPricing,
   telemetry,
   commands,
   idempotency,

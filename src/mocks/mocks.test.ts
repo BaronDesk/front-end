@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   Alert,
+  BranchPricing,
   BranchSummary,
   Command,
   EnrollmentToken,
@@ -20,6 +21,8 @@ import type {
   TelemetrySnapshot,
   WalletTransaction,
 } from '../api/types';
+import { prefixPattern } from '../config';
+import { dinarsToCents, formatCents } from '../shared/format';
 import { db } from './db';
 import { userFromToken } from './handlers/auth';
 import { createFakeRealtime } from './realtime';
@@ -261,6 +264,47 @@ describe('enrollment (machines)', () => {
     expect(rotate).toMatchObject({ status: 409, data: { code: 'MACHINE_NOT_ENROLLED' } });
     rejected.enrollmentStatus = 'ENROLLED'; // other tests use TUN-05
     rejected.online = true;
+  });
+});
+
+describe('branch pricing', () => {
+  it('404 PRICING_NOT_SET until a manager of that branch sets whole-cent rates', async () => {
+    const sousse = db.branches[1].id;
+    const manager = await login('manager.sousse');
+    const path = `/branches/${sousse}/pricing`;
+    expect(await call('GET', path, undefined, await login('staff.sousse'))).toMatchObject({ status: 404, data: { code: 'PRICING_NOT_SET' } });
+
+    expect((await call('PUT', path, { paygRate: 6000, bookingRate: 5000 }, await login('staff.sousse'))).status).toBe(403);
+    expect((await call('PUT', path, { paygRate: 6000, bookingRate: 5000 }, await login('manager.tunis'))).status).toBe(403);
+    expect((await call('PUT', path, { paygRate: 12.5, bookingRate: 5000 }, manager)).status).toBe(400);
+
+    const saved = await call('PUT', path, { paygRate: 6000, bookingRate: 5000 }, manager);
+    expect(saved.data).toMatchObject({ branchId: sousse, paygRate: 6000, bookingRate: 5000 });
+    expect(((await call('GET', path, undefined, manager)).data as BranchPricing).paygRate).toBe(6000);
+  });
+});
+
+describe('real/fake routing and money helpers', () => {
+  it('a real prefix covers the path and below it, and * is one segment', () => {
+    const users = prefixPattern('/users');
+    expect(users.test('/users')).toBe(true);
+    expect(users.test('/users/42/role')).toBe(true);
+    expect(users.test('/users?role=GAMER')).toBe(false); // the user list stays fake
+    expect(users.test('/usersx')).toBe(false);
+
+    const pricing = prefixPattern('/branches/*/pricing');
+    expect(pricing.test('/branches/abc-123/pricing')).toBe(true);
+    expect(pricing.test('/branches/summary')).toBe(false);
+    expect(pricing.test('/branches')).toBe(false);
+  });
+
+  it('dinars on screen, integer cents on the wire', () => {
+    expect(dinarsToCents('3.5')).toBe(350);
+    expect(dinarsToCents('3,25')).toBe(325);
+    expect(dinarsToCents('0.015')).toBe(2);
+    expect(dinarsToCents('')).toBeNull();
+    expect(dinarsToCents('abc')).toBeNull();
+    expect(formatCents(6000)).toBe('60.00 DT');
   });
 });
 

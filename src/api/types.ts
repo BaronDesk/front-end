@@ -409,10 +409,29 @@ export interface SessionView extends Session {
   runoutAt: string | null;
 }
 
+/**
+ * Mock only (GET /pricing): the portal's booking fee and the fake billing.
+ * The backend's prices are per branch: BranchPricing.
+ */
 export interface Pricing {
   ratePerHour: number;
   bookingFee: number;
   lowBalanceMinutes: number;
+}
+
+/**
+ * GET / PUT /branches/:branchId/pricing (pricing/util/public-pricing.ts).
+ * Rates are integer cents (1/100 dinar) per hour; GET is 404
+ * PRICING_NOT_SET until a manager sets them, and a session can't start then.
+ */
+export interface BranchPricing {
+  id: string;
+  branchId: string;
+  /** Walk-in play; the only rate session billing uses today. */
+  paygRate: number;
+  /** Booked play. */
+  bookingRate: number;
+  updatedAt: string;
 }
 
 // ---------- /dashboard-io events (brief §7) ----------

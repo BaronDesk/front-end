@@ -35,6 +35,25 @@ export function formatMoney(amount: number | null | undefined): string {
   return amount === null || amount === undefined ? '—' : `${amount.toFixed(3)} ${CURRENCY}`;
 }
 
+/**
+ * The backend counts money in integer cents (1/100 dinar): "60.00 DT".
+ * Only formats what the server sent.
+ */
+export function formatCents(cents: number | null | undefined): string {
+  return cents === null || cents === undefined ? '—' : `${(cents / 100).toFixed(2)} ${CURRENCY}`;
+}
+
+/** A form value in dinars ("3.5") → integer cents (350), or null if it isn't a number. */
+export function dinarsToCents(text: string): number | null {
+  const value = Number(text.trim().replace(',', '.'));
+  return text.trim() && Number.isFinite(value) ? Math.round(value * 100) : null;
+}
+
+/** Integer cents → a form value in dinars ("3.50"). */
+export function centsToDinars(cents: number): string {
+  return (cents / 100).toFixed(2);
+}
+
 /** "+10.000 DT" / "-3.000 DT" for ledger lines. */
 export function formatSignedMoney(amount: number): string {
   return `${amount > 0 ? '+' : ''}${formatMoney(amount)}`;

@@ -2,15 +2,17 @@
  * wallet/ and membership/ endpoints, plus pricing. Every money-moving POST
  * honours idempotencyKey: the same key returns the first result again.
  */
-import type { MembershipPlan, SubscriptionPlan, WalletTransaction } from '../../api/types';
+import type { BranchPricing, MembershipPlan, SubscriptionPlan, WalletTransaction } from '../../api/types';
 import { db, newId, nowIso, round3 } from '../db';
 import {
+  assertBranch,
   assertSelfOrStaff,
   badRequest,
   findUser,
   isStaff,
   notFound,
   requireManager,
+  requireStaff,
   requireUser,
 } from '../guards';
 import { balanceOf, postTransaction } from '../logic';
@@ -204,16 +206,32 @@ route('GET', '/pricing', (ctx) => {
   return db.pricing;
 });
 
-route('PUT', '/pricing', (ctx) => {
-  requireManager(ctx);
-  const { ratePerHour, bookingFee, lowBalanceMinutes } = ctx.body;
-  if (!(Number(ratePerHour) > 0)) badRequest('ratePerHour must be greater than 0');
-  if (!(Number(bookingFee) >= 0)) badRequest('bookingFee must be 0 or more');
-  if (!(Number(lowBalanceMinutes) >= 0)) badRequest('lowBalanceMinutes must be 0 or more');
-  Object.assign(db.pricing, {
-    ratePerHour: round3(Number(ratePerHour)),
-    bookingFee: round3(Number(bookingFee)),
-    lowBalanceMinutes: Number(lowBalanceMinutes),
-  });
-  return db.pricing;
+// Like pricing.controller.ts: staff read their branch's prices, managers set them.
+route('GET', '/branches/:branchId/pricing', (ctx) => {
+  const caller = requireStaff(ctx);
+  assertBranch(caller, ctx.params.branchId);
+  const row = db.branchPricing.get(ctx.params.branchId);
+  if (!row) throw new MockHttpError(404, 'PRICING_NOT_SET', 'no pricing configured for this branch');
+  return row;
+});
+
+const MAX_RATE = 100_000_000;
+const isRate = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v > 0 && v <= MAX_RATE;
+
+route('PUT', '/branches/:branchId/pricing', (ctx) => {
+  const caller = requireManager(ctx);
+  const { branchId } = ctx.params;
+  assertBranch(caller, branchId);
+  const { paygRate, bookingRate } = ctx.body;
+  if (!isRate(paygRate) || !isRate(bookingRate)) badRequest('paygRate and bookingRate must be positive whole cents');
+  if (!db.branches.some((b) => b.id === branchId)) throw new MockHttpError(404, 'BRANCH_NOT_FOUND', 'branch not found');
+  const row: BranchPricing = {
+    id: db.branchPricing.get(branchId)?.id ?? newId(),
+    branchId,
+    paygRate,
+    bookingRate,
+    updatedAt: nowIso(),
+  };
+  db.branchPricing.set(branchId, row);
+  return row;
 });
