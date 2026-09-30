@@ -14,6 +14,8 @@ interface AuthApi {
   user: PublicUser | null;
   login(username: string, password: string): Promise<PublicUser>;
   logout(): Promise<void>;
+  /** The server answered with the updated account (e.g. a new home branch). */
+  updateUser(user: PublicUser): void;
 }
 
 const AuthContext = createContext<AuthApi | null>(null);
@@ -81,9 +83,13 @@ export function AuthProvider({ app, children }: { app: AppName; children: ReactN
     [app, logout],
   );
 
+  const updateUser = useCallback((user: PublicUser) => {
+    setState((s) => (s.status === 'authenticated' ? { status: 'authenticated', user } : s));
+  }, []);
+
   const value = useMemo<AuthApi>(
-    () => ({ state, user: state.status === 'authenticated' ? state.user : null, login, logout }),
-    [state, login, logout],
+    () => ({ state, user: state.status === 'authenticated' ? state.user : null, login, logout, updateUser }),
+    [state, login, logout, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

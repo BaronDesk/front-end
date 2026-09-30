@@ -1,8 +1,8 @@
 import type { Branch, Machine } from '../../api/types';
 
 /**
- * The branches a user can see, built from GET /machines: the backend has no
- * branch list and no branch names. A branch is labelled by the prefix its PCs'
+ * Fallback only, while GET /branches hasn't answered: the branches a user can
+ * see, built from GET /machines. A branch is labelled by the prefix its PCs'
  * serial numbers share (MNR-PC-01…05 → "MNR"), else by a short id.
  * `extraIds` adds branches with no PC yet (e.g. the user's own branch).
  */

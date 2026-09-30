@@ -26,6 +26,8 @@ interface BranchScope {
   branchId: string | null;
   /** HQ only; ignored for everyone else. */
   setBranchId(id: string | null): void;
+  /** Re-read the branch list (after HQ creates or renames one). */
+  reloadBranches(): void;
   branchName(id: string | null): string;
   /** `path` with ?branchId= added when HQ has picked one branch. */
   scoped(path: string): string;
@@ -58,22 +60,29 @@ function writeStored(id: string | null): void {
 export function BranchProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const isHq = user?.branchId === null;
-  // No GET /branches on the backend: branches come from the PCs the user can see.
   const machineQuery = useApiQuery<Machine[]>(user ? '/machines' : null);
+  // Real names from GET /branches; staff see only their own branch.
+  const branchQuery = useApiQuery<Branch[]>(user ? '/branches' : null);
   const data = machineQuery.data;
   const machines = useMemo(() => data ?? [], [data]);
-  const branches = useMemo(() => deriveBranches(machines, [user?.branchId]), [machines, user?.branchId]);
+  const branches = useMemo(() => {
+    const named = branchQuery.data;
+    // Until (or if) the list loads, fall back to names guessed from the PCs.
+    if (!named) return deriveBranches(machines, [user?.branchId]);
+    return isHq ? named : named.filter((b) => b.id === user?.branchId);
+  }, [branchQuery.data, machines, isHq, user?.branchId]);
   const reloadMachines = machineQuery.reload;
+  const reloadBranches = branchQuery.reload;
   useOnReconnect(reloadMachines);
   const [picked, setPicked] = useState<string | null>(() => (isHq ? readStored() : null));
 
   // A stored branch that no longer exists (or another server's) means "all".
   useEffect(() => {
-    if (picked && data && !branches.some((b) => b.id === picked)) {
+    if (picked && branchQuery.data && !branches.some((b) => b.id === picked)) {
       setPicked(null);
       writeStored(null);
     }
-  }, [picked, data, branches]);
+  }, [picked, branchQuery.data, branches]);
 
   const branchId = isHq ? picked : (user?.branchId ?? null);
 
@@ -106,8 +115,8 @@ export function BranchProvider({ children }: { children: ReactNode }) {
   const inScope = useCallback((id: string | null) => !isHq || !branchId || id === branchId, [isHq, branchId]);
 
   const value = useMemo(
-    () => ({ isHq, branches, machines, reloadMachines, branchId, setBranchId, branchName, scoped, inScope }),
-    [isHq, branches, machines, reloadMachines, branchId, setBranchId, branchName, scoped, inScope],
+    () => ({ isHq, branches, machines, reloadMachines, branchId, setBranchId, reloadBranches, branchName, scoped, inScope }),
+    [isHq, branches, machines, reloadMachines, branchId, setBranchId, reloadBranches, branchName, scoped, inScope],
   );
   return <BranchContext.Provider value={value}>{children}</BranchContext.Provider>;
 }

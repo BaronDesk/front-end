@@ -32,7 +32,7 @@ export function PortalLayout() {
         )}
       </div>
       <main className="content">
-        {pathname !== '/' && pathname !== '/login' && (
+        {pathname !== '/' && pathname !== '/login' && pathname !== '/signup' && (
           <p>
             <Link to="/">« Menu</Link>
           </p>

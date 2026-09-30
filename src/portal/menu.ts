@@ -6,4 +6,5 @@ export const PORTAL_MENU: MenuItem[] = [
   { path: '/session', label: 'My session', step: 9 },
   { path: '/wallet', label: 'My wallet', step: 9 },
   { path: '/profile', label: 'My profile & plans', step: 9 },
+  { path: '/settings', label: 'Settings', step: 9 },
 ];

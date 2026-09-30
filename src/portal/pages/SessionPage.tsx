@@ -1,49 +1,73 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 
-import type { CheckIn, Reservation, Wallet, WalletEntry } from '../../api/types';
+import { api, ApiError } from '../../api/http';
+import type { CheckIn, CurrentSession, ExtendOptions, Reservation, SessionNoticeEvent, WalletEntry } from '../../api/types';
 import { useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
-import { formatClock, formatDateTime, formatDuration, formatMillimes, formatSignedMillimes, secondsSince, useNow } from '../../shared/format';
+import { formatClock, formatDateTime, formatDuration, formatMillimes, formatSignedMillimes, useNow } from '../../shared/format';
 import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
-import { currentBooking, RESERVATION_TEXT, stationOf } from '../bookings';
+import { currentBooking, stationOf } from '../bookings';
 import { PinBox, requestPin } from '../Pin';
 
-/** No gamer session endpoint or event: the page re-reads the booking and the wallet this often. */
+/** The session's numbers are re-read this often (the notices arrive live). */
 const POLL_MS = 15_000;
 
+/** The Extend buttons show from this long before the end (and whenever the station warned). */
+const EXTEND_FROM_MS = 15 * 60_000;
+
+const EXTEND_REFUSALS: Record<string, string> = {
+  RESERVATION_SLOT_TAKEN: 'Someone booked this PC right after you: extending is not possible.',
+  INSUFFICIENT_FUNDS: 'Your balance does not cover the extra time. Top up at the desk.',
+  GAMER_ALREADY_BOOKED: 'You have another booking at that time.',
+  SESSION_NOT_RUNNING: 'Your session is no longer running.',
+};
+
+function explainExtend(err: unknown): never {
+  const text = err instanceof ApiError && err.code ? EXTEND_REFUSALS[err.code] : undefined;
+  throw text ? new Error(text) : err;
+}
+
+function lockText(s: CurrentSession): string | null {
+  if (s.status !== 'PAUSED') return null;
+  if (s.lockReason === 'runout') return 'Locked: your balance ran out. Top up at the desk and it unlocks by itself.';
+  if (s.lockReason === 'offline') return 'The PC lost its connection. It resumes when it is back.';
+  return 'Locked by the desk.';
+}
+
 /**
- * My session (brief §6.6), from what a gamer may read: the running booking
- * (ACTIVE while the session runs), the wallet, and the session charges in it.
- * Time and cost of a running session are the desk's; the bill lands in the
- * wallet when it ends.
+ * My session (brief §6.6): the station, time played, what it has cost so far
+ * and what the wallet holds after it, when it ends — and, near the end,
+ * Extend (the PC must be free and the wallet cover it). The station's
+ * warnings (low balance, time left) show here too. Money is taken when the
+ * session ends.
  */
 export function SessionPage() {
+  const current = useApiQuery<CurrentSession | null>('/sessions/me/current');
   const bookings = useApiQuery<Reservation[]>('/reservations');
-  const wallet = useApiQuery<Wallet>('/wallets/me');
   const entries = useApiQuery<WalletEntry[]>('/wallets/me/entries?take=30');
+  const session = current.data ?? null;
+  const extendOptions = useApiQuery<ExtendOptions>(session ? `/reservations/${session.reservationId}/extend-options` : null);
   const now = useNow(1_000);
-  const [lowBalance, setLowBalance] = useState(false);
   const action = useAction();
   const [pin, setPin] = useState<CheckIn | null>(null);
-  const booking = currentBooking(bookings.data, now);
+  const [notice, setNotice] = useState<SessionNoticeEvent | null>(null);
+  const booking = session ? undefined : currentBooking(bookings.data, now);
 
+  const { reload: reloadCurrent } = current;
   const { reload: reloadBookings } = bookings;
-  const { reload: reloadWallet } = wallet;
-  const { reload: reloadEntries } = entries;
   useEffect(() => {
     const timer = setInterval(() => {
+      reloadCurrent();
       reloadBookings();
-      reloadWallet();
-      reloadEntries();
     }, POLL_MS);
     return () => clearInterval(timer);
-  }, [reloadBookings, reloadWallet, reloadEntries]);
+  }, [reloadCurrent, reloadBookings]);
 
-  // The runout timer's warning names the machine: it is ours if we are playing on it.
-  useRealtimeEvent('session_runout_warning', (e) => {
-    if (booking && e.machineId === booking.machineId) setLowBalance(true);
+  useRealtimeEvent('session_notice', (e) => {
+    setNotice(e.kind === 'CLEAR' ? null : e);
+    reloadCurrent();
   });
 
   async function getPin(r: Reservation) {
@@ -51,48 +75,120 @@ export function SessionPage() {
     if (c) setPin(c);
   }
 
+  async function extend(minutes: number) {
+    if (!session) return;
+    const done = await action.run(
+      `extend-${minutes}`,
+      () => api<{ endsAt: string }>('POST', `/reservations/${session.reservationId}/extend`, { minutes }).catch(explainExtend),
+      (r) => `Extended: you play until ${formatClock(r.endsAt)}.`,
+    );
+    if (done) {
+      setNotice(null);
+      current.reload();
+      extendOptions.reload();
+    }
+  }
+
   const charges = (entries.data ?? []).filter((x) => x.sessionId).slice(0, 5);
+  const msLeft = session ? Date.parse(session.endsAt) - now : 0;
+  const showExtend = session && (msLeft <= EXTEND_FROM_MS || notice?.kind === 'TIME_LEFT');
 
   return (
     <>
       <h1>My session</h1>
-      <ErrorBox error={bookings.error ?? wallet.error} />
-      {lowBalance && (
+      <ErrorBox error={current.error ?? bookings.error} />
+      <ActionMessages action={action} />
+
+      {notice?.kind === 'LOW_BALANCE' && (
         <div className="msg msg-error">
-          <b>Low balance:</b> your session ends soon and the PC locks. Top up at the desk to keep playing.
+          <b>Low balance:</b> the PC locks {notice.endsAt ? `at ${formatClock(notice.endsAt)}` : 'soon'}. Top up at the desk to keep playing.
+        </div>
+      )}
+      {notice?.kind === 'TIME_LEFT' && (
+        <div className="msg">
+          <b>Your time ends {notice.endsAt ? `at ${formatClock(notice.endsAt)}` : 'soon'}.</b> The PC locks then; extend below to keep playing.
         </div>
       )}
 
-      <ActionMessages action={action} />
-      {booking && booking.status !== 'ACTIVE' && pin?.reservationId === booking.id && <PinBox checkIn={pin} station={stationOf(booking)} />}
+      {session ? (
+        <>
+          <table className="kv">
+            <tbody>
+              <tr>
+                <th>Station</th>
+                <td>
+                  <b>{session.station.name ?? session.station.serialNumber}</b>
+                </td>
+              </tr>
+              <tr>
+                <th>Status</th>
+                <td className={session.status === 'ACTIVE' ? 'status-ok' : 'status-bad'}>
+                  {session.status === 'ACTIVE' ? 'Playing' : (lockText(session) ?? 'Waiting for the PIN on the PC')}
+                </td>
+              </tr>
+              <tr>
+                <th>Played</th>
+                <td>{formatDuration(session.playedSeconds)}</td>
+              </tr>
+              <tr>
+                <th>Ends</th>
+                <td>
+                  {formatClock(session.endsAt)} <span className="muted">({formatDuration(Math.max(msLeft / 1000, 0))} left)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Cost so far</th>
+                <td>
+                  {formatMillimes(session.costSoFarCents)} <span className="muted">({formatMillimes(session.rateCentsPerMinute)} / minute)</span>
+                </td>
+              </tr>
+              <tr>
+                <th>Balance after</th>
+                <td>
+                  {formatMillimes(session.balanceAfterCents)} <span className="muted">(paid when the session ends)</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-      {booking ? (
-        <table className="kv">
-          <tbody>
-            <tr>
-              <th>Station</th>
-              <td>
-                <b>{stationOf(booking)}</b>
-              </td>
-            </tr>
-            <tr>
-              <th>Status</th>
-              <td className={booking.status === 'ACTIVE' ? 'status-ok' : ''}>{RESERVATION_TEXT[booking.status]}</td>
-            </tr>
-            <tr>
-              <th>Booked</th>
-              <td>
-                {formatClock(booking.startTime)} – {formatClock(booking.endTime)}
-                {booking.status === 'ACTIVE' && (
-                  <span className="muted"> · {formatDuration(secondsSince(booking.startTime, now))} since the start of the booking</span>
-                )}
-              </td>
-            </tr>
-            <tr>
-              <th>Balance</th>
-              <td>{wallet.data ? formatMillimes(wallet.data.balance) : '…'}</td>
-            </tr>
-            {booking.status !== 'ACTIVE' && (
+          {showExtend && (
+            <fieldset>
+              <legend>Keep playing?</legend>
+              <p className="muted">The session stops at {formatClock(session.endsAt)}. Extra time is paid at the pay-as-you-go rate.</p>
+              {(extendOptions.data?.options ?? []).map((o) => (
+                <span key={o.minutes}>
+                  <button type="button" disabled={!o.available || action.busy === `extend-${o.minutes}`} onClick={() => extend(o.minutes)}>
+                    +{o.minutes} min ({formatMillimes(o.costCents)})
+                  </button>{' '}
+                </span>
+              ))}
+              {extendOptions.data && !extendOptions.data.options.some((o) => o.available) && (
+                <p className="muted">
+                  {extendOptions.data.options.some((o) => o.reason === 'SLOT_TAKEN')
+                    ? 'The PC is booked right after you.'
+                    : 'Your balance does not cover extra time.'}
+                </p>
+              )}
+            </fieldset>
+          )}
+        </>
+      ) : booking ? (
+        <>
+          {pin?.reservationId === booking.id && <PinBox checkIn={pin} station={stationOf(booking)} />}
+          <table className="kv">
+            <tbody>
+              <tr>
+                <th>Station</th>
+                <td>
+                  <b>{stationOf(booking)}</b>
+                </td>
+              </tr>
+              <tr>
+                <th>Booked</th>
+                <td>
+                  {formatClock(booking.startTime)} – {formatClock(booking.endTime)}
+                </td>
+              </tr>
               <tr>
                 <th>PIN</th>
                 <td>
@@ -102,9 +198,9 @@ export function SessionPage() {
                   <div className="muted">Type it on the PC&apos;s lock screen to start playing.</div>
                 </td>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </>
       ) : (
         <p>
           You are not playing now. <Link to="/book">Book a station »</Link>

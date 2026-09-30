@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { api, newIdempotencyKey } from '../../api/http';
 import type { Membership, MembershipPlan, Subscription, SubscriptionPlan, Wallet } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
-import { CopyButton } from '../../shared/CopyButton';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatDateTime, formatMillimes, formatMoney } from '../../shared/format';
 import { benefitsText, discountText } from '../../shared/plans';
@@ -27,10 +26,21 @@ export function ProfilePage() {
   const keyFor = (id: string) => keys.get(id) ?? keys.set(id, newIdempotencyKey()).get(id)!;
 
   const activeTier = (memberships.data ?? []).find((m) => m.status === 'ACTIVE');
+  const currentTierPrice = Number(activeTier?.membershipPlan?.price ?? 0);
   const activePasses = (subscriptions.data ?? []).filter((s) => s.status === 'ACTIVE');
 
+  async function cancelMembership() {
+    if (!window.confirm('Cancel your membership now? There is no refund: its discount stops today.')) return;
+    const done = await action.run('cancel', () => api('POST', '/memberships/me/cancel').then(() => true), 'Membership cancelled.');
+    if (done) memberships.reload();
+  }
+
   async function buy(kind: 'membership' | 'subscription', plan: MembershipPlan | SubscriptionPlan) {
-    if (!window.confirm(`Buy ${plan.name} for ${formatMoney(plan.price)}? It is paid from your wallet.`)) return;
+    const upgrade = kind === 'membership' && Boolean(activeTier);
+    const question = upgrade
+      ? `Upgrade to ${plan.name}? You pay ${formatMoney(plan.price)} minus what is left of your current tier, from your wallet.`
+      : `Buy ${plan.name} for ${formatMoney(plan.price)}? It is paid from your wallet.`;
+    if (!window.confirm(question)) return;
     const done = await action.run(
       plan.id,
       () => api(`POST`, `/${kind}-plans/${plan.id}/purchase`, { idempotencyKey: keyFor(plan.id) }).then(() => true),
@@ -61,25 +71,15 @@ export function ProfilePage() {
             <td>{wallet.data ? formatMillimes(wallet.data.balance) : '…'}</td>
           </tr>
           <tr>
-            <th>Member code</th>
-            <td>
-              {wallet.data ? (
-                <>
-                  <code>{wallet.data.gamerProfileId}</code> <CopyButton text={wallet.data.gamerProfileId} />
-                  <div className="muted">The desk opens your wallet with it (top-ups).</div>
-                </>
-              ) : (
-                '…'
-              )}
-            </td>
-          </tr>
-          <tr>
             <th>Membership</th>
             <td>
               {activeTier ? (
                 <>
                   <b>{activeTier.membershipPlan?.name ?? 'Member'}</b> {discountText(activeTier.discountPercentSnapshot)} on play, until{' '}
-                  {formatDateTime(activeTier.endDate)}
+                  {formatDateTime(activeTier.endDate)}{' '}
+                  <button type="button" className="secondary" disabled={action.busy === 'cancel'} onClick={cancelMembership}>
+                    Cancel
+                  </button>
                 </>
               ) : (
                 <span className="muted">none</span>
@@ -118,9 +118,11 @@ export function ProfilePage() {
               <td>
                 {activeTier?.membershipPlanId === p.id ? (
                   <span className="status-ok">yours</span>
+                ) : activeTier && Number(p.price) <= currentTierPrice ? (
+                  <span className="muted">—</span>
                 ) : (
-                  <button type="button" disabled={Boolean(activeTier) || action.busy === p.id} onClick={() => buy('membership', p)}>
-                    Buy
+                  <button type="button" disabled={action.busy === p.id} onClick={() => buy('membership', p)}>
+                    {activeTier ? 'Upgrade' : 'Buy'}
                   </button>
                 )}
               </td>
@@ -128,7 +130,12 @@ export function ProfilePage() {
           ))}
         </tbody>
       </table>
-      {activeTier && <p className="muted">One membership at a time: a new one can be bought when this one ends.</p>}
+      {activeTier && (
+        <p className="muted">
+          One membership at a time. Upgrading to a higher tier costs its price minus what is left of yours (by days); a lower tier can be
+          bought when yours ends.
+        </p>
+      )}
 
       <h2>Passes</h2>
       <table className="grid">

@@ -13,8 +13,12 @@ export interface PublicUser {
   username: string;
   role: Role;
   accountStatus: AccountStatus;
-  /** null = HQ / global scope, or a gamer. */
+  /** The branch a staff member works at. null = HQ / global scope, or a gamer. */
   branchId: string | null;
+  /** A gamer's profile id (wallet, bookings); null for staff. */
+  gamerProfileId: string | null;
+  /** The branch a gamer plays at: the booking page lists its stations. */
+  homeBranchId: string | null;
   createdAt: string;
 }
 
@@ -38,6 +42,93 @@ export interface ApiErrorBody {
 export interface Branch {
   id: string;
   name: string;
+  /** From GET /branches; absent for a branch only known by id. */
+  location?: string;
+}
+
+/** GET /branches/:id/stations: a station as the booking page shows it (never who booked). */
+export interface BranchStation {
+  id: string;
+  name: string;
+  serialNumber: string;
+  online: boolean;
+  busyNow: boolean;
+  /** End of the current booking (back-to-back ones chained), when busy now. */
+  busyUntil: string | null;
+  /** Bookings in the next 7 days. */
+  bookings: { startTime: string; endTime: string }[];
+}
+
+/** GET /sessions/me/current: the gamer's own session now (null when not playing). */
+export interface CurrentSession {
+  sessionId: string;
+  reservationId: string;
+  status: SessionStatus;
+  /** 'runout' = locked for lack of money, 'offline' = the PC dropped off. */
+  lockReason: string | null;
+  station: { id: string; name: string | null; serialNumber: string; branchId: string };
+  startedAt: string;
+  endsAt: string;
+  rateCentsPerMinute: number;
+  playedSeconds: number;
+  costSoFarCents: number;
+  balance: number;
+  /** What the wallet holds once this session is paid. */
+  balanceAfterCents: number;
+}
+
+/** GET /reservations/:id/extend-options. */
+export interface ExtendOptions {
+  reservationId: string;
+  endsAt: string;
+  options: { minutes: number; costCents: number; available: boolean; reason: 'SLOT_TAKEN' | 'INSUFFICIENT_FUNDS' | null }[];
+}
+
+/** GET /api/v1/reservations (staff): a booking with who booked it and on which station. */
+export interface StaffReservation extends Reservation {
+  gamerUsername: string;
+  machine: { id: string; name: string | null; serialNumber: string; branchId: string };
+}
+
+/** GET /sessions (staff). */
+export interface SessionListItem extends Session {
+  station: { id: string; name: string | null; serialNumber: string; branchId: string };
+  gamerUsername: string;
+  /** Open sessions only: what it has cost so far. */
+  costSoFarCents: number | null;
+}
+
+/** GET /api/v1/stations/:id/telemetry/history: one sample a minute. */
+export interface TelemetryHistoryRow {
+  recordedAt: string;
+  metrics: Record<string, number>;
+}
+
+/** A watched peripheral, as the station reports it. */
+export interface Peripheral {
+  deviceId: string;
+  name: string | null;
+  vendorProductId: string | null;
+  connected: boolean;
+  changedAt: string | null;
+}
+
+/** session_notice (to the gamer): what the station shows in its corner box. */
+export interface SessionNoticeEvent {
+  sessionId: string;
+  reservationId: string;
+  kind: 'LOW_BALANCE' | 'TIME_LEFT' | 'CLEAR';
+  /** When the station locks. */
+  endsAt: string | null;
+}
+
+/** peripheral_status (staff). */
+export interface PeripheralStatusEvent {
+  machineId: string;
+  serialNumber: string;
+  branchId: string;
+  reportedAt: string;
+  peripherals: Peripheral[];
 }
 
 export type MachineStatus = 'ONLINE' | 'OFFLINE';
@@ -72,6 +163,9 @@ export interface StationDetail extends Station {
   enrollmentStatus: MachineEnrollmentStatus;
   /** When the agent's unlock lease runs out, if it reported one. */
   leaseExpiresAt: string | null;
+  /** The watched peripherals the station last reported (null: never reported). */
+  peripherals: Peripheral[] | null;
+  peripheralsReportedAt: string | null;
 }
 
 /**
@@ -530,6 +624,9 @@ export interface DashboardEvents {
   /** Every status change of a command, from PENDING to its final status. */
   command_update: Command;
   catalog_status: CatalogStatusEvent;
+  /** Gamer only: low balance / time left / clear. */
+  session_notice: SessionNoticeEvent;
+  peripheral_status: PeripheralStatusEvent;
 }
 
 export type DashboardEventName = keyof DashboardEvents;

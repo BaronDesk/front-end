@@ -1,10 +1,11 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 
 import { api, ApiError } from '../../api/http';
-import type { CheckIn, Reservation, WalkIn } from '../../api/types';
+import type { Branch, BranchStation, CheckIn, Reservation, WalkIn } from '../../api/types';
+import { useAuth } from '../../auth/AuthContext';
 import { ErrorBox } from '../../shared/ErrorBox';
-import { formatDateTime } from '../../shared/format';
+import { formatClock, formatDateTime } from '../../shared/format';
 import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { canCheckIn, isCancellable, knownStations, RESERVATION_TEXT, stationOf } from '../bookings';
@@ -26,7 +27,16 @@ const BOOKING_REFUSALS: Record<string, string> = {
   RESERVATION_SLOT_TAKEN: 'Someone already booked this PC for that time. Pick another time or PC.',
   GAMER_ALREADY_BOOKED: 'You already have a booking at that time: one PC at a time.',
   BOOKING_TOO_FAR_AHEAD: 'That is too far ahead for your plan. A higher membership lets you book further ahead.',
+  INSUFFICIENT_FUNDS: 'Your balance does not cover this booking (your other bookings count too). Top up at the desk, or book less time.',
+  PRICING_NOT_SET: 'This branch has no prices yet. Ask the desk.',
 };
+
+/** How a station reads in the picker: free now, busy until when, or off. */
+function stationStatus(s: BranchStation): string {
+  if (!s.online) return 'switched off';
+  if (s.busyNow && s.busyUntil) return `busy until ${formatClock(s.busyUntil)}`;
+  return 'free now';
+}
 
 function explain(err: unknown): never {
   const text = err instanceof ApiError && err.code ? BOOKING_REFUSALS[err.code] : undefined;
@@ -34,21 +44,28 @@ function explain(err: unknown): never {
 }
 
 /**
- * Advance Reservation (brief §6.8). A gamer can't list stations on the
- * backend, so the station comes from the desk's booking link (a QR code on
- * the PC) or from the gamer's earlier bookings. The gamer gets the PIN for
- * the lock screen here: at once for Play now, from 15 minutes before the
- * booked time otherwise. No desk step.
+ * Advance Reservation (brief §6.8). The stations are those of the gamer's
+ * branch (Settings), each with whether it is free; the desk's booking link
+ * (a QR code on a PC) preselects one, and PCs booked before stay listed. The
+ * wallet must cover the booking. The gamer gets the PIN for the lock screen
+ * here: at once for Play now, from 15 minutes before the booked time otherwise.
  */
 export function BookPage() {
+  const { user } = useAuth();
   const [params] = useSearchParams();
   const linkId = params.get('station');
   const linkName = params.get('name');
+  const homeBranchId = user?.homeBranchId ?? null;
   const bookings = useApiQuery<Reservation[]>('/reservations');
-  const stations = useMemo(
-    () => knownStations(bookings.data, linkId ? { id: linkId, label: linkName ?? 'the PC from the link' } : null),
-    [bookings.data, linkId, linkName],
-  );
+  const branches = useApiQuery<Branch[]>('/branches');
+  const branchStations = useApiQuery<BranchStation[]>(homeBranchId ? `/branches/${homeBranchId}/stations` : null);
+  const stations = useMemo(() => {
+    const fromBranch = (branchStations.data ?? []).map((s) => ({ id: s.id, label: `${s.name} — ${stationStatus(s)}` }));
+    const others = knownStations(bookings.data, linkId ? { id: linkId, label: linkName ?? 'the PC from the link' } : null);
+    const ids = new Set(fromBranch.map((s) => s.id));
+    return [...fromBranch, ...others.filter((s) => !ids.has(s.id))];
+  }, [branchStations.data, bookings.data, linkId, linkName]);
+  const branchName = branches.data?.find((b) => b.id === homeBranchId)?.name;
   const action = useAction();
   const [machineId, setMachineId] = useState(linkId ?? '');
   const [start, setStart] = useState(nextHourLocal);
@@ -66,6 +83,7 @@ export function BookPage() {
       setMade(r);
       setPin(null);
       bookings.reload();
+      branchStations.reload();
     }
   }
 
@@ -79,6 +97,7 @@ export function BookPage() {
       setMade(null);
       setPin(r.checkIn ? { checkIn: r.checkIn, station: stationOf(r) } : null);
       bookings.reload();
+      branchStations.reload();
     }
   }
 
@@ -101,7 +120,16 @@ export function BookPage() {
     <>
       <h1>Book a station</h1>
       <ActionMessages action={action} />
-      <ErrorBox error={bookings.error} />
+      <ErrorBox error={bookings.error ?? branchStations.error} />
+      {homeBranchId ? (
+        <p className="muted">
+          Stations of {branchName ?? 'your branch'}. <Link to="/settings">Change branch</Link>
+        </p>
+      ) : (
+        <p className="msg">
+          Pick the branch you play at to see its stations: <Link to="/settings">Settings »</Link>
+        </p>
+      )}
 
       {pin && <PinBox checkIn={pin.checkIn} station={pin.station} />}
       {made && (
@@ -113,7 +141,9 @@ export function BookPage() {
 
       {stations.length === 0 ? (
         <p className="msg">
-          Scan the booking QR code on a PC (or ask the desk for its booking link) to book it. PCs you booked before show up here.
+          {homeBranchId && branchStations.data
+            ? 'This branch has no station to book yet.'
+            : 'Scan the booking QR code on a PC (or ask the desk for its booking link) to book it.'}
         </p>
       ) : (
         <form onSubmit={book}>

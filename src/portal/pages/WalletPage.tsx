@@ -1,16 +1,16 @@
 import type { Wallet, WalletEntry } from '../../api/types';
-import { CopyButton } from '../../shared/CopyButton';
+import { useAuth } from '../../auth/AuthContext';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatDateTime, formatMillimes, formatSignedMillimes } from '../../shared/format';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { entryText } from '../../shared/wallet';
 
 /**
- * Own balance and history (brief §6.7). Top-ups are made at the desk: the
- * backend has no self top-up, so the page shows the member code the desk
- * uses to open this wallet.
+ * Own balance and history (brief §6.7). Top-ups are made at the desk, which
+ * finds the gamer by username: nothing to copy.
  */
 export function WalletPage() {
+  const { user } = useAuth();
   const wallet = useApiQuery<Wallet>('/wallets/me');
   const entries = useApiQuery<WalletEntry[]>('/wallets/me/entries?take=30');
   const w = wallet.data;
@@ -24,13 +24,9 @@ export function WalletPage() {
         <b className={w && w.balance <= 0 ? 'status-bad' : ''}>{w ? formatMillimes(w.balance) : '…'}</b>
       </div>
 
-      {w && (
-        <div className="msg">
-          <b>Top up at the desk</b> with this member code:
-          <pre className="token">{w.gamerProfileId}</pre>
-          <CopyButton text={w.gamerProfileId} />
-        </div>
-      )}
+      <div className="msg">
+        <b>Top up at the desk:</b> give them your username, <b>{user?.username}</b>.
+      </div>
 
       <h2>History</h2>
       <table className="grid">

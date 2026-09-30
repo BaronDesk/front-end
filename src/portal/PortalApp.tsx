@@ -13,6 +13,8 @@ import { PORTAL_MENU } from './menu';
 import { BookPage } from './pages/BookPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SessionPage } from './pages/SessionPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { SignupPage } from './pages/SignupPage';
 import { WalletPage } from './pages/WalletPage';
 import { PortalLayout } from './PortalLayout';
 
@@ -21,6 +23,7 @@ const PAGES: Record<string, ReactNode> = {
   '/session': <SessionPage />,
   '/wallet': <WalletPage />,
   '/profile': <ProfilePage />,
+  '/settings': <SettingsPage />,
 };
 
 function PortalHome() {
@@ -36,6 +39,11 @@ function PortalHome() {
         Balance
         <b className={wallet.data && wallet.data.balance <= 0 ? 'status-bad' : ''}>{wallet.data ? formatMillimes(wallet.data.balance) : '…'}</b>
       </div>
+      {user && !user.homeBranchId && (
+        <div className="msg msg-error">
+          Pick the branch you play at to see its stations: <Link to="/settings">Settings »</Link>
+        </div>
+      )}
       {now && (
         <div className="msg msg-ok">
           {now.status === 'ACTIVE' ? `You are playing on ${stationOf(now)}.` : `Your booking on ${stationOf(now)} is now.`}{' '}
@@ -67,7 +75,7 @@ function PortalNotFound() {
 export function PortalApp() {
   return (
     <AuthProvider app="portal">
-      {/* Only session_runout_warning is used, on My session. */}
+      {/* Only the gamer's own events: session_notice on My session. */}
       <RealtimeProvider>
         <HashRouter>
           <Routes>
@@ -78,9 +86,13 @@ export function PortalApp() {
                   <>
                     <h1>Login</h1>
                     <LoginForm legend="Gamer login" />
+                    <p>
+                      New here? <Link to="/signup">Create an account</Link>
+                    </p>
                   </>
                 }
               />
+              <Route path="/signup" element={<SignupPage />} />
               <Route element={<RequireAuth />}>
                 <Route index element={<PortalHome />} />
                 {PORTAL_MENU.map((item) => (
