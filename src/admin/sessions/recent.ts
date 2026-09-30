@@ -1,8 +1,7 @@
 import { useCallback, useState } from 'react';
 
 // Per-browser convenience: the backend has no session list, so the desk
-// remembers the sessions it started to find their bills later. Ids only,
-// never the PIN.
+// remembers the sessions it saw running to find their bills later. Ids only.
 const STORAGE_KEY = 'barondesk.recentSessions';
 const MAX = 15;
 

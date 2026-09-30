@@ -1,8 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 
 import { api } from '../../api/http';
-import type { Command, Session, StartedSession, Station } from '../../api/types';
+import type { Command, Session, Station } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatClock, formatDuration, formatMillimes, secondsSince, useNow } from '../../shared/format';
@@ -16,12 +16,12 @@ import { isOpenSession, SESSION_STATUS_TEXT } from './labels';
 import { useRecentSessions } from './recent';
 
 /**
- * Session & Financial Control at the desk (brief §6.6). The backend starts a
- * session from a booking (the gamer books in the portal; a walk-in is a
- * booking starting now) and answers with a one-time PIN the gamer types on
- * the station's lock screen. There is no list of sessions on the API, so
- * "running now" is every station that reports a session, and the desk keeps
- * the sessions it started (this browser only) to find their bills.
+ * Session & Financial Control at the desk (brief §6.6). Gamers start their
+ * own sessions: the portal gets them a one-time PIN for their booking, which
+ * they type on the station's lock screen. There is no list of sessions on the
+ * API, so "running now" is every station that reports a session, and the
+ * desk keeps the sessions it saw running (this browser only) to find their
+ * bills.
  */
 export function SessionsPage() {
   const action = useAction();
@@ -29,8 +29,6 @@ export function SessionsPage() {
   const stations = useStationList();
   const stationNames = useStationNames();
   const recent = useRecentSessions();
-  const [code, setCode] = useState('');
-  const [started, setStarted] = useState<StartedSession | null>(null);
   const [warnings, setWarnings] = useState<{ sessionId: string; machineId: string; at: string }[]>([]);
 
   useRealtimeEvent('station_status', (e) => {
@@ -42,22 +40,13 @@ export function SessionsPage() {
   );
   useOnReconnect(stations.reload);
 
-  async function start(e: FormEvent) {
-    e.preventDefault();
-    const reservationId = code.trim();
-    const session = await action.run(
-      'start',
-      () => api<StartedSession>('POST', '/sessions', { reservationId }),
-      'Session created. Give the gamer the PIN: the station unlocks when it is typed on the lock screen.',
-    );
-    if (session) {
-      setStarted(session);
-      recent.add(session.id);
-      setCode('');
-    }
-  }
-
   const running = (stations.data ?? []).filter((s) => s.sessionId);
+
+  // Remember every session seen running here, to find its bill once it ends.
+  const { ids: recentIds, add: addRecent } = recent;
+  useEffect(() => {
+    for (const s of running) if (s.sessionId && !recentIds.includes(s.sessionId)) addRecent(s.sessionId);
+  }, [running, recentIds, addRecent]);
 
   return (
     <>
@@ -70,41 +59,10 @@ export function SessionsPage() {
         </div>
       ))}
 
-      <form onSubmit={start}>
-        <fieldset>
-          <legend>Start a session</legend>
-          <p className="muted">
-            The gamer books the station in the BaronDesk app (or picks <i>Play now</i> for a walk-in) and shows you the booking code.
-          </p>
-          <div className="form-row">
-            <label htmlFor="s-code">Booking code</label>
-            <input
-              id="s-code"
-              required
-              size={40}
-              placeholder="e.g. 3f2c9a1e-…"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              title="The booking code shown in the gamer's app"
-            />{' '}
-            <button type="submit" disabled={action.busy === 'start'}>
-              Start session
-            </button>
-          </div>
-        </fieldset>
-      </form>
-
-      {started && (
-        <div className="msg">
-          <b>PIN for the lock screen:</b> <span className="pin">{started.pin}</span>
-          <div className="muted">
-            Shown once. The session starts when the gamer types it on the station. <Link to={`/sessions/${started.id}`}>Session »</Link>{' '}
-            <button type="button" className="secondary" onClick={() => setStarted(null)}>
-              Hide
-            </button>
-          </div>
-        </div>
-      )}
+      <p className="muted">
+        Gamers start their own sessions: they book in the BaronDesk app (or pick <i>Play now</i>), get a PIN there and type it on the
+        station&apos;s lock screen. Nothing to do at the desk.
+      </p>
 
       <h2>Running now ({running.length})</h2>
       <ErrorBox error={stations.error} />
@@ -132,7 +90,7 @@ export function SessionsPage() {
         </tbody>
       </table>
 
-      <h2>Started at this desk</h2>
+      <h2>Seen at this desk</h2>
       <table className="grid">
         <thead>
           <tr>

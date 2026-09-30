@@ -407,6 +407,19 @@ export interface Reservation {
   machine?: { id: string; name: string | null; serialNumber: string; branchId: string };
 }
 
+/** POST /reservations/:id/check-in: the PIN the gamer types on the station's lock screen. */
+export interface CheckIn {
+  sessionId: string;
+  reservationId: string;
+  pin: string;
+  pinExpiresAt: string;
+}
+
+/** POST /reservations/walk-in: the booking, with its PIN (null when the station can't take it yet). */
+export interface WalkIn extends Reservation {
+  checkIn: CheckIn | null;
+}
+
 /** Prisma SessionStatus. PENDING = waiting for the PIN on the station; PAUSED = locked mid-session. */
 export type SessionStatus = 'PENDING' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
 

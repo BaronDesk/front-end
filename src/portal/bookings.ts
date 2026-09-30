@@ -9,7 +9,7 @@ export const RESERVATION_TEXT: Record<ReservationStatus, string> = {
   NO_SHOW: 'Missed',
 };
 
-/** The desk can start the session from 15 minutes before the booked time. */
+/** The gamer can get their PIN from 15 minutes before the booked time. */
 const EARLY_MS = 15 * 60_000;
 
 /**
@@ -20,8 +20,13 @@ export function currentBooking(list: Reservation[] | undefined, now = Date.now()
   if (!list) return undefined;
   return (
     list.find((r) => r.status === 'ACTIVE') ??
-    list.find((r) => r.status === 'CONFIRMED' && Date.parse(r.startTime) - EARLY_MS <= now && Date.parse(r.endTime) > now)
+    list.find((r) => canCheckIn(r, now))
   );
+}
+
+/** The gamer can get the PIN from 15 minutes before the booked time until it ends (the server checks the same). */
+export function canCheckIn(r: Reservation, now = Date.now()): boolean {
+  return r.status === 'CONFIRMED' && Date.parse(r.startTime) - EARLY_MS <= now && Date.parse(r.endTime) > now;
 }
 
 /** Still ahead, so it can be cancelled (the server refuses once it has started). */

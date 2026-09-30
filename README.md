@@ -45,12 +45,12 @@ Every screen reads and writes the real backend. Where the backend has no endpoin
 | Alerts | `/api/v1/alerts…`, `alert`, `alert_resolved` | |
 | Games | `/api/v1/games…`, `catalog_status` | |
 | New stations (enrollment) | `/machines…` | Polled every 15 s (no event for a new request) |
-| Sessions | `POST /sessions`, `GET /sessions/:id`, `POST /sessions/:id/end`, `session_runout_warning` | Started from the gamer's **booking code**; answers with the **PIN**. "Running now" = stations reporting a session |
+| Sessions | `GET /sessions/:id`, `POST /sessions/:id/end`, `session_runout_warning` | Gamers start their own sessions (PIN in the app). "Running now" = stations reporting a session |
 | Session and bill | `GET /sessions/:id` | Read again every 5 s until the bill is settled |
 | Wallet (desk) | `/wallets/:gamerProfileId…` | Opened with the gamer's **member code**; idempotent top-up and refund (refund: branch admin and HQ) |
 | Users & Staff | `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `GET /users/:id` | No user list: shows the accounts created here and any account opened by id |
 | Plans & prices | `/branches/:id/pricing`, `/membership-plans`, `/subscription-plans` | Create, edit, delete tiers and passes |
-| Portal: book, play now, my bookings | `/reservations`, `/reservations/walk-in` | Gamers can't list stations: the station comes from the desk's booking link or an earlier booking |
+| Portal: book, play now, my bookings | `/reservations`, `/reservations/walk-in`, `/reservations/:id/check-in` | Gamers can't list stations: the station comes from the desk's booking link or an earlier booking. Play now answers with the **PIN**; a booking gets it with *Get PIN* from 15 min before |
 | Portal: my session | `/reservations`, `/wallets/me…`, `session_runout_warning` | |
 | Portal: wallet | `/wallets/me…` | No self top-up on the backend: shows the member code for the desk |
 | Portal: profile & plans | `/memberships/me`, `/subscriptions/me`, `…/purchase` | Paid from the wallet, idempotent |
@@ -59,15 +59,13 @@ Every screen reads and writes the real backend. Where the backend has no endpoin
 
 ### The desk and the gamer app
 
-The backend links a gamer and the desk through three codes, all shown with a **Copy** button:
+The backend links a gamer and the desk through one code, shown with a **Copy** button:
 
 | Code | Where the gamer finds it | What the desk does with it |
 |---|---|---|
 | Member code (the gamer's profile id) | App → My profile, My wallet | Wallet → Open wallet → top up, refund |
-| Booking code (the reservation id) | App → Book a station → My bookings; My session | Sessions → Start session → gets the **PIN** |
-| PIN (4 digits) | Told by the desk | Typed by the gamer on the PC's lock screen: the session starts, the PC unlocks |
 
-And one the other way: each station's **booking link** (Stations → a station → Copy the gamers' booking link; print it as a QR code on the PC) opens the app's booking page for that PC.
+And one the other way: each station's **booking link** (Stations → a station → Copy the gamers' booking link; print it as a QR code on the PC) opens the app's booking page for that PC. The session PIN never goes through the desk: the gamer gets it in the app (Play now, or *Get PIN* on a booking) and types it on the PC's lock screen.
 
 ### Demo walkthrough (the ten Phase 1 features)
 
@@ -77,7 +75,7 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 |---|---|---|
 | F1 | Secure Access & Roles | Log in as `employee.manar1`: staff menu only, **Plans** says Access denied. A wrong password is refused. Users & Staff: HQ creates a manager; `manager.manar` can only create employees of their own branch (the server refuses more with 403) |
 | F2 | Node Tracking | New stations → generate an enrollment token → the agent asks to join → Approve → it turns ONLINE on Stations. Pull the cable: OFFLINE, then back |
-| F3 | Session & Financial Control | Gamer books (app) → desk starts the session with the booking code → PIN on the lock screen → the PC unlocks. Sessions → End & bill → the bill; the wallet shows the play-time charge. Low balance: the runout warning, then the PC locks |
+| F3 | Session & Financial Control | Gamer books or picks Play now (app) → gets the PIN in the app → types it on the lock screen → the PC unlocks. Sessions → End & bill → the bill; the wallet shows the play-time charge. Low balance: the runout warning, then the PC locks |
 | F4 | Remote Administration | Station detail → Lock / Unlock / Shut down; the command log goes PENDING → SENT → ACKED |
 | F5 | Telemetry & Anti-Theft | Station detail → live temperatures, load, fans; unplug a USB mouse → red alert banner → Resolve |
 | F6 | Electronic Wallet | Wallet → member code → top up (double click: one credit) → history; refund a line (branch admin) |

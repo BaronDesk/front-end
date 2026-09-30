@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 
-import type { Reservation, Wallet, WalletEntry } from '../../api/types';
+import type { CheckIn, Reservation, Wallet, WalletEntry } from '../../api/types';
 import { useRealtimeEvent } from '../../realtime/RealtimeContext';
-import { CopyButton } from '../../shared/CopyButton';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatClock, formatDateTime, formatDuration, formatMillimes, formatSignedMillimes, secondsSince, useNow } from '../../shared/format';
+import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { currentBooking, RESERVATION_TEXT, stationOf } from '../bookings';
+import { PinBox, requestPin } from '../Pin';
 
 /** No gamer session endpoint or event: the page re-reads the booking and the wallet this often. */
 const POLL_MS = 15_000;
@@ -24,6 +25,8 @@ export function SessionPage() {
   const entries = useApiQuery<WalletEntry[]>('/wallets/me/entries?take=30');
   const now = useNow(1_000);
   const [lowBalance, setLowBalance] = useState(false);
+  const action = useAction();
+  const [pin, setPin] = useState<CheckIn | null>(null);
   const booking = currentBooking(bookings.data, now);
 
   const { reload: reloadBookings } = bookings;
@@ -43,6 +46,11 @@ export function SessionPage() {
     if (booking && e.machineId === booking.machineId) setLowBalance(true);
   });
 
+  async function getPin(r: Reservation) {
+    const c = await action.run('pin', () => requestPin(r));
+    if (c) setPin(c);
+  }
+
   const charges = (entries.data ?? []).filter((x) => x.sessionId).slice(0, 5);
 
   return (
@@ -54,6 +62,9 @@ export function SessionPage() {
           <b>Low balance:</b> your session ends soon and the PC locks. Top up at the desk to keep playing.
         </div>
       )}
+
+      <ActionMessages action={action} />
+      {booking && booking.status !== 'ACTIVE' && pin?.reservationId === booking.id && <PinBox checkIn={pin} station={stationOf(booking)} />}
 
       {booking ? (
         <table className="kv">
@@ -83,10 +94,12 @@ export function SessionPage() {
             </tr>
             {booking.status !== 'ACTIVE' && (
               <tr>
-                <th>Booking code</th>
+                <th>PIN</th>
                 <td>
-                  <code>{booking.id}</code> <CopyButton text={booking.id} />
-                  <div className="muted">Show it at the desk: they start your session and give you the PIN to type on the PC.</div>
+                  <button type="button" disabled={action.busy === 'pin'} onClick={() => getPin(booking)}>
+                    {pin?.reservationId === booking.id ? 'Get a new PIN' : 'Get my PIN'}
+                  </button>
+                  <div className="muted">Type it on the PC&apos;s lock screen to start playing.</div>
                 </td>
               </tr>
             )}

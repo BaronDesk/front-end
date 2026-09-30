@@ -2,13 +2,13 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router';
 
 import { api, ApiError } from '../../api/http';
-import type { Reservation } from '../../api/types';
-import { CopyButton } from '../../shared/CopyButton';
+import type { CheckIn, Reservation, WalkIn } from '../../api/types';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatDateTime } from '../../shared/format';
 import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
-import { isCancellable, knownStations, RESERVATION_TEXT, stationOf } from '../bookings';
+import { canCheckIn, isCancellable, knownStations, RESERVATION_TEXT, stationOf } from '../bookings';
+import { PinBox, requestPin } from '../Pin';
 
 const DURATIONS = [30, 60, 90, 120, 180];
 
@@ -31,8 +31,9 @@ function explain(err: unknown): never {
 /**
  * Advance Reservation (brief §6.8). A gamer can't list stations on the
  * backend, so the station comes from the desk's booking link (a QR code on
- * the PC) or from the gamer's earlier bookings. Every booking has a booking
- * code: the desk starts the session with it and gives back the PIN.
+ * the PC) or from the gamer's earlier bookings. The gamer gets the PIN for
+ * the lock screen here: at once for Play now, from 15 minutes before the
+ * booked time otherwise. No desk step.
  */
 export function BookPage() {
   const [params] = useSearchParams();
@@ -48,15 +49,17 @@ export function BookPage() {
   const [start, setStart] = useState(nextHourLocal);
   const [minutes, setMinutes] = useState(60);
   const [made, setMade] = useState<Reservation | null>(null);
+  const [pin, setPin] = useState<{ checkIn: CheckIn; station: string } | null>(null);
   const station = machineId || stations[0]?.id || '';
 
   async function book(e: FormEvent) {
     e.preventDefault();
     const startTime = new Date(start);
     const body = { machineId: station, startTime: startTime.toISOString(), endTime: new Date(startTime.getTime() + minutes * 60_000).toISOString() };
-    const r = await action.run('book', () => api<Reservation>('POST', '/reservations', body).catch(explain), 'Booked. Your booking code is below.');
+    const r = await action.run('book', () => api<Reservation>('POST', '/reservations', body).catch(explain), 'Booked.');
     if (r) {
       setMade(r);
+      setPin(null);
       bookings.reload();
     }
   }
@@ -64,13 +67,19 @@ export function BookPage() {
   async function playNow() {
     const r = await action.run(
       'now',
-      () => api<Reservation>('POST', '/reservations/walk-in', { machineId: station, durationMinutes: minutes }).catch(explain),
-      'The PC is yours now: show the booking code at the desk to get your PIN.',
+      () => api<WalkIn>('POST', '/reservations/walk-in', { machineId: station, durationMinutes: minutes }).catch(explain),
+      (w) => (w.checkIn ? 'The PC is yours now: type the PIN below on its lock screen.' : 'The PC is yours now. No PIN yet: tap Get PIN below in a moment.'),
     );
     if (r) {
-      setMade(r);
+      setMade(null);
+      setPin(r.checkIn ? { checkIn: r.checkIn, station: stationOf(r) } : null);
       bookings.reload();
     }
+  }
+
+  async function getPin(r: Reservation) {
+    const c = await action.run(r.id, () => requestPin(r));
+    if (c) setPin({ checkIn: c, station: stationOf(r) });
   }
 
   async function cancel(r: Reservation) {
@@ -89,11 +98,11 @@ export function BookPage() {
       <ActionMessages action={action} />
       <ErrorBox error={bookings.error} />
 
+      {pin && <PinBox checkIn={pin.checkIn} station={pin.station} />}
       {made && (
         <div className="msg">
-          <b>Booking code</b> ({stationOf(made)}, {formatDateTime(made.startTime)}):
-          <pre className="token">{made.id}</pre>
-          <CopyButton text={made.id} /> Show it at the desk when you arrive: they start your session and give you the PIN for the PC.
+          <b>{stationOf(made)}</b>, {formatDateTime(made.startTime)}. Your PIN for the PC is here (or on My session) from 15 minutes
+          before: tap <i>Get PIN</i>.
         </div>
       )}
 
@@ -150,7 +159,6 @@ export function BookPage() {
             <th>Station</th>
             <th>When</th>
             <th>Status</th>
-            <th>Booking code</th>
             <th />
           </tr>
         </thead>
@@ -162,10 +170,12 @@ export function BookPage() {
                 {formatDateTime(r.startTime)} – {formatDateTime(r.endTime).split(' ')[1]}
               </td>
               <td>{RESERVATION_TEXT[r.status]}</td>
-              <td>
-                <code>{r.id.slice(0, 8)}…</code> <CopyButton text={r.id} />
-              </td>
-              <td>
+              <td className="nowrap">
+                {canCheckIn(r) && (
+                  <button type="button" disabled={action.busy === r.id} onClick={() => getPin(r)}>
+                    Get PIN
+                  </button>
+                )}{' '}
                 {isCancellable(r) && (
                   <button type="button" className="secondary" disabled={action.busy === r.id} onClick={() => cancel(r)}>
                     Cancel
@@ -176,7 +186,7 @@ export function BookPage() {
           ))}
           {!bookings.loading && upcoming.length === 0 && (
             <tr>
-              <td colSpan={5} className="muted">
+              <td colSpan={4} className="muted">
                 No booking ahead.
               </td>
             </tr>
