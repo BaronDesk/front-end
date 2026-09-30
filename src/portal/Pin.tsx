@@ -8,6 +8,7 @@ const PIN_REFUSALS: Record<string, string> = {
   STATION_OFFLINE: 'The PC is switched off or offline right now. Try again in a moment or ask the desk.',
   SESSION_ALREADY_STARTED: 'Your session on this PC is already running.',
   PRICING_NOT_SET: 'Play is not open yet at this branch. Ask the desk.',
+  INSUFFICIENT_FUNDS: 'Your balance is too low to start playing. Top up at the desk, then try again.',
 };
 
 /**

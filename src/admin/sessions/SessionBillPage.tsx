@@ -123,11 +123,26 @@ export function SessionBillPage() {
               <td>{formatMillimes(bill.rateCentsPerMinute)} / minute</td>
             </tr>
             <tr>
-              <th>Total charged</th>
+              <th>Bill</th>
               <td>
                 <b>{formatMillimes(bill.totalCents)}</b>
               </td>
             </tr>
+            {bill.shortfallCents ? (
+              <tr>
+                <th>Unpaid</th>
+                <td className="status-bad">
+                  <b>{formatMillimes(bill.shortfallCents)}</b> to collect at the desk: the wallet only held{' '}
+                  {formatMillimes(bill.chargedCents ?? 0)}.
+                </td>
+              </tr>
+            ) : null}
+            {bill.debitFailed && (
+              <tr>
+                <th>Unpaid</th>
+                <td className="status-bad">The wallet charge failed: collect the bill at the desk.</td>
+              </tr>
+            )}
             <tr>
               <th>Settled</th>
               <td>{formatDateTime(s.settledAt)}</td>

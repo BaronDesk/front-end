@@ -425,7 +425,14 @@ export type SessionStatus = 'PENDING' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CAN
 
 /** Session.billingBreakdown once settled. Amounts are millimes despite the "Cents" names. */
 export interface BillingBreakdown {
+  /** The bill. */
   totalCents: number;
+  /** What the wallet paid of it: less than the bill when the wallet ran dry. */
+  chargedCents?: number;
+  /** The unpaid rest, left for the desk to collect. */
+  shortfallCents?: number;
+  /** The wallet charge failed outright; the desk reconciles. */
+  debitFailed?: boolean;
   meteredSeconds: number;
   rateCentsPerMinute: number;
   appliedMembershipId: string | null;
@@ -462,9 +469,9 @@ export interface StartedSession extends Session {
 export interface BranchPricing {
   id: string;
   branchId: string;
-  /** Walk-in play; the only rate session billing uses today. */
+  /** Play now (walk-in). */
   paygRate: number;
-  /** Booked play. */
+  /** Play booked ahead. */
   bookingRate: number;
   updatedAt: string;
 }

@@ -20,12 +20,17 @@ function nextHourLocal(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`;
 }
 
-/** The server's refusals, in words a gamer understands. */
+/** The server's booking refusals, in words a gamer understands. */
+const BOOKING_REFUSALS: Record<string, string> = {
+  MACHINE_UNAVAILABLE: 'This PC is not available (for Play now it must be switched on). Try another one or ask the desk.',
+  RESERVATION_SLOT_TAKEN: 'Someone already booked this PC for that time. Pick another time or PC.',
+  GAMER_ALREADY_BOOKED: 'You already have a booking at that time: one PC at a time.',
+  BOOKING_TOO_FAR_AHEAD: 'That is too far ahead for your plan. A higher membership lets you book further ahead.',
+};
+
 function explain(err: unknown): never {
-  if (err instanceof ApiError && err.code === 'MACHINE_UNAVAILABLE') {
-    throw new Error('This PC is not available right now (it must be switched on and approved to be booked). Try another one or ask the desk.');
-  }
-  throw err;
+  const text = err instanceof ApiError && err.code ? BOOKING_REFUSALS[err.code] : undefined;
+  throw text ? new Error(text) : err;
 }
 
 /**
