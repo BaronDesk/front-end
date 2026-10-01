@@ -1,52 +1,65 @@
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 
 import { api } from '../../api/http';
-import type { Command, Session, Station } from '../../api/types';
+import type { Command, Session, SessionStatus, StaffSession, Station } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
-import { formatClock, formatDuration, formatMillimes, secondsSince, useNow } from '../../shared/format';
+import { formatClock, formatDateTime, formatDuration, formatMillimes, secondsSince, useNow } from '../../shared/format';
 import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
+import { dayRange, localDateInput } from '../bookings/bookings';
 import { useBranchScope } from '../branch/BranchContext';
 import { applyStatus, stationLabel } from '../stations/station';
 import { useStationList } from '../stations/useStationList';
 import { useStationNames } from '../useLookups';
 import { isOpenSession, SESSION_STATUS_TEXT } from './labels';
-import { useRecentSessions } from './recent';
+
+const LIST_LIMIT = 100;
+const LIST_STATUSES: SessionStatus[] = ['ACTIVE', 'PAUSED', 'PENDING', 'COMPLETED', 'CANCELLED'];
 
 /**
  * Session & Financial Control at the desk (brief §6.6). Gamers start their
  * own sessions: the portal gets them a one-time PIN for their booking, which
- * they type on the station's lock screen. There is no list of sessions on the
- * API, so "running now" is every station that reports a session, and the
- * desk keeps the sessions it saw running (this browser only) to find their
- * bills.
+ * they type on the station's lock screen. "Running now" is every station that
+ * reports a session (live); below, GET /sessions lists the sessions played
+ * since a day, with their gamer and bill (HQ: the branch in the top bar).
  */
 export function SessionsPage() {
   const action = useAction();
-  const { inScope } = useBranchScope();
+  const { isHq, branchId, branchName, inScope, scoped } = useBranchScope();
   const stations = useStationList();
   const stationNames = useStationNames();
-  const recent = useRecentSessions();
+  const [date, setDate] = useState(localDateInput);
+  const [status, setStatus] = useState('');
+  const params = new URLSearchParams({ from: dayRange(date, 1).from, limit: String(LIST_LIMIT) });
+  if (status) params.set('status', status);
+  const sessions = useApiQuery<StaffSession[]>(scoped(`/sessions?${params}`));
+  const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // A session starting or ending changes a station's status: one reload per burst.
+  function reloadSessionsSoon() {
+    if (reloadTimer.current) clearTimeout(reloadTimer.current);
+    reloadTimer.current = setTimeout(sessions.reload, 1_000);
+  }
   const [warnings, setWarnings] = useState<{ sessionId: string; machineId: string; at: string }[]>([]);
 
   useRealtimeEvent('station_status', (e) => {
     if (!inScope(e.branchId)) return;
     stations.setData((list) => list?.map((s) => (s.serialNumber === e.serialNumber ? applyStatus(s, e) : s)));
+    reloadSessionsSoon();
   });
   useRealtimeEvent('session_runout_warning', (e) =>
     setWarnings((w) => [{ ...e, at: new Date().toISOString() }, ...w.filter((x) => x.sessionId !== e.sessionId)].slice(0, 5)),
   );
-  useOnReconnect(stations.reload);
+  useOnReconnect(() => {
+    stations.reload();
+    sessions.reload();
+  });
 
   const running = (stations.data ?? []).filter((s) => s.sessionId);
-
-  // Remember every session seen running here, to find its bill once it ends.
-  const { ids: recentIds, add: addRecent } = recent;
-  useEffect(() => {
-    for (const s of running) if (s.sessionId && !recentIds.includes(s.sessionId)) addRecent(s.sessionId);
-  }, [running, recentIds, addRecent]);
+  const rows = sessions.data ?? [];
+  const showBranch = isHq && !branchId;
 
   return (
     <>
@@ -90,11 +103,34 @@ export function SessionsPage() {
         </tbody>
       </table>
 
-      <h2>Seen at this desk</h2>
+      <h2>Sessions</h2>
+      <div className="toolbar">
+        <label htmlFor="se-date">Since</label>{' '}
+        <input id="se-date" type="date" required value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
+        <span className="sep-v" />
+        <label htmlFor="se-status">Status</label>{' '}
+        <select id="se-status" value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="">All but cancelled</option>
+          {LIST_STATUSES.map((st) => (
+            <option key={st} value={st}>
+              {SESSION_STATUS_TEXT[st]}
+            </option>
+          ))}
+        </select>
+        <span className="sep-v" />
+        <button type="button" className="secondary" onClick={sessions.reload}>
+          Reload
+        </button>
+        {sessions.loading && <span className="muted"> loading…</span>}
+      </div>
+      <ErrorBox error={sessions.error} />
       <table className="grid">
         <thead>
           <tr>
-            <th>Session</th>
+            <th>Started</th>
+            <th>Station</th>
+            {showBranch && <th>Branch</th>}
+            <th>Gamer</th>
             <th>Status</th>
             <th>Played</th>
             <th>Bill</th>
@@ -102,25 +138,20 @@ export function SessionsPage() {
           </tr>
         </thead>
         <tbody>
-          {recent.ids.map((id) => (
-            <RecentRow key={id} id={id} />
+          {rows.map((s) => (
+            <SessionRow key={s.id} session={s} branch={showBranch ? branchName(s.station.branchId) : null} />
           ))}
-          {recent.ids.length === 0 && (
+          {!sessions.loading && rows.length === 0 && (
             <tr>
-              <td colSpan={5} className="muted">
-                Nothing yet.
+              <td colSpan={showBranch ? 8 : 7} className="muted">
+                No session since that day.
               </td>
             </tr>
           )}
         </tbody>
       </table>
-      {recent.ids.length > 0 && (
-        <p>
-          <button type="button" className="secondary" onClick={recent.clear}>
-            Clear this list
-          </button>
-        </p>
-      )}
+      {rows.length === LIST_LIMIT && <p className="muted">Showing the newest {LIST_LIMIT}: pick a later day to see fewer.</p>}
+      <p className="muted">Bookings nobody has logged into yet are on the Bookings page.</p>
     </>
   );
 }
@@ -172,19 +203,31 @@ function RunningRow({ station, action }: { station: Station; action: ReturnType<
   );
 }
 
-function RecentRow({ id }: { id: string }) {
-  const session = useApiQuery<Session>(`/sessions/${id}`);
-  const s = session.data;
+function SessionRow({ session: s, branch }: { session: StaffSession; branch: string | null }) {
+  const open = isOpenSession(s.status);
   return (
     <tr>
+      <td>{formatDateTime(s.startTime)}</td>
       <td>
-        <code>{id.slice(0, 8)}</code>
+        <Link to={`/stations/${s.station.id}`}>{s.station.name ?? s.station.serialNumber}</Link>
       </td>
-      <td>{s ? SESSION_STATUS_TEXT[s.status] : session.error ? <span className="status-bad">not found</span> : '…'}</td>
-      <td>{s ? formatDuration(s.meteredSeconds) : '—'}</td>
-      <td>{s?.billingBreakdown ? <b>{formatMillimes(s.billingBreakdown.totalCents)}</b> : <span className="muted">not billed yet</span>}</td>
+      {branch !== null && <td>{branch}</td>}
       <td>
-        <Link to={`/sessions/${id}`}>Details »</Link>
+        <b>{s.gamerUsername}</b>
+      </td>
+      <td className={open ? 'status-ok' : ''}>{SESSION_STATUS_TEXT[s.status]}</td>
+      <td>{open ? <span className="muted">running</span> : formatDuration(s.meteredSeconds)}</td>
+      <td>
+        {s.billingBreakdown ? (
+          <b>{formatMillimes(s.billingBreakdown.totalCents)}</b>
+        ) : s.costSoFarCents != null ? (
+          <span className="muted">{formatMillimes(s.costSoFarCents)} so far</span>
+        ) : (
+          <span className="muted">not billed yet</span>
+        )}
+      </td>
+      <td>
+        <Link to={`/sessions/${s.id}`}>Details »</Link>
       </td>
     </tr>
   );

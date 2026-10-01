@@ -581,6 +581,14 @@ export interface Session {
   createdAt: string;
 }
 
+/** GET /sessions (staff): sessions a gamer logged into, newest first, with station and gamer. */
+export interface StaffSession extends Session {
+  station: { id: string; name: string | null; serialNumber: string; branchId: string };
+  gamerUsername: string;
+  /** Millimes, while the session is open; null once it is closed (see billingBreakdown). */
+  costSoFarCents: number | null;
+}
+
 /** POST /sessions answer: the session plus the one-time PIN the gamer types on the lock screen. */
 export interface StartedSession extends Session {
   pin: string;

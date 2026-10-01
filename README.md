@@ -45,7 +45,7 @@ Every screen reads and writes the real backend. Where the backend has no endpoin
 | Alerts | `/api/v1/alerts…`, `alert`, `alert_resolved` | |
 | Games | `/api/v1/games…`, `catalog_status` | |
 | New stations (enrollment) | `/machines…` | Polled every 15 s (no event for a new request) |
-| Sessions | `GET /sessions/:id`, `POST /sessions/:id/end`, `session_runout_warning` | Gamers start their own sessions (PIN in the app). "Running now" = stations reporting a session |
+| Sessions | `GET /sessions`, `GET /sessions/:id`, `POST /sessions/:id/end`, `session_runout_warning` | Gamers start their own sessions (PIN in the app). "Running now" = stations reporting a session (live). Below, the sessions played since a day, by status, with gamer and bill (HQ: the branch in the top bar); reloaded when a station's status changes |
 | Session and bill | `GET /sessions/:id` | Read again every 5 s until the bill is settled |
 | Bookings | `GET /api/v1/reservations`, `DELETE /api/v1/reservations/:id` | Who booked which station, for one day or 7 days, by status (HQ: the branch in the top bar). **Cancel** a booking nobody plays on yet (its PIN stops working). Polled every 30 s (no event for a new booking) |
 | Wallet (desk) | `GET /gamers?q=`, `/wallets/:gamerProfileId…` | Find the gamer by **username** (an exact name opens at once, else pick from the matches; recent gamers are remembered per browser); idempotent top-up and refund (refund: branch admin and HQ) |
@@ -89,7 +89,7 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 
 - **Plan purchases debit 10× too little** (`plan.price × 100` instead of `× 1000` millimes): buying Pro (15 DT) takes 1.500 DT. Backend fix needed.
 - **Booking needs the PC online now**, even for a slot tomorrow (`MACHINE_UNAVAILABLE`).
-- No session list or live session event: the workarounds above cover them. Details: `../Frontend Implementation Plan.md` §6.
+- No live session event: the Sessions list reloads on station status changes instead. Details: `../Frontend Implementation Plan.md` §6.
 
 **Adding a real PC:** on **New stations**, pick its branch and generate an enrollment token; on the PC run `BaronDeskAgent.ServiceCore.exe --set-enrollment-token` (admin PowerShell), paste the token and start the agent; approve its request when it shows up. The backend team's manual route is in `back-end/docs/STATION_PHYSICAL_TEST.md` §0 and `back-end/docs/STATION_AGENT.md` §11.
 
