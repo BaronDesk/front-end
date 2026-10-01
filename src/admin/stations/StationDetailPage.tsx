@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router';
+
+import { api } from '../../api/http';
 
 import type {
   Alert,
@@ -12,10 +14,13 @@ import type {
   TelemetryHistoryRow,
   TelemetrySnapshot,
 } from '../../api/types';
+import { useAuth } from '../../auth/AuthContext';
+import { hasRole } from '../../auth/roles';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { CopyButton } from '../../shared/CopyButton';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { formatAgo, formatClock, formatDateTime, formatDuration, secondsSince, useNow } from '../../shared/format';
+import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
 import { ALERTS_PATH, alertDetail, isSevere, repeatText, typeLabel } from '../alerts/labels';
@@ -55,7 +60,11 @@ export function StationDetailPage() {
   const sessionId = station.data?.sessionId ?? null;
   const session = useApiQuery<Session>(sessionId ? `/sessions/${sessionId}` : null);
   const [runoutWarned, setRunoutWarned] = useState<string | null>(null);
-  const { isHq, branchName } = useBranchScope();
+  const { isHq, branchName, reloadMachines } = useBranchScope();
+  const { user } = useAuth();
+  const canRename = hasRole(user, 'MANAGER');
+  const renaming = useAction();
+  const [newName, setNewName] = useState<string | null>(null);
 
   const [hours, setHours] = useState(6);
   // One sample a minute from the database, oldest first; live readings are added on this page.
@@ -112,6 +121,21 @@ export function StationDetailPage() {
     }
   }
 
+  // PATCH /api/v1/stations/:id (branch admin and up): the agent's own name no longer overrides it.
+  async function rename(e: FormEvent) {
+    e.preventDefault();
+    if (newName === null) return;
+    const updated = await renaming.run(
+      'rename',
+      () => api<StationDetail>('PATCH', `${STATIONS_PATH}/${id}`, { name: newName.trim() }),
+      (x) => `Station renamed to ${stationLabel(x)}.`,
+    );
+    if (!updated) return;
+    station.setData(() => updated);
+    setNewName(null);
+    reloadMachines();
+  }
+
   const s = station.data;
   if (station.error && !s) {
     return (
@@ -144,9 +168,49 @@ export function StationDetailPage() {
       </p>
       <h1>Station {name}</h1>
       <ErrorBox error={actionError} />
+      <ActionMessages action={renaming} />
 
       <table className="kv">
         <tbody>
+          <tr>
+            <th>Name</th>
+            <td>
+              {newName === null ? (
+                <>
+                  <b>{name}</b>{' '}
+                  {canRename && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => {
+                        renaming.clear();
+                        setNewName(s.name ?? '');
+                      }}
+                    >
+                      Rename
+                    </button>
+                  )}
+                </>
+              ) : (
+                <form onSubmit={rename} style={{ display: 'inline' }}>
+                  <input
+                    aria-label="New station name"
+                    required
+                    maxLength={64}
+                    autoFocus
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                  />{' '}
+                  <button type="submit" disabled={renaming.busy === 'rename' || !newName.trim()}>
+                    Save
+                  </button>{' '}
+                  <button type="button" className="secondary" onClick={() => setNewName(null)}>
+                    Cancel
+                  </button>
+                </form>
+              )}
+            </td>
+          </tr>
           <tr>
             <th>Status</th>
             <td className={online ? 'status-ok' : 'status-bad'}>
