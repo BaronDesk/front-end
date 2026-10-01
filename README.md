@@ -40,7 +40,7 @@ Every screen reads and writes the real backend. Where the backend has no endpoin
 |---|---|---|
 | Login, access control | `/auth/*` | |
 | HQ overview, branch dropdown | `GET/POST/PATCH /branches`, `/machines`, `/api/v1/stations`, `/api/v1/alerts` | Real branch names; HQ creates and edits branches (name, location) on the overview. The counts are computed |
-| Stations, station detail, telemetry | `/api/v1/stations…` joined with `/machines` | Only enrolled PCs, each with its branch. The detail page has the **booking link** for gamers |
+| Stations, station detail, telemetry | `/api/v1/stations…` joined with `/machines`, `peripheral_status` | Only enrolled PCs, each with its branch. The detail page has the **booking link** for gamers and the **peripherals** the station watches (disconnected first, live) |
 | Remote commands | `/api/v1/stations/:id/commands`, `command_update` | |
 | Alerts | `/api/v1/alerts…`, `alert`, `alert_resolved` | |
 | Games | `/api/v1/games…`, `catalog_status` | |
@@ -105,7 +105,7 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 - After login the admin app connects to `/dashboard-io` (Socket.IO, token in `auth`). The top bar shows **LIVE**, **CONNECTING** or **OFFLINE**.
 - When the connection drops, a red bar says so and Socket.IO retries on its own. If the server refuses the token, the app refreshes it once and retries (then every 10 s).
 - Screens use `useRealtimeEvent('station_status', …)` to react to events and `useOnReconnect(refetch)` to reload their data after a reconnect.
-- Events the backend sends: `station_status`, `telemetry_update`, `command_update`, `alert`, `alert_resolved`, `catalog_status`, `session_runout_warning`. There is no session or wallet event: those pages re-read the server every few seconds.
+- Events the backend sends: `station_status`, `telemetry_update`, `command_update`, `alert`, `alert_resolved`, `catalog_status`, `session_runout_warning`, `peripheral_status`. There is no session or wallet event: those pages re-read the server every few seconds.
 
 ## HQ (multi-branch)
 
@@ -120,7 +120,7 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 ```sh
 npm run build      # typecheck + vite build → dist/
 npm run typecheck
-npm test           # unit tests (money, branches, bookings, plan and ledger wording, Users page permissions, wallet search, booking dates)
+npm test           # unit tests (money, branches, bookings, plan and ledger wording, Users page permissions, wallet search, booking dates, peripherals)
 ```
 
 ## Layout

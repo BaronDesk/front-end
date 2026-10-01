@@ -1,4 +1,4 @@
-import type { Station, StationStatusEvent } from '../../api/types';
+import type { Peripheral, Station, StationStatusEvent } from '../../api/types';
 
 export const STATIONS_PATH = '/api/v1/stations';
 
@@ -39,4 +39,14 @@ export function applyStatus<T extends Station>(s: T, e: StationStatusEvent): T {
 export function bookingLink(s: Pick<Station, 'id' | 'name' | 'serialNumber'>): string {
   const params = new URLSearchParams({ station: s.id, name: stationLabel(s) });
   return `${window.location.origin}/portal/#/book?${params}`;
+}
+
+/** A watched device's label: its name, else the raw device id. */
+export function peripheralName(p: Peripheral): string {
+  return p.name?.trim() || p.deviceId;
+}
+
+/** Disconnected devices first (what the desk must look at), then by name. */
+export function sortPeripherals(list: Peripheral[]): Peripheral[] {
+  return [...list].sort((a, b) => Number(a.connected) - Number(b.connected) || peripheralName(a).localeCompare(peripheralName(b)));
 }

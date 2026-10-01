@@ -11,7 +11,7 @@ import { useBranchScope } from '../branch/BranchContext';
 import { ALERTS_PATH, alertDetail, isSevere, repeatText, typeLabel } from '../alerts/labels';
 import { applyCatalogStatus } from '../games/games';
 import { SESSION_STATUS_TEXT } from '../sessions/labels';
-import { applyStatus, bookingLink, isOnline, screenText, stationLabel, STATIONS_PATH } from './station';
+import { applyStatus, bookingLink, isOnline, peripheralName, screenText, sortPeripherals, stationLabel, STATIONS_PATH } from './station';
 import { describeMetric, formatMetric, isHot, sortedMetrics } from './telemetry';
 import { COMMAND_LABEL, isOpen, useCommands } from './useCommands';
 
@@ -81,6 +81,10 @@ export function StationDetailPage() {
   useRealtimeEvent('catalog_status', (e) => e.machineId === id && games.setData((list) => applyCatalogStatus(list, e)));
   useRealtimeEvent('alert_resolved', upsertAlert);
   useRealtimeEvent('session_runout_warning', (e) => e.machineId === id && setRunoutWarned(e.sessionId));
+  useRealtimeEvent('peripheral_status', (e) => {
+    if (e.machineId !== id) return;
+    station.setData((st) => st && { ...st, peripherals: e.peripherals, peripheralsReportedAt: e.reportedAt });
+  });
   useOnReconnect(() => {
     station.reload();
     snapshot.reload();
@@ -270,6 +274,34 @@ export function StationDetailPage() {
                 </tr>
               );
             })}
+          </tbody>
+        </table>
+      )}
+
+      <h2>Peripherals {s.peripheralsReportedAt && <span className="muted">(reported {formatAgo(s.peripheralsReportedAt, now)})</span>}</h2>
+      {s.peripherals === null ? (
+        <p className="muted">This station hasn&apos;t reported its peripherals yet.</p>
+      ) : s.peripherals.length === 0 ? (
+        <p className="muted">No watched peripheral on this station.</p>
+      ) : (
+        <table className="grid" style={{ width: 'auto' }}>
+          <thead>
+            <tr>
+              <th>Device</th>
+              <th>Vendor / product</th>
+              <th>State</th>
+              <th>Since</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortPeripherals(s.peripherals).map((p) => (
+              <tr key={p.deviceId}>
+                <td title={p.deviceId}>{peripheralName(p)}</td>
+                <td>{p.vendorProductId ? <code>{p.vendorProductId}</code> : <span className="muted">—</span>}</td>
+                <td className={p.connected ? 'status-ok' : 'status-bad'}>{p.connected ? 'Connected' : 'Disconnected'}</td>
+                <td>{p.changedAt ? formatDateTime(p.changedAt) : <span className="muted">—</span>}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       )}
