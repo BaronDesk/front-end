@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react';
 
 import { api } from '../../api/http';
-import type { Branch, LoginResponse, PublicUser } from '../../api/types';
+import type { Branch, PublicUser } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
-import { saveTokens } from '../../auth/tokens';
+import { ChangePasswordForm } from '../../shared/ChangePasswordForm';
 import { ErrorBox } from '../../shared/ErrorBox';
 import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
@@ -15,7 +15,6 @@ export function SettingsPage() {
   const branches = useApiQuery<Branch[]>('/branches');
   const action = useAction();
   const [branchId, setBranchId] = useState(user?.homeBranchId ?? '');
-  const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '' });
 
   async function saveBranch(e: FormEvent) {
     e.preventDefault();
@@ -26,19 +25,6 @@ export function SettingsPage() {
       `You now play at ${name}: booking shows its stations.`,
     );
     if (updated) updateUser(updated);
-  }
-
-  async function changePassword(e: FormEvent) {
-    e.preventDefault();
-    const tokens = await action.run(
-      'password',
-      () => api<LoginResponse>('POST', '/auth/change-password', passwords),
-      'Password changed. You were logged out everywhere else.',
-    );
-    if (tokens) {
-      saveTokens(tokens);
-      setPasswords({ currentPassword: '', newPassword: '' });
-    }
   }
 
   return (
@@ -63,40 +49,7 @@ export function SettingsPage() {
         </fieldset>
       </form>
 
-      <form onSubmit={changePassword}>
-        <fieldset>
-          <legend>Password</legend>
-          <div className="form-row">
-            <label htmlFor="st-current">Current password</label>
-            <input
-              id="st-current"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={passwords.currentPassword}
-              onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
-            />
-          </div>
-          <div className="form-row">
-            <label htmlFor="st-new">New password</label>
-            <input
-              id="st-new"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={8}
-              value={passwords.newPassword}
-              onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
-            />
-          </div>
-          <div className="form-row">
-            <label />
-            <button type="submit" disabled={action.busy === 'password'}>
-              Change password
-            </button>
-          </div>
-        </fieldset>
-      </form>
+      <ChangePasswordForm />
     </>
   );
 }

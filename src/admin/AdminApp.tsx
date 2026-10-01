@@ -12,6 +12,7 @@ import { GamesPage } from './games/GamesPage';
 import { HqPage } from './hq/HqPage';
 import { ADMIN_MENU } from './menu';
 import { AccessDenied } from './pages/AccessDenied';
+import { AccountPage } from './pages/AccountPage';
 import { PlansPage } from './plans/PlansPage';
 import { SessionBillPage } from './sessions/SessionBillPage';
 import { SessionsPage } from './sessions/SessionsPage';
@@ -78,6 +79,7 @@ export function AdminApp() {
                 })}
                 <Route path="/stations/:id" element={<StationDetailPage />} />
                 <Route path="/sessions/:id" element={<SessionBillPage />} />
+                <Route path="/account" element={<AccountPage />} />
                 <Route path="/denied" element={<AccessDenied />} />
                 <Route path="*" element={<NotFound />} />
               </Route>

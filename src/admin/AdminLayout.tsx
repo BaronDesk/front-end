@@ -52,6 +52,8 @@ function AdminShell() {
         <span className="sep">|</span>
         <b>{user?.username}</b> ({user && ROLE_LABEL[user.role]})
         <span className="sep">|</span>
+        <Link to="/account">Password</Link>
+        <span className="sep">|</span>
         <a
           href="#/login"
           onClick={(e) => {

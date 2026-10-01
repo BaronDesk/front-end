@@ -99,6 +99,7 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 - The access token is kept in memory; the refresh token in `sessionStorage` (one per app). A reload keeps you logged in; closing the tab logs out.
 - A `401` triggers one token refresh and a retry. If the refresh fails, the login page says the session expired.
 - The menu hides what the role can't use; opening such a page by URL shows **Access denied**. The server's `403` is still the real rule.
+- **Own password:** admin top bar → **Password** (`#/account`), portal → Settings. Both use `src/shared/ChangePasswordForm.tsx` (`POST /auth/change-password`): every other login of the account ends, this tab stays logged in with the new tokens. A lost password is reset by a branch admin or HQ on Users & Staff.
 
 ## Live updates
 
