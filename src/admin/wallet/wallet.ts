@@ -1,25 +1,50 @@
 import { useCallback, useState } from 'react';
 
-// Per-browser convenience: member codes are long, so the desk remembers the
-// ones that opened a wallet here.
-const STORAGE_KEY = 'barondesk.memberCodes';
+import type { PublicUser } from '../../api/types';
+
+/** A gamer whose wallet the desk opened: the profile id keys every wallet route. */
+export interface WalletGamer {
+  gamerProfileId: string;
+  username: string;
+}
+
+// Per-browser convenience: the desk remembers the gamers it opened a wallet for.
+const STORAGE_KEY = 'barondesk.recentGamers';
 const MAX = 10;
 
-function read(): string[] {
+/** `gamer` first, without a duplicate, at most `max` long. */
+export function addRecent(list: WalletGamer[], gamer: WalletGamer, max = MAX): WalletGamer[] {
+  return [gamer, ...list.filter((g) => g.gamerProfileId !== gamer.gamerProfileId)].slice(0, max);
+}
+
+/** GET /gamers?q= results the desk can open (gamers with a profile). */
+export function toWalletGamers(users: PublicUser[]): WalletGamer[] {
+  return users.flatMap((u) => (u.gamerProfileId ? [{ gamerProfileId: u.gamerProfileId, username: u.username }] : []));
+}
+
+/** The one gamer whose username is exactly `q` (any case), else null: the desk then picks from the list. */
+export function exactMatch(gamers: WalletGamer[], q: string): WalletGamer | null {
+  const wanted = q.trim().toLowerCase();
+  return gamers.find((g) => g.username.toLowerCase() === wanted) ?? null;
+}
+
+function read(): WalletGamer[] {
   try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
-    return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : [];
+    const raw: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(
+      (x): x is WalletGamer => typeof x === 'object' && x !== null && typeof x.gamerProfileId === 'string' && typeof x.username === 'string',
+    );
   } catch {
     return [];
   }
 }
 
-export function useRecentMemberCodes() {
-  const [codes, setCodes] = useState<string[]>(read);
-  const add = useCallback((code: string) => {
-    setCodes((list) => {
-      if (list.includes(code)) return list;
-      const next = [code, ...list].slice(0, MAX);
+export function useRecentGamers() {
+  const [gamers, setGamers] = useState<WalletGamer[]>(read);
+  const add = useCallback((gamer: WalletGamer) => {
+    setGamers((list) => {
+      const next = addRecent(list, gamer);
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       } catch {
@@ -28,5 +53,5 @@ export function useRecentMemberCodes() {
       return next;
     });
   }, []);
-  return { codes, add };
+  return { gamers, add };
 }

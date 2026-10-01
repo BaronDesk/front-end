@@ -10,7 +10,7 @@ import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
 
 /**
- * My profile & plans (brief §6.9): the member code, the active membership
+ * My profile & plans (brief §6.9): the active membership
  * and passes, and buying one with the wallet (the purchase is idempotent).
  */
 export function ProfilePage() {

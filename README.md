@@ -47,23 +47,23 @@ Every screen reads and writes the real backend. Where the backend has no endpoin
 | New stations (enrollment) | `/machines…` | Polled every 15 s (no event for a new request) |
 | Sessions | `GET /sessions/:id`, `POST /sessions/:id/end`, `session_runout_warning` | Gamers start their own sessions (PIN in the app). "Running now" = stations reporting a session |
 | Session and bill | `GET /sessions/:id` | Read again every 5 s until the bill is settled |
-| Wallet (desk) | `/wallets/:gamerProfileId…` | Opened with the gamer's **member code**; idempotent top-up and refund (refund: branch admin and HQ) |
+| Wallet (desk) | `GET /gamers?q=`, `/wallets/:gamerProfileId…` | Find the gamer by **username** (an exact name opens at once, else pick from the matches; recent gamers are remembered per browser); idempotent top-up and refund (refund: branch admin and HQ) |
 | Users & Staff | `GET /users`, `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `PATCH /users/:id/status`, `POST /users/:id/password` | List and search by username and role (HQ: everyone, or the branch picked in the top bar; a branch admin: gamers and their own staff). A new gamer needs a home branch. Suspend / Reactivate and Reset password show only where the server allows them (`src/admin/users/permissions.ts`) |
 | Plans & prices | `/branches/:id/pricing`, `/membership-plans`, `/subscription-plans` | Create, edit, delete tiers and passes |
 | Portal: book, play now, my bookings | `/reservations`, `/reservations/walk-in`, `/reservations/:id/check-in` | Gamers can't list stations: the station comes from the desk's booking link or an earlier booking. Play now answers with the **PIN**; a booking gets it with *Get PIN* from 15 min before |
 | Portal: my session | `/reservations`, `/wallets/me…`, `session_runout_warning` | |
-| Portal: wallet | `/wallets/me…` | No self top-up on the backend: shows the member code for the desk |
+| Portal: wallet | `/wallets/me…` | No self top-up on the backend: shows the username to give the desk |
 | Portal: profile & plans | `/memberships/me`, `/subscriptions/me`, `…/purchase` | Paid from the wallet, idempotent |
 
 **Money:** the backend stores every amount as integer **millimes** (1 DT = 1000); plan prices are the exception (decimal dinars). Screens convert with `formatMillimes` / `dinarsToMillimes` in `src/shared/format.ts` and show the server's numbers only.
 
 ### The desk and the gamer app
 
-The backend links a gamer and the desk through one code, shown with a **Copy** button:
+The desk finds a gamer by **username**:
 
-| Code | Where the gamer finds it | What the desk does with it |
+| What | Where the gamer finds it | What the desk does with it |
 |---|---|---|
-| Member code (the gamer's profile id) | App → My profile, My wallet | Wallet → Open wallet → top up, refund |
+| Username | App → Wallet ("give them your username") | Wallet → Find → top up, refund |
 
 And one the other way: each station's **booking link** (Stations → a station → Copy the gamers' booking link; print it as a QR code on the PC) opens the app's booking page for that PC. The session PIN never goes through the desk: the gamer gets it in the app (Play now, or *Get PIN* on a booking) and types it on the PC's lock screen.
 
@@ -78,7 +78,7 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 | F3 | Session & Financial Control | Gamer books or picks Play now (app) → gets the PIN in the app → types it on the lock screen → the PC unlocks. Sessions → End & bill → the bill; the wallet shows the play-time charge. Low balance: the runout warning, then the PC locks |
 | F4 | Remote Administration | Station detail → Lock / Unlock / Shut down; the command log goes PENDING → SENT → ACKED |
 | F5 | Telemetry & Anti-Theft | Station detail → live temperatures, load, fans; unplug a USB mouse → red alert banner → Resolve |
-| F6 | Electronic Wallet | Wallet → member code → top up (double click: one credit) → history; refund a line (branch admin) |
+| F6 | Electronic Wallet | Wallet → gamer username → Find → top up (double click: one credit) → history; refund a line (branch admin) |
 | F7 | Subscription & Membership | Plans → tiers and passes; the gamer buys Pro in the app → My profile shows it; the session rate includes the discount |
 | F8 | Advance Reservation | App → Book for later / Play now; the same slot twice → refused (`RESERVATION_SLOT_TAKEN`); cancel before it starts |
 | F9 | Multi-Agency | HQ overview: both branches; pick one in the top bar and lock a PC there; a branch admin sees only theirs |

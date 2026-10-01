@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-/** "Copy" next to a code the user must pass on (member code, booking code, link). */
+/** "Copy" next to a code the user must pass on (PIN, booking link). */
 export function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) {
   const [done, setDone] = useState(false);
 

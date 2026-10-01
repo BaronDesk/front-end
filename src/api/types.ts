@@ -404,7 +404,7 @@ export type TransactionType = 'PAYMENT' | 'REFUND' | 'ADJUSTMENT' | 'CREDIT' | '
 /** GET /wallets/me, GET /wallets/:gamerProfileId (wallet/util/public-wallet.ts). */
 export interface Wallet {
   id: string;
-  /** The gamer's profile id: what every staff wallet route takes (the "member code"). */
+  /** The gamer's profile id: what every staff wallet route takes (the desk finds it with GET /gamers?q=). */
   gamerProfileId: string;
   /** Millimes. */
   balance: number;

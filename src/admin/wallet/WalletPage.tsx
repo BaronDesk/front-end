@@ -1,7 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 
 import { api, newIdempotencyKey } from '../../api/http';
-import type { Wallet, WalletEntry, WalletMovement } from '../../api/types';
+import type { PublicUser, Wallet, WalletEntry, WalletMovement } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { hasRole } from '../../auth/roles';
 import { useOnReconnect } from '../../realtime/RealtimeContext';
@@ -10,23 +10,26 @@ import { dinarsToMillimes, formatDateTime, formatMillimes, formatSignedMillimes 
 import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { entryText } from '../../shared/wallet';
-import { useRecentMemberCodes } from './wallet';
+import { useBranchScope } from '../branch/BranchContext';
+import { exactMatch, toWalletGamers, useRecentGamers, type WalletGamer } from './wallet';
 
 const QUICK_DINARS = ['5', '10', '20', '50'];
 
 /**
- * Electronic Wallet at the desk (brief §6.7). The backend keys every staff
- * wallet route by the gamer's profile id and has no gamer list, so the desk
- * opens a wallet with the gamer's member code (shown in their app, under
- * My profile). Top-ups and refunds are idempotent: a double click never
- * credits twice.
+ * Electronic Wallet at the desk (brief §6.7). The desk finds the gamer by
+ * username (GET /gamers?q=, the name shown in their app); every wallet route
+ * is then keyed by the gamer's profile id. Top-ups and refunds are
+ * idempotent: a double click never credits twice.
  */
 export function WalletPage() {
   const { user } = useAuth();
   const canRefund = hasRole(user, 'MANAGER');
-  const recent = useRecentMemberCodes();
+  const { branchName } = useBranchScope();
+  const recent = useRecentGamers();
   const [input, setInput] = useState('');
-  const [code, setCode] = useState('');
+  const [results, setResults] = useState<PublicUser[] | null>(null);
+  const [picked, setPicked] = useState<WalletGamer | null>(null);
+  const code = picked?.gamerProfileId ?? '';
   const wallet = useApiQuery<Wallet>(code ? `/wallets/${code}` : null);
   const entries = useApiQuery<WalletEntry[]>(code ? `/wallets/${code}/entries?take=50` : null);
   const action = useAction();
@@ -39,21 +42,25 @@ export function WalletPage() {
   }
   useOnReconnect(reload);
 
-  function open(e?: FormEvent, value = input) {
-    e?.preventDefault();
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    setCode(trimmed);
-    setInput(trimmed);
+  function open(gamer: WalletGamer) {
+    setPicked(gamer);
+    setResults(null);
+    recent.add(gamer);
     action.clear();
   }
 
-  // Remember a code once it opened a real wallet.
-  const openedId = wallet.data?.gamerProfileId;
-  const { add } = recent;
-  useEffect(() => {
-    if (openedId) add(openedId);
-  }, [openedId, add]);
+  // An exact username opens the wallet at once; otherwise the desk picks from the matches.
+  async function search(e: FormEvent) {
+    e.preventDefault();
+    const q = input.trim();
+    if (!q) return;
+    const users = await action.run('search', () => api<PublicUser[]>('GET', `/gamers?q=${encodeURIComponent(q)}`));
+    if (!users) return;
+    const gamers = users.filter((u) => u.gamerProfileId);
+    const exact = exactMatch(toWalletGamers(gamers), q);
+    if (exact) open(exact);
+    else setResults(gamers);
+  }
 
   async function topup(e: FormEvent) {
     e.preventDefault();
@@ -95,19 +102,28 @@ export function WalletPage() {
       <h1>Wallet</h1>
       <ActionMessages action={action} />
 
-      <form className="toolbar" onSubmit={open}>
-        <label htmlFor="w-code">Member code</label>{' '}
-        <input id="w-code" size={40} placeholder="from the gamer's app, My profile" value={input} onChange={(e) => setInput(e.target.value)} />{' '}
-        <button type="submit">Open wallet</button>
-        {recent.codes.length > 0 && (
+      <form className="toolbar" onSubmit={search}>
+        <label htmlFor="w-user">Gamer username</label>{' '}
+        <input id="w-user" size={24} placeholder="as shown in their app" value={input} onChange={(e) => setInput(e.target.value)} />{' '}
+        <button type="submit" disabled={action.busy === 'search'}>
+          Find
+        </button>
+        {recent.gamers.length > 0 && (
           <>
             <span className="sep-v" />
             <label htmlFor="w-recent">Recent</label>{' '}
-            <select id="w-recent" value="" onChange={(e) => e.target.value && open(undefined, e.target.value)}>
+            <select
+              id="w-recent"
+              value=""
+              onChange={(e) => {
+                const g = recent.gamers.find((x) => x.gamerProfileId === e.target.value);
+                if (g) open(g);
+              }}
+            >
               <option value="">— opened before —</option>
-              {recent.codes.map((c) => (
-                <option key={c} value={c}>
-                  {c.slice(0, 8)}…
+              {recent.gamers.map((g) => (
+                <option key={g.gamerProfileId} value={g.gamerProfileId}>
+                  {g.username}
                 </option>
               ))}
             </select>
@@ -115,7 +131,42 @@ export function WalletPage() {
         )}
       </form>
 
-      {!code && <p className="muted">Ask the gamer for their member code: it is in their app under My profile.</p>}
+      {results && (
+        <table className="grid">
+          <thead>
+            <tr>
+              <th>Gamer</th>
+              <th>Home branch</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {results.map((u) => (
+              <tr key={u.id}>
+                <td>
+                  <b>{u.username}</b>
+                  {u.accountStatus !== 'ACTIVE' && <span className="status-bad"> ({u.accountStatus.toLowerCase()})</span>}
+                </td>
+                <td>{u.homeBranchId ? branchName(u.homeBranchId) : <span className="muted">—</span>}</td>
+                <td>
+                  <button type="button" onClick={() => open({ gamerProfileId: u.gamerProfileId!, username: u.username })}>
+                    Open wallet
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {results.length === 0 && (
+              <tr>
+                <td colSpan={3} className="muted">
+                  No gamer matches “{input.trim()}”.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      )}
+
+      {!code && !results && <p className="muted">Ask the gamer for their username: it is shown in their app, under Wallet.</p>}
       {code && <ErrorBox error={wallet.error ?? entries.error} />}
 
       {wallet.data && (
@@ -123,7 +174,7 @@ export function WalletPage() {
           <div className="big-figure">
             Balance
             <b className={wallet.data.balance <= 0 ? 'status-bad' : ''}>{formatMillimes(wallet.data.balance)}</b>
-            <span className="muted">member {wallet.data.gamerProfileId.slice(0, 8)}…</span>
+            <span className="muted">{picked?.username}</span>
           </div>
 
           <form onSubmit={topup}>
