@@ -1,3 +1,5 @@
+import type { TelemetryHistoryRow } from '../../api/types';
+
 /*
  * Labels for the agent's telemetry metric names (Desktop-Agent
  * HardwareTelemetryMapper). One place to change when the agent adds metrics.
@@ -52,4 +54,43 @@ export function formatMetric(metric: string, value: number): string {
   const { unit } = describeMetric(metric);
   const digits = unit === 'rpm' || unit === 'MB' ? 0 : 1;
   return `${value.toFixed(digits)} ${unit}`.trim();
+}
+
+/** Min / average / max of one metric over the history. */
+export interface MetricSummary {
+  min: number;
+  avg: number;
+  max: number;
+  samples: number;
+}
+
+/** Per metric, over every row that has it (GET …/telemetry/history plus live readings). */
+export function summarize(rows: TelemetryHistoryRow[]): Map<string, MetricSummary> {
+  const acc = new Map<string, { min: number; max: number; sum: number; samples: number }>();
+  for (const row of rows) {
+    for (const [metric, value] of Object.entries(row.metrics)) {
+      if (!Number.isFinite(value)) continue;
+      const a = acc.get(metric);
+      if (a) {
+        a.min = Math.min(a.min, value);
+        a.max = Math.max(a.max, value);
+        a.sum += value;
+        a.samples += 1;
+      } else {
+        acc.set(metric, { min: value, max: value, sum: value, samples: 1 });
+      }
+    }
+  }
+  return new Map([...acc].map(([metric, a]) => [metric, { min: a.min, avg: a.sum / a.samples, max: a.max, samples: a.samples }]));
+}
+
+/** The server keeps one sample a minute: a live reading joins the history only as often, so it doesn't skew the average. */
+const SAMPLE_MS = 60_000;
+
+/** Adds a live reading (at most one a minute) and drops rows older than `cutoff` (ms). */
+export function appendReading(rows: TelemetryHistoryRow[], reading: TelemetryHistoryRow, cutoff: number): TelemetryHistoryRow[] {
+  const kept = rows.filter((r) => Date.parse(r.recordedAt) >= cutoff);
+  const last = kept.at(-1);
+  if (last && Date.parse(reading.recordedAt) - Date.parse(last.recordedAt) < SAMPLE_MS) return kept;
+  return [...kept, reading];
 }

@@ -40,7 +40,7 @@ Every screen reads and writes the real backend. Where the backend has no endpoin
 |---|---|---|
 | Login, access control | `/auth/*` | |
 | HQ overview, branch dropdown | `GET/POST/PATCH /branches`, `/machines`, `/api/v1/stations`, `/api/v1/alerts` | Real branch names; HQ creates and edits branches (name, location) on the overview. The counts are computed |
-| Stations, station detail, telemetry | `/api/v1/stations…` joined with `/machines`, `peripheral_status` | Only enrolled PCs, each with its branch. The detail page has the **booking link** for gamers and the **peripherals** the station watches (disconnected first, live) |
+| Stations, station detail, telemetry | `/api/v1/stations…` joined with `/machines`, `peripheral_status` | Only enrolled PCs, each with its branch. The detail page has the **booking link** for gamers and the **peripherals** the station watches (disconnected first, live). Telemetry: now, plus min / avg / max over the last 1, 6, 24 or 48 hours (`…/telemetry/history`, one sample a minute; live readings join it once a minute) |
 | Remote commands | `/api/v1/stations/:id/commands`, `command_update` | |
 | Alerts | `/api/v1/alerts…`, `alert`, `alert_resolved` | |
 | Games | `/api/v1/games…`, `catalog_status` | |
@@ -120,7 +120,7 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 ```sh
 npm run build      # typecheck + vite build → dist/
 npm run typecheck
-npm test           # unit tests (money, branches, bookings, plan and ledger wording, Users page permissions, wallet search, booking dates, peripherals)
+npm test           # unit tests (money, branches, bookings, plan and ledger wording, Users page permissions, wallet search, booking dates, peripherals, telemetry history)
 ```
 
 ## Layout

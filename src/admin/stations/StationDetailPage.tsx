@@ -1,7 +1,17 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 
-import type { Alert, Command, CommandStatus, IssueCommandBody, Session, StationDetail, StationGame, TelemetrySnapshot } from '../../api/types';
+import type {
+  Alert,
+  Command,
+  CommandStatus,
+  IssueCommandBody,
+  Session,
+  StationDetail,
+  StationGame,
+  TelemetryHistoryRow,
+  TelemetrySnapshot,
+} from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { CopyButton } from '../../shared/CopyButton';
 import { ErrorBox } from '../../shared/ErrorBox';
@@ -12,17 +22,11 @@ import { ALERTS_PATH, alertDetail, isSevere, repeatText, typeLabel } from '../al
 import { applyCatalogStatus } from '../games/games';
 import { SESSION_STATUS_TEXT } from '../sessions/labels';
 import { applyStatus, bookingLink, isOnline, peripheralName, screenText, sortPeripherals, stationLabel, STATIONS_PATH } from './station';
-import { describeMetric, formatMetric, isHot, sortedMetrics } from './telemetry';
+import { appendReading, describeMetric, formatMetric, isHot, sortedMetrics, summarize } from './telemetry';
 import { COMMAND_LABEL, isOpen, useCommands } from './useCommands';
 
-/** How much telemetry history the page keeps in memory (brief §6: no DB history call). */
-const HISTORY_MS = 5 * 60_000;
-
-/** One telemetry_update seen on this page, for the min/max columns. */
-interface Reading {
-  at: number;
-  metrics: Record<string, number>;
-}
+/** Telemetry history spans the desk can pick (the server keeps up to 48 hours). */
+const HISTORY_HOURS = [1, 6, 24, 48];
 
 const STATUS_TEXT: Record<CommandStatus, string> = {
   PENDING: 'queued…',
@@ -53,7 +57,9 @@ export function StationDetailPage() {
   const [runoutWarned, setRunoutWarned] = useState<string | null>(null);
   const { isHq, branchName } = useBranchScope();
 
-  const [history, setHistory] = useState<Reading[]>([]);
+  const [hours, setHours] = useState(6);
+  // One sample a minute from the database, oldest first; live readings are added on this page.
+  const history = useApiQuery<TelemetryHistoryRow[]>(`${STATIONS_PATH}/${id}/telemetry/history?hours=${hours}`);
   const [gameId, setGameId] = useState('');
   const [actionError, setActionError] = useState<unknown>(null);
 
@@ -69,9 +75,8 @@ export function StationDetailPage() {
   useRealtimeEvent('telemetry_update', (e) => {
     if (e.machineId !== id) return;
     snapshot.setData(() => e);
-    const at = Date.parse(e.timestamp) || Date.now();
-    const cutoff = Date.now() - HISTORY_MS;
-    setHistory((h) => [...h.filter((x) => x.at >= cutoff), { at, metrics: e.metrics }]);
+    const reading = { recordedAt: e.timestamp || new Date().toISOString(), metrics: e.metrics };
+    history.setData((rows) => rows && appendReading(rows, reading, Date.now() - hours * 3_600_000));
   });
   const upsertAlert = (e: Alert) => {
     if (e.machineId !== id) return;
@@ -88,6 +93,7 @@ export function StationDetailPage() {
   useOnReconnect(() => {
     station.reload();
     snapshot.reload();
+    history.reload();
     log.reload();
     alerts.reload();
     games.reload();
@@ -122,11 +128,10 @@ export function StationDetailPage() {
   const busy = Boolean(waiting);
   const online = isOnline(s);
   const name = stationLabel(s);
-  const readings = online && snapshot.data ? sortedMetrics(snapshot.data.metrics) : [];
-  const range = (metric: string) => {
-    const values = history.map((x) => x.metrics[metric]).filter((v): v is number => v !== undefined);
-    return values.length ? { min: Math.min(...values), max: Math.max(...values) } : null;
-  };
+  const live = online && snapshot.data ? snapshot.data.metrics : {};
+  const summary = summarize(history.data ?? []);
+  // Every sensor that has a live value or a history; an offline station still shows its history.
+  const sensors = sortedMetrics({ ...Object.fromEntries([...summary].map(([m, x]) => [m, x.avg])), ...live }).map(([m]) => m);
   const stationAlerts = (alerts.data ?? []).filter((a) => a.machineId === id).slice(0, 10);
   // runningGameId is the wire gameId; a command's gameId is the game's row id.
   const runningName = (wire: string | null) => (wire ? (games.data?.find((g) => g.gameId === wire)?.name ?? wire) : '—');
@@ -246,12 +251,25 @@ export function StationDetailPage() {
         {waiting && <i> &nbsp; {COMMAND_LABEL[waiting.type]}… waiting for the station</i>}
       </div>
 
-      <h2>Telemetry {online && <span className="muted">(live, min/max over the last 5 minutes on this page)</span>}</h2>
-      {online && snapshot.data && (
-        <p className="muted">Last reading at {formatClock(snapshot.data.timestamp)}.</p>
-      )}
-      {readings.length === 0 ? (
-        <p className="muted">{online ? 'Waiting for the first reading…' : 'Station is offline.'}</p>
+      <h2>Telemetry</h2>
+      <div className="toolbar">
+        <label htmlFor="t-hours">Min / avg / max over the last</label>{' '}
+        <select id="t-hours" value={hours} onChange={(e) => setHours(Number(e.target.value))}>
+          {HISTORY_HOURS.map((h) => (
+            <option key={h} value={h}>
+              {h} {h === 1 ? 'hour' : 'hours'}
+            </option>
+          ))}
+        </select>
+        {history.loading && <span className="muted"> loading…</span>}
+        <span className="muted">
+          {' '}
+          &middot; {online ? (snapshot.data ? `last reading at ${formatClock(snapshot.data.timestamp)}` : 'waiting for the first reading…') : 'station is offline'}
+        </span>
+      </div>
+      <ErrorBox error={history.error} />
+      {sensors.length === 0 ? (
+        <p className="muted">{history.loading ? 'Loading…' : `No reading in the last ${hours} ${hours === 1 ? 'hour' : 'hours'}.`}</p>
       ) : (
         <table className="grid" style={{ width: 'auto' }}>
           <thead>
@@ -259,18 +277,25 @@ export function StationDetailPage() {
               <th>Sensor</th>
               <th>Now</th>
               <th>Min</th>
+              <th>Avg</th>
               <th>Max</th>
             </tr>
           </thead>
           <tbody>
-            {readings.map(([metric, value]) => {
-              const r = range(metric);
+            {sensors.map((metric) => {
+              const value = live[metric];
+              const r = summary.get(metric);
               return (
                 <tr key={metric}>
                   <td>{describeMetric(metric).label}</td>
-                  <td className={isHot(metric, value) ? 'status-bad' : 'status-ok'}>{formatMetric(metric, value)}</td>
+                  {value !== undefined ? (
+                    <td className={isHot(metric, value) ? 'status-bad' : 'status-ok'}>{formatMetric(metric, value)}</td>
+                  ) : (
+                    <td className="muted">—</td>
+                  )}
                   <td>{r ? formatMetric(metric, r.min) : '—'}</td>
-                  <td>{r ? formatMetric(metric, r.max) : '—'}</td>
+                  <td>{r ? formatMetric(metric, r.avg) : '—'}</td>
+                  <td className={r && isHot(metric, r.max) ? 'status-bad' : ''}>{r ? formatMetric(metric, r.max) : '—'}</td>
                 </tr>
               );
             })}
