@@ -128,12 +128,6 @@ Seed first (`back-end/`), start at least one real agent (Play now needs the PC O
 | F9 | Multi-Agency | HQ overview: both branches; pick one in the top bar and lock a PC there; a branch admin sees only theirs |
 | F10 | Game Catalog | Games → offer at a branch or a station → install status per PC → Launch game on a station in session |
 
-### Known Limitations
-
-- **Play now needs the PC online** (`MACHINE_UNAVAILABLE`); a booking for later doesn't.
-- The backend sends no live event for sessions, bookings or wallets: the Sessions list reloads on station status changes, Bookings every 30 s, and the portal's My session every 15 s (its notices are live).
-- A gamer can't end their own session from the PC; the desk ends it (or it ends at the booking's end).
-
 **Adding a real PC:** on **New stations**, pick its branch and generate an enrollment token; on the PC run `BaronDeskAgent.ServiceCore.exe --set-enrollment-token` (admin PowerShell), paste the token and start the agent; approve its request when it shows up. The full procedure is in the backend's `docs/STATION_PHYSICAL_TEST.md` and `docs/STATION_AGENT.md`.
 
 ## Login
