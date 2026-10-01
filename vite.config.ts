@@ -7,6 +7,7 @@ import react from '@vitejs/plugin-react';
 const BACKEND_PATHS = [
   '/auth',
   '/users',
+  '/gamers',
   '/employees',
   '/health',
   '/api',

@@ -15,9 +15,11 @@ cp .env.example .env.local   # then set VITE_BACKEND_URL
 npm run dev                  # http://localhost:5173
 ```
 
-The dev server forwards every backend path (`/auth`, `/users`, `/employees`, `/health`, `/api`, `/machines`, `/branches`, `/wallets`, `/membership-plans`, `/memberships`, `/subscription-plans`, `/subscriptions`, `/reservations`, `/sessions`, and the `/dashboard-io` socket) to `VITE_BACKEND_URL`. A new backend module needs a line in `BACKEND_PATHS` in `vite.config.ts`.
+The dev server forwards every backend path (`/auth`, `/users`, `/gamers`, `/employees`, `/health`, `/api`, `/machines`, `/branches`, `/wallets`, `/membership-plans`, `/memberships`, `/subscription-plans`, `/subscriptions`, `/reservations`, `/sessions`, and the `/dashboard-io` socket) to `VITE_BACKEND_URL`. A new backend module needs a line in `BACKEND_PATHS` in `vite.config.ts`.
 
 The backend runs on the same PC: start it in `back-end/` with `npm run docker:dev` (Nest on `http://localhost:3000`, the default `VITE_BACKEND_URL`). Restart `npm run dev` after changing `.env.local`.
+
+The screens below need the backend's flow-fix migrations: in `back-end/`, `npm run db:deploy` then `npm run db:generate` (see `back-end/docs/FLOW_FIXES.md` §0, which also lists every endpoint and error code).
 
 ## Accounts (backend seed)
 
@@ -28,13 +30,13 @@ The backend runs on the same PC: start it in `back-end/` with `npm run docker:de
 | `hq-admin` / `change-me-immediately` | ADMIN (HQ) | all | |
 | `manager.manar`, `manager.lac2` | MANAGER | CENTRE El Manar / CENTRE Lac 2 | password `password123` |
 | `employee.manar1`, `employee.manar2`, `employee.lac2.1`, `employee.lac2.2` | EMPLOYEE | El Manar / Lac 2 | password `password123` |
-| `gamer.newbie`, `gamer.regular`, `gamer.wood`, `gamer.iron`, `gamer.silver`, `gamer.gold`, `gamer.diamond`, `gamer.master`, `gamer.grandmaster`, `gamer.midswitch` | GAMER | – | password `password123`; plans and balances per the seed's header comment |
+| `gamer.newbie`, `gamer.regular`, `gamer.wood`, `gamer.iron`, `gamer.silver`, `gamer.gold`, `gamer.diamond`, `gamer.master`, `gamer.grandmaster`, `gamer.midswitch` | GAMER | none yet: the portal asks them to pick one at first login | password `password123`; plans and balances per the seed's header comment |
 
 The seed also creates 5 enrolled PCs per branch (`MNR-PC-01…05`, `LAC-PC-01…05`), prices (El Manar 4.000 DT/h, Lac 2 4.500 / 5.000 DT/h), the Pro/Elite tiers, two passes and 7 games. Seeded PCs show as online in the database but are only really online when an agent with that serial is connected.
 
 ## Screens and their endpoints
 
-Every screen reads and writes the real backend. Where the backend has no endpoint for something, the screen works around it as described in the last column.
+Every screen reads and writes the real backend. The last column says what each screen does beyond the obvious, and where it polls because the backend sends no event.
 
 | Screen | Backend | Notes |
 |---|---|---|
@@ -51,10 +53,11 @@ Every screen reads and writes the real backend. Where the backend has no endpoin
 | Wallet (desk) | `GET /gamers?q=`, `/wallets/:gamerProfileId…` | Find the gamer by **username** (an exact name opens at once, else pick from the matches; recent gamers are remembered per browser); idempotent top-up and refund (refund: branch admin and HQ) |
 | Users & Staff | `GET /users`, `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `PATCH /users/:id/status`, `POST /users/:id/password` | List and search by username and role (HQ: everyone, or the branch picked in the top bar; a branch admin: gamers and their own staff). A new gamer needs a home branch. Suspend / Reactivate and Reset password show only where the server allows them (`src/admin/users/permissions.ts`) |
 | Plans & prices | `/branches/:id/pricing`, `/membership-plans`, `/subscription-plans` | Create, edit, delete tiers and passes |
-| Portal: book, play now, my bookings | `/reservations`, `/reservations/walk-in`, `/reservations/:id/check-in` | Gamers can't list stations: the station comes from the desk's booking link or an earlier booking. Play now answers with the **PIN**; a booking gets it with *Get PIN* from 15 min before |
-| Portal: my session | `/reservations`, `/wallets/me…`, `session_runout_warning` | |
+| Portal: sign-up, settings | `GET /branches`, `POST /users`, `PATCH /users/me/branch`, `POST /auth/change-password` | Sign-up picks the **home branch**; Settings changes it and the password. A gamer with no branch (e.g. seeded) is asked to pick one after login |
+| Portal: book, play now, my bookings | `GET /branches/:id/stations`, `/reservations`, `/reservations/walk-in`, `/reservations/:id/check-in` | Lists the home branch's stations, free or busy until when; the desk's booking link (QR) preselects a PC. The wallet must cover the whole booking (`INSUFFICIENT_FUNDS`). Every booking and Play now answers with its **PIN**, shown on the booking: it works on that PC from the start for 30 minutes, then the booking is *Missed* (no-show). *New PIN* replaces it. Cancel until someone logs in |
+| Portal: my session | `GET /sessions/me/current`, `/reservations/:id/extend-options`, `POST /reservations/:id/extend`, `session_notice` | Time played, cost so far, balance, end time; re-read every 15 s, the station's notices (low balance, time left) arrive live. **Extend** by 30 / 60 / 90 minutes near the end, if the PC is free and the wallet covers it (walk-in rate) |
 | Portal: wallet | `/wallets/me…` | No self top-up on the backend: shows the username to give the desk |
-| Portal: profile & plans | `/memberships/me`, `/subscriptions/me`, `…/purchase` | Paid from the wallet, idempotent |
+| Portal: profile & plans | `/memberships/me`, `/subscriptions/me`, `…/purchase`, `POST /memberships/me/cancel` | Paid from the wallet, idempotent. A dearer tier is an **Upgrade** (pay the difference, prorated); **Cancel** ends the tier, no refund |
 
 **Money:** the backend stores every amount as integer **millimes** (1 DT = 1000); plan prices are the exception (decimal dinars). Screens convert with `formatMillimes` / `dinarsToMillimes` in `src/shared/format.ts` and show the server's numbers only.
 
@@ -66,30 +69,30 @@ The desk finds a gamer by **username**:
 |---|---|---|
 | Username | App → Wallet ("give them your username") | Wallet → Find → top up, refund |
 
-And one the other way: each station's **booking link** (Stations → a station → Copy the gamers' booking link; print it as a QR code on the PC) opens the app's booking page for that PC. The session PIN never goes through the desk: the gamer gets it in the app (Play now, or *Get PIN* on a booking) and types it on the PC's lock screen.
+And one the other way: each station's **booking link** (Stations → a station → Copy the gamers' booking link; print it as a QR code on the PC) opens the app's booking page with that PC picked. The session PIN never goes through the desk: the gamer gets it in the app with the booking (or Play now), sees it again on the booking, and types it on the PC's lock screen once the booking has started.
 
 ### Demo walkthrough (the ten Phase 1 features)
 
-Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the backend refuses bookings on an offline PC), and open the admin app and the portal side by side.
+Seed first (`back-end/`), start at least one real agent (Play now needs the PC ONLINE; a booking for later doesn't), top up the gamer at the desk, and open the admin app and the portal side by side.
 
 | # | Feature | In the apps |
 |---|---|---|
 | F1 | Secure Access & Roles | Log in as `employee.manar1`: staff menu only, **Plans** says Access denied. A wrong password is refused. Users & Staff: HQ creates a manager; `manager.manar` can only create employees of their own branch (the server refuses more with 403), suspends one of them (that login now fails with `ACCOUNT_DISABLED`), reactivates them and resets their password |
 | F2 | Node Tracking | New stations → generate an enrollment token → the agent asks to join → Approve → it turns ONLINE on Stations. Pull the cable: OFFLINE, then back |
-| F3 | Session & Financial Control | Gamer books or picks Play now (app) → the desk sees it on **Bookings** → gets the PIN in the app → types it on the lock screen → the PC unlocks. Sessions → End & bill → the bill; the wallet shows the play-time charge. Low balance: the runout warning, then the PC locks |
+| F3 | Session & Financial Control | Gamer picks Play now (app) → the PIN shows at once → the desk sees it on **Bookings** → the gamer types it on the lock screen → the PC unlocks; My session shows the cost so far. Sessions → End & bill → the bill; the wallet shows the play-time charge. Low balance: the warning (PC corner box and app), then the PC locks; Unlock at the desk then needs a top-up first |
 | F4 | Remote Administration | Station detail → Lock / Unlock / Shut down; the command log goes PENDING → SENT → ACKED. Unlock on a PC nobody plays on is refused with an explanation |
 | F5 | Telemetry & Anti-Theft | Station detail → live temperatures, load, fans; unplug a USB mouse → red alert banner → Resolve |
 | F6 | Electronic Wallet | Wallet → gamer username → Find → top up (double click: one credit) → history; refund a line (branch admin) |
-| F7 | Subscription & Membership | Plans → tiers and passes; the gamer buys Pro in the app → My profile shows it; the session rate includes the discount |
-| F8 | Advance Reservation | App → Book for later / Play now; the same slot twice → refused (`RESERVATION_SLOT_TAKEN`); cancel before it starts |
+| F7 | Subscription & Membership | Plans → tiers and passes; the gamer buys Pro in the app → My profile shows it; the session rate includes the discount. Upgrade to Elite (pays the difference), then Cancel |
+| F8 | Advance Reservation | App → Book for later / Play now; the same slot twice → refused (`RESERVATION_SLOT_TAKEN`); more than the wallet covers → refused; cancel before anyone logs in. Nobody logs in within 30 minutes of the start → *Missed*, the PC is free again. Near the end of a session: Extend |
 | F9 | Multi-Agency | HQ overview: both branches; pick one in the top bar and lock a PC there; a branch admin sees only theirs |
 | F10 | Game Catalog | Games → offer at a branch or a station → install status per PC → Launch game on a station in session |
 
 ### Backend limits you will see
 
-- **Plan purchases debit 10× too little** (`plan.price × 100` instead of `× 1000` millimes): buying Pro (15 DT) takes 1.500 DT. Backend fix needed.
-- **Booking needs the PC online now**, even for a slot tomorrow (`MACHINE_UNAVAILABLE`).
-- No live session event: the Sessions list reloads on station status changes instead. Details: `../Frontend Implementation Plan.md` §6.
+- **Play now needs the PC online** (`MACHINE_UNAVAILABLE`); a booking for later doesn't.
+- No live session or booking event for staff: the Sessions list reloads on station status changes, Bookings every 30 s. The portal's My session re-reads every 15 s; only its notices are live.
+- A gamer can't end their own session from the PC; the desk ends it (or it ends at the booking's end).
 
 **Adding a real PC:** on **New stations**, pick its branch and generate an enrollment token; on the PC run `BaronDeskAgent.ServiceCore.exe --set-enrollment-token` (admin PowerShell), paste the token and start the agent; approve its request when it shows up. The backend team's manual route is in `back-end/docs/STATION_PHYSICAL_TEST.md` §0 and `back-end/docs/STATION_AGENT.md` §11.
 
@@ -103,10 +106,11 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 
 ## Live updates
 
-- After login the admin app connects to `/dashboard-io` (Socket.IO, token in `auth`). The top bar shows **LIVE**, **CONNECTING** or **OFFLINE**.
+- After login both apps connect to `/dashboard-io` (Socket.IO, token in `auth`). The admin top bar shows **LIVE**, **CONNECTING** or **OFFLINE**.
+- Staff join their branch's room (HQ: every branch); a gamer only their own, so the portal never sees stations, alerts or other gamers.
 - When the connection drops, a red bar says so and Socket.IO retries on its own. If the server refuses the token, the app refreshes it once and retries (then every 10 s).
 - Screens use `useRealtimeEvent('station_status', …)` to react to events and `useOnReconnect(refetch)` to reload their data after a reconnect.
-- Events the backend sends: `station_status`, `telemetry_update`, `command_update`, `alert`, `alert_resolved`, `catalog_status`, `session_runout_warning`, `peripheral_status`. There is no session or wallet event: those pages re-read the server every few seconds.
+- Events to staff: `station_status`, `telemetry_update`, `command_update`, `alert`, `alert_resolved`, `catalog_status`, `peripheral_status`, `session_runout_warning`. To the gamer: `session_notice` (`LOW_BALANCE`, `TIME_LEFT`, `CLEAR`). There is no session, booking or wallet event: those pages re-read the server.
 
 ## HQ (multi-branch)
 
