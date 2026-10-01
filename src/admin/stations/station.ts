@@ -50,3 +50,27 @@ export function peripheralName(p: Peripheral): string {
 export function sortPeripherals(list: Peripheral[]): Peripheral[] {
   return [...list].sort((a, b) => Number(a.connected) - Number(b.connected) || peripheralName(a).localeCompare(peripheralName(b)));
 }
+
+/**
+ * Shut down confirmation: the server bills a running session up to now
+ * before the PC powers off. `name` is one station, or e.g. "3 stations".
+ */
+export function shutdownConfirmText(name: string, inSession: boolean, count = 1): string {
+  const it = count === 1 ? 'it' : 'them';
+  const session = inSession ? ` Anyone playing on ${it} stops now: their session is ended and billed up to this moment.` : '';
+  return `Shut down ${name}?${session} The PC${count === 1 ? '' : 's'} power${count === 1 ? 's' : ''} off and come${count === 1 ? 's' : ''} back only when someone switches ${it} on.`;
+}
+
+/** What the desk should do when a remote command is refused; null = show the server's own message. */
+export function commandErrorHint(code: string, name: string): string | null {
+  switch (code) {
+    case 'NO_SESSION_TO_UNLOCK':
+      return `Nobody is playing on ${name}, so there is nothing to unlock. Unlock only resumes a gamer's session; a gamer unlocks the PC by typing their PIN on its lock screen.`;
+    case 'INSUFFICIENT_FUNDS':
+      return `The gamer on ${name} ran out of money, so their session can't resume. Top up their wallet first, then Unlock again.`;
+    case 'NO_ACTIVE_SESSION':
+      return `${name} reports no session, so there is nothing to end.`;
+    default:
+      return null;
+  }
+}

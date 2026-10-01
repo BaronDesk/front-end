@@ -26,7 +26,18 @@ import { useBranchScope } from '../branch/BranchContext';
 import { ALERTS_PATH, alertDetail, isSevere, repeatText, typeLabel } from '../alerts/labels';
 import { applyCatalogStatus } from '../games/games';
 import { SESSION_STATUS_TEXT } from '../sessions/labels';
-import { applyStatus, bookingLink, isOnline, peripheralName, screenText, sortPeripherals, stationLabel, STATIONS_PATH } from './station';
+import { CommandError } from './CommandError';
+import {
+  applyStatus,
+  bookingLink,
+  isOnline,
+  peripheralName,
+  screenText,
+  shutdownConfirmText,
+  sortPeripherals,
+  stationLabel,
+  STATIONS_PATH,
+} from './station';
 import { appendReading, describeMetric, formatMetric, isHot, sortedMetrics, summarize } from './telemetry';
 import { COMMAND_LABEL, isOpen, useCommands } from './useCommands';
 
@@ -62,7 +73,8 @@ export function StationDetailPage() {
   const [runoutWarned, setRunoutWarned] = useState<string | null>(null);
   const { isHq, branchName, reloadMachines } = useBranchScope();
   const { user } = useAuth();
-  const canRename = hasRole(user, 'MANAGER');
+  // Rename and Shut down: branch admin and up (the server refuses staff).
+  const canManage = hasRole(user, 'MANAGER');
   const renaming = useAction();
   const [newName, setNewName] = useState<string | null>(null);
 
@@ -167,7 +179,7 @@ export function StationDetailPage() {
         <Link to="/stations">« Back to stations</Link>
       </p>
       <h1>Station {name}</h1>
-      <ErrorBox error={actionError} />
+      <CommandError error={actionError} stationName={name} />
       <ActionMessages action={renaming} />
 
       <table className="kv">
@@ -178,7 +190,7 @@ export function StationDetailPage() {
               {newName === null ? (
                 <>
                   <b>{name}</b>{' '}
-                  {canRename && (
+                  {canManage && (
                     <button
                       type="button"
                       className="secondary"
@@ -286,8 +298,9 @@ export function StationDetailPage() {
         </button>{' '}
         <button
           type="button"
-          disabled={busy}
-          onClick={() => window.confirm(`Shut down ${name}?${s.sessionId ? ' The running session ends.' : ''}`) && run({ type: 'SHUTDOWN' })}
+          disabled={busy || !canManage}
+          title={canManage ? '' : 'Only a branch admin can shut a station down'}
+          onClick={() => window.confirm(shutdownConfirmText(name, Boolean(s.sessionId))) && run({ type: 'SHUTDOWN' })}
         >
           Shut down
         </button>{' '}

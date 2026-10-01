@@ -10,8 +10,9 @@ import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
 import { ALERTS_PATH } from '../alerts/labels';
 import { GAMES_PATH } from '../games/games';
+import { CommandError } from './CommandError';
 import { CommandNotices } from './CommandNotices';
-import { applyStatus, isOnline, screenText, stationLabel } from './station';
+import { applyStatus, isOnline, screenText, shutdownConfirmText, stationLabel } from './station';
 import { formatMetric, isHot } from './telemetry';
 import { COMMAND_LABEL, useCommands } from './useCommands';
 import { useStationList } from './useStationList';
@@ -35,7 +36,8 @@ export function StationsPage() {
   // machineId -> latest metrics, from telemetry_update only (no per-row snapshot call).
   const [telemetry, setTelemetry] = useState<Record<string, Record<string, number>>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [actionError, setActionError] = useState<unknown>(null);
+  // The last refused command, with its station (for the hint's wording).
+  const [actionError, setActionError] = useState<{ error: unknown; machineId: string } | null>(null);
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const commands = useCommands();
@@ -86,7 +88,7 @@ export function StationsPage() {
       try {
         await commands.send(id, { type });
       } catch (err) {
-        setActionError(err);
+        setActionError({ error: err, machineId: id });
       }
     }
   }
@@ -107,7 +109,8 @@ export function StationsPage() {
   return (
     <>
       <h1>Stations</h1>
-      <ErrorBox error={stations.error ?? actionError} />
+      <ErrorBox error={stations.error} />
+      {actionError && <CommandError error={actionError.error} stationName={stationName(actionError.machineId)} />}
       <CommandNotices notices={commands.notices} stationName={stationName} />
 
       <p>
@@ -125,7 +128,10 @@ export function StationsPage() {
             type="button"
             disabled={selectedIds.length === 0}
             onClick={() => {
-              if (window.confirm(`Shut down ${selectedIds.length} station(s)? Any running session ends.`)) {
+              const n = selectedIds.length;
+              const anyInSession = list.some((s) => selected.has(s.id) && s.sessionId);
+              const what = n === 1 ? stationName(selectedIds[0]) : `${n} stations`;
+              if (window.confirm(shutdownConfirmText(what, anyInSession, n))) {
                 void run(selectedIds, 'SHUTDOWN');
               }
             }}

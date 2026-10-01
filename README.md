@@ -41,7 +41,7 @@ Every screen reads and writes the real backend. Where the backend has no endpoin
 | Login, access control | `/auth/*` | |
 | HQ overview, branch dropdown | `GET/POST/PATCH /branches`, `/machines`, `/api/v1/stations`, `/api/v1/alerts` | Real branch names; HQ creates and edits branches (name, location) on the overview. The counts are computed |
 | Stations, station detail, telemetry | `/api/v1/stations…` joined with `/machines`, `peripheral_status` | Only enrolled PCs, each with its branch. The detail page has the **booking link** for gamers, **Rename** (branch admin and HQ, `PATCH /api/v1/stations/:id`; the PC's own name no longer overrides it) and the **peripherals** the station watches (disconnected first, live). Telemetry: now, plus min / avg / max over the last 1, 6, 24 or 48 hours (`…/telemetry/history`, one sample a minute; live readings join it once a minute) |
-| Remote commands | `/api/v1/stations/:id/commands`, `command_update` | |
+| Remote commands | `/api/v1/stations/:id/commands`, `command_update` | **Unlock** only resumes the gamer's session on that PC: with none, or when their money ran out, the page says what to do (`NO_SESSION_TO_UNLOCK`, `INSUFFICIENT_FUNDS` → top up first). **Shut down** (branch admin and HQ) bills a running session up to now, and its confirmation says so |
 | Alerts | `/api/v1/alerts…`, `alert`, `alert_resolved` | |
 | Games | `/api/v1/games…`, `catalog_status` | |
 | New stations (enrollment) | `/machines…` | Polled every 15 s (no event for a new request) |
@@ -77,7 +77,7 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 | F1 | Secure Access & Roles | Log in as `employee.manar1`: staff menu only, **Plans** says Access denied. A wrong password is refused. Users & Staff: HQ creates a manager; `manager.manar` can only create employees of their own branch (the server refuses more with 403), suspends one of them (that login now fails with `ACCOUNT_DISABLED`), reactivates them and resets their password |
 | F2 | Node Tracking | New stations → generate an enrollment token → the agent asks to join → Approve → it turns ONLINE on Stations. Pull the cable: OFFLINE, then back |
 | F3 | Session & Financial Control | Gamer books or picks Play now (app) → the desk sees it on **Bookings** → gets the PIN in the app → types it on the lock screen → the PC unlocks. Sessions → End & bill → the bill; the wallet shows the play-time charge. Low balance: the runout warning, then the PC locks |
-| F4 | Remote Administration | Station detail → Lock / Unlock / Shut down; the command log goes PENDING → SENT → ACKED |
+| F4 | Remote Administration | Station detail → Lock / Unlock / Shut down; the command log goes PENDING → SENT → ACKED. Unlock on a PC nobody plays on is refused with an explanation |
 | F5 | Telemetry & Anti-Theft | Station detail → live temperatures, load, fans; unplug a USB mouse → red alert banner → Resolve |
 | F6 | Electronic Wallet | Wallet → gamer username → Find → top up (double click: one credit) → history; refund a line (branch admin) |
 | F7 | Subscription & Membership | Plans → tiers and passes; the gamer buys Pro in the app → My profile shows it; the session rate includes the discount |
@@ -120,7 +120,7 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 ```sh
 npm run build      # typecheck + vite build → dist/
 npm run typecheck
-npm test           # unit tests (money, branches, bookings, plan and ledger wording, Users page permissions, wallet search, booking dates, peripherals, telemetry history)
+npm test           # unit tests (money, branches, bookings, plan and ledger wording, Users page permissions, wallet search, booking dates, peripherals, telemetry history, command wording)
 ```
 
 ## Layout
