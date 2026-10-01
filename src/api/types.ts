@@ -35,9 +35,9 @@ export interface ApiErrorBody {
 }
 
 /**
- * A branch as the frontend knows it. The backend has no branch list or names
- * (no GET /branches), so ids come from GET /machines and the label is built
- * from the branch's PC serial numbers (admin/branch/branches.ts).
+ * A branch (GET /branches; HQ creates and edits them with POST / PATCH
+ * /branches). Until the list loads, ids come from GET /machines and the label
+ * is built from the PC serial numbers (admin/branch/branches.ts).
  */
 export interface Branch {
   id: string;

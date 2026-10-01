@@ -1,9 +1,11 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 
-import type { Alert, Station } from '../../api/types';
+import { api } from '../../api/http';
+import type { Alert, Branch, Station } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/ErrorBox';
+import { ActionMessages, useAction } from '../../shared/useAction';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { ALERTS_PATH } from '../alerts/labels';
 import { useBranchScope } from '../branch/BranchContext';
@@ -23,13 +25,15 @@ interface BranchRow {
  * The backend has no summary endpoint, so the counts are built here from the
  * machines (branch, enrollment), the stations (live status, session) and the
  * open alerts, always across every branch whatever the top bar shows.
+ * HQ also creates and edits branches here (name, location).
  */
 export function HqPage() {
   const navigate = useNavigate();
-  const { branches, machines, branchId, setBranchId, reloadMachines } = useBranchScope();
+  const { branches, machines, branchId, setBranchId, reloadMachines, reloadBranches } = useBranchScope();
   const stations = useApiQuery<Station[]>(STATIONS_PATH);
   const alerts = useApiQuery<Alert[]>(`${ALERTS_PATH}?status=open&limit=500`);
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [edit, setEdit] = useState<Branch | null>(null);
 
   // Events arrive for every branch (HQ is in branch:all); one reload per burst.
   function reloadSoon() {
@@ -62,6 +66,8 @@ export function HqPage() {
       };
     });
   }, [branches, machines, stations.data, alerts.data]);
+
+  const editing = (id: string) => branches.find((b) => b.id === id);
 
   const sum = (key: keyof Omit<BranchRow, 'branchId' | 'name'>) => rows.reduce((n, r) => n + r[key], 0);
   const loading = stations.loading || alerts.loading;
@@ -117,6 +123,9 @@ export function HqPage() {
                   </button>{' '}
                   <button type="button" onClick={() => open(r.branchId, '/sessions')}>
                     Sessions
+                  </button>{' '}
+                  <button type="button" className="secondary" onClick={() => setEdit(editing(r.branchId) ?? null)}>
+                    Edit
                   </button>
                 </td>
               </tr>
@@ -125,7 +134,7 @@ export function HqPage() {
           {!loading && rows.length === 0 && (
             <tr>
               <td colSpan={7} className="muted">
-                No branch has a station yet.
+                No branch yet: create one below.
               </td>
             </tr>
           )}
@@ -151,6 +160,63 @@ export function HqPage() {
           </tfoot>
         )}
       </table>
+
+      <BranchForm key={edit?.id ?? 'new'} branch={edit} onDone={() => setEdit(null)} onSaved={reloadBranches} />
     </>
+  );
+}
+
+/**
+ * Create a branch, or rename / move the one being edited (POST and PATCH
+ * /branches, HQ only). A new branch has no PC yet: enroll its stations on
+ * New stations, and set its play prices on Plans & prices.
+ */
+function BranchForm({ branch, onDone, onSaved }: { branch: Branch | null; onDone(): void; onSaved(): void }) {
+  const action = useAction();
+  const [name, setName] = useState(branch?.name ?? '');
+  const [location, setLocation] = useState(branch?.location ?? '');
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    const body = { name: name.trim(), location: location.trim() };
+    const saved = branch
+      ? await action.run('save-branch', () => api<Branch>('PATCH', `/branches/${branch.id}`, body), (b) => `Branch ${b.name} saved.`)
+      : await action.run('save-branch', () => api<Branch>('POST', '/branches', body), (b) => `Branch ${b.name} created.`);
+    if (!saved) return;
+    onSaved();
+    if (branch) {
+      onDone();
+    } else {
+      setName('');
+      setLocation('');
+    }
+  }
+
+  return (
+    <form onSubmit={save} style={{ marginTop: 8 }}>
+      <fieldset>
+        <legend>{branch ? `Edit ${branch.name}` : 'New branch'}</legend>
+        <ActionMessages action={action} />
+        <div className="form-row">
+          <label htmlFor="b-name">Name</label>
+          <input id="b-name" required maxLength={100} value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div className="form-row">
+          <label htmlFor="b-location">Location</label>
+          <input id="b-location" required maxLength={200} value={location} onChange={(e) => setLocation(e.target.value)} />
+        </div>
+        <div className="form-row">
+          <label />
+          <button type="submit" disabled={action.busy === 'save-branch'}>
+            {branch ? 'Save changes' : 'Create branch'}
+          </button>{' '}
+          {branch && (
+            <button type="button" className="secondary" onClick={onDone}>
+              Cancel
+            </button>
+          )}
+        </div>
+      </fieldset>
+    </form>
   );
 }

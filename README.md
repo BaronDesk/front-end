@@ -39,7 +39,7 @@ Every screen reads and writes the real backend. Where the backend has no endpoin
 | Screen | Backend | Notes |
 |---|---|---|
 | Login, access control | `/auth/*` | |
-| HQ overview, branch dropdown | `/machines`, `/api/v1/stations`, `/api/v1/alerts` | No `GET /branches`: branches come from the PCs, labelled by their serial prefix (`MNR branch`, `LAC branch`); the counts are computed |
+| HQ overview, branch dropdown | `GET/POST/PATCH /branches`, `/machines`, `/api/v1/stations`, `/api/v1/alerts` | Real branch names; HQ creates and edits branches (name, location) on the overview. The counts are computed |
 | Stations, station detail, telemetry | `/api/v1/stations…` joined with `/machines` | Only enrolled PCs, each with its branch. The detail page has the **booking link** for gamers |
 | Remote commands | `/api/v1/stations/:id/commands`, `command_update` | |
 | Alerts | `/api/v1/alerts…`, `alert`, `alert_resolved` | |
@@ -88,7 +88,7 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 
 - **Plan purchases debit 10× too little** (`plan.price × 100` instead of `× 1000` millimes): buying Pro (15 DT) takes 1.500 DT. Backend fix needed.
 - **Booking needs the PC online now**, even for a slot tomorrow (`MACHINE_UNAVAILABLE`).
-- No gamer list, branch list, booking list for staff, session list or live session event: the workarounds above cover them. Details: `../Frontend Implementation Plan.md` §6.
+- No gamer list, booking list for staff, session list or live session event: the workarounds above cover them. Details: `../Frontend Implementation Plan.md` §6.
 
 **Adding a real PC:** on **New stations**, pick its branch and generate an enrollment token; on the PC run `BaronDeskAgent.ServiceCore.exe --set-enrollment-token` (admin PowerShell), paste the token and start the agent; approve its request when it shows up. The backend team's manual route is in `back-end/docs/STATION_PHYSICAL_TEST.md` §0 and `back-end/docs/STATION_AGENT.md` §11.
 
@@ -111,6 +111,7 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 - HQ (`ADMIN`, `branchId = null`) gets a **Branch** dropdown in the top bar: *All branches* or one branch. Branch admins and staff see their branch name as plain text.
 - With a branch picked, lists ask for `?branchId=…` and live events from other branches are ignored, so actions run on the selected branch. The choice survives a reload (per tab).
 - **HQ overview** (`#/hq`, HQ's start page): stations, online, in session and open alerts per branch, computed from the machines, the stations and the open alerts.
+- **Branches:** below the table, HQ creates a branch (name, location) with `POST /branches`; **Edit** on a row renames or moves it with `PATCH /branches/:id`. A new branch then needs its PCs (New stations) and its prices (Plans & prices).
 - Code: `src/admin/branch/BranchContext.tsx` (`useBranchScope()`: `scoped(path)`, `inScope(branchId)`), `src/admin/hq/HqPage.tsx`.
 
 ## Build and test
