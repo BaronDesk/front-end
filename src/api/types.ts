@@ -526,6 +526,12 @@ export interface Reservation {
   pin?: { pin: string; validFrom: string; validUntil: string | null } | null;
 }
 
+/** GET /api/v1/reservations (staff): a booking with its station and who booked it. */
+export interface StaffReservation extends Reservation {
+  machine: { id: string; name: string | null; serialNumber: string; branchId: string };
+  gamerUsername: string;
+}
+
 /** POST /reservations/:id/check-in: the PIN the gamer types on the station's lock screen. */
 export interface CheckIn {
   sessionId: string;

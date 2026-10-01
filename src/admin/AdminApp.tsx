@@ -7,6 +7,7 @@ import { RealtimeProvider } from '../realtime/RealtimeContext';
 import { LoginForm } from '../shared/LoginForm';
 import { AdminLayout, AdminLoginLayout } from './AdminLayout';
 import { AlertsPage } from './alerts/AlertsPage';
+import { BookingsPage } from './bookings/BookingsPage';
 import { GamesPage } from './games/GamesPage';
 import { HqPage } from './hq/HqPage';
 import { ADMIN_MENU } from './menu';
@@ -31,6 +32,7 @@ const PAGES: Record<string, ReactNode> = {
   '/plans': <PlansPage />,
   '/games': <GamesPage />,
   '/sessions': <SessionsPage />,
+  '/bookings': <BookingsPage />,
   '/hq': <HqPage />,
 };
 
