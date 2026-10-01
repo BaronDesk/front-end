@@ -1,11 +1,51 @@
-# BaronDesk frontend
+# BaronDesk Frontend
 
-Two apps from one codebase, plain 2011-style UI (see `../Frontend Implementation Plan.md`). Both talk to the real backend only: there is no fake data.
+The BaronDesk frontend holds the two web applications of the BaronDesk gaming-centre platform, built from one codebase:
 
-| App | Dev URL | Built to | Delivered as |
+- the **admin dashboard**, used by staff, branch admins and headquarters (HQ) to run the venue: stations, sessions, bookings, wallets, users, plans, games and alerts;
+- the **gamer portal**, used by gamers on their phone to book a station, get the PIN that unlocks it, follow their session and manage their wallet and membership.
+
+Both applications talk only to the real BaronDesk backend; there is no fake or demo data in the code. The interface is deliberately classic and dense (a black, white, gold and red desktop-style theme), so that desk staff see a lot at once.
+
+| App | Dev URL | Built to | Used on |
 |---|---|---|---|
-| Admin dashboard | http://localhost:5173/admin/ | `dist/admin/` | Electron desktop app (step 10) |
-| Gamer portal | http://localhost:5173/portal/ | `dist/portal/` | PWA / home-screen shortcut (step 11) |
+| Admin dashboard | http://localhost:5173/admin/ | `dist/admin/` | The venue's desk PC (browser or a desktop shell such as Electron) |
+| Gamer portal | http://localhost:5173/portal/ | `dist/portal/` | The gamer's phone browser |
+
+---
+
+## Features
+
+| Area | Admin dashboard | Gamer portal |
+|---|---|---|
+| Access | Role-based menus for staff, branch admins and HQ | Sign-up with a home branch, login, settings |
+| Stations | Live status, telemetry, peripherals, remote commands (lock, unlock, launch game, shut down), enrollment of new PCs | Free/busy view of the home branch's stations |
+| Sessions and bookings | Running sessions, session history with bills, bookings with cancellation | Book ahead or play now, PIN for the station, live session view with extension |
+| Money | Desk top-up and refund by username | Wallet balance and history |
+| Plans | Membership tiers, passes and play prices per branch | Buy, upgrade or cancel a membership; buy a pass |
+| Games and alerts | Game catalog per branch and station; hardware and anti-theft alerts | — |
+| Multi-branch | HQ overview of every branch, branch switcher, branch creation | — |
+
+---
+
+## Technology
+
+| Area | Choice |
+|---|---|
+| UI | React 19, TypeScript 5.8 (strict) |
+| Build and dev server | Vite 6 (multi-page build: `admin/` and `portal/`) |
+| Routing | React Router 7 with hash URLs |
+| Live updates | Socket.IO client (`/dashboard-io`) |
+| Tests | Vitest |
+
+---
+
+## Security Model
+
+- **The server decides.** Menus and buttons follow the user's role, but every rule is enforced by the backend; a refused action shows the server's message.
+- **Tokens:** the access token is kept in memory only; the refresh token is kept in `sessionStorage`, one per app, so closing the tab logs out.
+- **One app per audience:** the admin dashboard refuses gamer accounts, and the portal refuses staff accounts.
+- **Branch isolation:** staff only ever receive their own branch's live events; a gamer receives only their own.
 
 ## Run
 
@@ -19,7 +59,7 @@ The dev server forwards every backend path (`/auth`, `/users`, `/gamers`, `/empl
 
 The backend runs on the same PC: start it in `back-end/` with `npm run docker:dev` (Nest on `http://localhost:3000`, the default `VITE_BACKEND_URL`). Restart `npm run dev` after changing `.env.local`.
 
-The screens below need the backend's flow-fix migrations: in `back-end/`, `npm run db:deploy` then `npm run db:generate` (see `back-end/docs/FLOW_FIXES.md` §0, which also lists every endpoint and error code).
+The backend's database must be up to date: in `back-end/`, run `npm run db:deploy`, then `npm run db:generate`. The backend's `docs/FLOW_FIXES.md` lists every endpoint and error code these screens use.
 
 ## Accounts (backend seed)
 
@@ -42,7 +82,7 @@ Every screen reads and writes the real backend. The last column says what each s
 |---|---|---|
 | Login, access control | `/auth/*` | |
 | HQ overview, branch dropdown | `GET/POST/PATCH /branches`, `/machines`, `/api/v1/stations`, `/api/v1/alerts` | Real branch names; HQ creates and edits branches (name, location) on the overview. The counts are computed |
-| Stations, station detail, telemetry | `/api/v1/stations…` joined with `/machines`, `peripheral_status` | Only enrolled PCs, each with its branch. The detail page has the **booking link** for gamers, **Rename** (branch admin and HQ, `PATCH /api/v1/stations/:id`; the PC's own name no longer overrides it) and the **peripherals** the station watches (disconnected first, live). Telemetry: now, plus min / avg / max over the last 1, 6, 24 or 48 hours (`…/telemetry/history`, one sample a minute; live readings join it once a minute) |
+| Stations, station detail, telemetry | `/api/v1/stations…` joined with `/machines`, `peripheral_status` | Only enrolled PCs, each with its branch. The detail page has the **booking link** for gamers, **Rename** (branch admin and HQ, `PATCH /api/v1/stations/:id`; a rename sticks, the PC's own name never overrides it) and the **peripherals** the station watches (disconnected first, live). Telemetry: now, plus min / avg / max over the last 1, 6, 24 or 48 hours (`…/telemetry/history`, one sample a minute; live readings join it once a minute) |
 | Remote commands | `/api/v1/stations/:id/commands`, `command_update` | **Unlock** only resumes the gamer's session on that PC: with none, or when their money ran out, the page says what to do (`NO_SESSION_TO_UNLOCK`, `INSUFFICIENT_FUNDS` → top up first). **Shut down** (branch admin and HQ) bills a running session up to now, and its confirmation says so |
 | Alerts | `/api/v1/alerts…`, `alert`, `alert_resolved` | |
 | Games | `/api/v1/games…`, `catalog_status` | |
@@ -88,13 +128,13 @@ Seed first (`back-end/`), start at least one real agent (Play now needs the PC O
 | F9 | Multi-Agency | HQ overview: both branches; pick one in the top bar and lock a PC there; a branch admin sees only theirs |
 | F10 | Game Catalog | Games → offer at a branch or a station → install status per PC → Launch game on a station in session |
 
-### Backend limits you will see
+### Known Limitations
 
 - **Play now needs the PC online** (`MACHINE_UNAVAILABLE`); a booking for later doesn't.
-- No live session or booking event for staff: the Sessions list reloads on station status changes, Bookings every 30 s. The portal's My session re-reads every 15 s; only its notices are live.
+- The backend sends no live event for sessions, bookings or wallets: the Sessions list reloads on station status changes, Bookings every 30 s, and the portal's My session every 15 s (its notices are live).
 - A gamer can't end their own session from the PC; the desk ends it (or it ends at the booking's end).
 
-**Adding a real PC:** on **New stations**, pick its branch and generate an enrollment token; on the PC run `BaronDeskAgent.ServiceCore.exe --set-enrollment-token` (admin PowerShell), paste the token and start the agent; approve its request when it shows up. The backend team's manual route is in `back-end/docs/STATION_PHYSICAL_TEST.md` §0 and `back-end/docs/STATION_AGENT.md` §11.
+**Adding a real PC:** on **New stations**, pick its branch and generate an enrollment token; on the PC run `BaronDeskAgent.ServiceCore.exe --set-enrollment-token` (admin PowerShell), paste the token and start the agent; approve its request when it shows up. The full procedure is in the backend's `docs/STATION_PHYSICAL_TEST.md` and `docs/STATION_AGENT.md`.
 
 ## Login
 
@@ -125,7 +165,8 @@ Seed first (`back-end/`), start at least one real agent (Play now needs the PC O
 ```sh
 npm run build      # typecheck + vite build → dist/
 npm run typecheck
-npm test           # unit tests (money, branches, bookings, plan and ledger wording, Users page permissions, wallet search, booking dates, peripherals, telemetry history, command wording)
+npm test           # 25 unit tests: money, branches, bookings, plan and ledger wording, Users page permissions,
+                   # wallet search, booking dates, peripherals, telemetry history, command wording
 ```
 
 ## Layout
@@ -141,4 +182,4 @@ src/shared/          code used by both apps
 src/styles/classic.css   the whole theme (black / white / gold / red)
 ```
 
-Routing uses hash URLs (`/admin/#/stations`), so no server rewrite rules are needed in Caddy or Electron.
+Routing uses hash URLs (`/admin/#/stations`) and the build uses relative asset paths, so the apps work behind a plain file server (Caddy) or inside a desktop shell, with no server rewrite rules.
