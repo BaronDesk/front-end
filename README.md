@@ -48,7 +48,7 @@ Every screen reads and writes the real backend. Where the backend has no endpoin
 | Sessions | `GET /sessions/:id`, `POST /sessions/:id/end`, `session_runout_warning` | Gamers start their own sessions (PIN in the app). "Running now" = stations reporting a session |
 | Session and bill | `GET /sessions/:id` | Read again every 5 s until the bill is settled |
 | Wallet (desk) | `/wallets/:gamerProfileId…` | Opened with the gamer's **member code**; idempotent top-up and refund (refund: branch admin and HQ) |
-| Users & Staff | `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `GET /users/:id` | No user list: shows the accounts created here and any account opened by id |
+| Users & Staff | `GET /users`, `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `PATCH /users/:id/status`, `POST /users/:id/password` | List and search by username and role (HQ: everyone, or the branch picked in the top bar; a branch admin: gamers and their own staff). A new gamer needs a home branch. Suspend / Reactivate and Reset password show only where the server allows them (`src/admin/users/permissions.ts`) |
 | Plans & prices | `/branches/:id/pricing`, `/membership-plans`, `/subscription-plans` | Create, edit, delete tiers and passes |
 | Portal: book, play now, my bookings | `/reservations`, `/reservations/walk-in`, `/reservations/:id/check-in` | Gamers can't list stations: the station comes from the desk's booking link or an earlier booking. Play now answers with the **PIN**; a booking gets it with *Get PIN* from 15 min before |
 | Portal: my session | `/reservations`, `/wallets/me…`, `session_runout_warning` | |
@@ -73,7 +73,7 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 
 | # | Feature | In the apps |
 |---|---|---|
-| F1 | Secure Access & Roles | Log in as `employee.manar1`: staff menu only, **Plans** says Access denied. A wrong password is refused. Users & Staff: HQ creates a manager; `manager.manar` can only create employees of their own branch (the server refuses more with 403) |
+| F1 | Secure Access & Roles | Log in as `employee.manar1`: staff menu only, **Plans** says Access denied. A wrong password is refused. Users & Staff: HQ creates a manager; `manager.manar` can only create employees of their own branch (the server refuses more with 403), suspends one of them (that login now fails with `ACCOUNT_DISABLED`), reactivates them and resets their password |
 | F2 | Node Tracking | New stations → generate an enrollment token → the agent asks to join → Approve → it turns ONLINE on Stations. Pull the cable: OFFLINE, then back |
 | F3 | Session & Financial Control | Gamer books or picks Play now (app) → gets the PIN in the app → types it on the lock screen → the PC unlocks. Sessions → End & bill → the bill; the wallet shows the play-time charge. Low balance: the runout warning, then the PC locks |
 | F4 | Remote Administration | Station detail → Lock / Unlock / Shut down; the command log goes PENDING → SENT → ACKED |
@@ -88,7 +88,7 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 
 - **Plan purchases debit 10× too little** (`plan.price × 100` instead of `× 1000` millimes): buying Pro (15 DT) takes 1.500 DT. Backend fix needed.
 - **Booking needs the PC online now**, even for a slot tomorrow (`MACHINE_UNAVAILABLE`).
-- No gamer list, booking list for staff, session list or live session event: the workarounds above cover them. Details: `../Frontend Implementation Plan.md` §6.
+- No booking list for staff, session list or live session event: the workarounds above cover them. Details: `../Frontend Implementation Plan.md` §6.
 
 **Adding a real PC:** on **New stations**, pick its branch and generate an enrollment token; on the PC run `BaronDeskAgent.ServiceCore.exe --set-enrollment-token` (admin PowerShell), paste the token and start the agent; approve its request when it shows up. The backend team's manual route is in `back-end/docs/STATION_PHYSICAL_TEST.md` §0 and `back-end/docs/STATION_AGENT.md` §11.
 
@@ -119,7 +119,7 @@ Seed first (`back-end/`), start at least one real agent (it must be ONLINE: the 
 ```sh
 npm run build      # typecheck + vite build → dist/
 npm run typecheck
-npm test           # unit tests (money, branches, bookings, plan and ledger wording)
+npm test           # unit tests (money, branches, bookings, plan and ledger wording, Users page permissions)
 ```
 
 ## Layout
