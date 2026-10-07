@@ -34,6 +34,44 @@ export function benefitsText(b: SubscriptionBenefits | null | undefined): string
   return JSON.stringify(b);
 }
 
+export type BenefitWindow = NonNullable<SubscriptionBenefits['windows']>[number];
+
+/** The backend's cap on windows per pass. */
+export const MAX_WINDOWS = 50;
+
+/** One window as the pass form edits it: the discount stays text until saved. */
+export interface WindowRow {
+  days: number[];
+  startTime: string;
+  endTime: string;
+  discountPercent: string;
+}
+
+/** A new window: every night, free. */
+export const NEW_WINDOW: WindowRow = { days: [0, 1, 2, 3, 4, 5, 6], startTime: '00:00', endTime: '06:00', discountPercent: '100' };
+
+/** A pass's windows as form rows; [] when its benefits use another shape (seeded free_hours…). */
+export function windowRows(b: SubscriptionBenefits | null | undefined): WindowRow[] {
+  if (!b || !Array.isArray(b.windows)) return [];
+  return b.windows.map((w) => ({
+    days: [...w.daysOfWeek].sort((x, y) => x - y),
+    startTime: w.startTime,
+    endTime: w.endTime,
+    discountPercent: String(w.discountPercent),
+  }));
+}
+
+/** Form rows as the backend's windows; null while a row has no day ticked. */
+export function rowsToWindows(rows: WindowRow[]): BenefitWindow[] | null {
+  if (rows.some((r) => r.days.length === 0)) return null;
+  return rows.map((r) => ({
+    daysOfWeek: [...r.days].sort((x, y) => x - y),
+    startTime: r.startTime,
+    endTime: r.endTime,
+    discountPercent: Number(r.discountPercent),
+  }));
+}
+
 /** "10" → "−10 %" (Decimal strings from the backend). */
 export function discountText(percent: string | number): string {
   const n = Number(percent);

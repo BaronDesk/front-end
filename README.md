@@ -92,7 +92,7 @@ Every screen reads and writes the real backend. The last column says what each s
 | Bookings | `GET /api/v1/reservations`, `DELETE /api/v1/reservations/:id` | Who booked which station, for one day or 7 days, by status (HQ: the branch in the top bar). **Cancel** a booking nobody plays on yet (its PIN stops working). Polled every 30 s (no event for a new booking) |
 | Wallet (desk) | `GET /gamers?q=`, `/wallets/:gamerProfileId…` | Find the gamer by **username** (an exact name opens at once, else pick from the matches; recent gamers are remembered per browser); idempotent top-up and refund (refund: branch admin and HQ) |
 | Users & Staff | `GET /users`, `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `PATCH /users/:id/status`, `POST /users/:id/password` | List and search by username and role (HQ: everyone, or the branch picked in the top bar; a branch admin: gamers and their own staff). A new gamer needs a home branch. Suspend / Reactivate and Reset password show only where the server allows them (`src/admin/users/permissions.ts`) |
-| Plans & prices | `/branches/:id/pricing`, `/membership-plans`, `/subscription-plans` | Create, edit, delete tiers and passes |
+| Plans & prices | `/branches/:id/pricing`, `/membership-plans`, `/subscription-plans` | Create, edit, delete tiers and passes. A pass has one or more time windows (days, from–to, discount), added, changed and removed in its form; gamers who already bought it keep the windows they paid for |
 | Portal: sign-up, settings | `GET /branches`, `POST /users`, `PATCH /users/me/branch`, `POST /auth/change-password` | Sign-up picks the **home branch**; Settings changes it and the password. A gamer with no branch (e.g. seeded) is asked to pick one after login |
 | Portal: book, play now, my bookings | `GET /branches/:id/stations`, `/reservations`, `/reservations/walk-in`, `/reservations/:id/check-in` | Lists the home branch's stations, free or busy until when; the desk's booking link (QR) preselects a PC. The wallet must cover the whole booking (`INSUFFICIENT_FUNDS`). Every booking and Play now answers with its **PIN**, shown on the booking: it works on that PC from the start for 30 minutes, then the booking is *Missed* (no-show). *New PIN* replaces it. Cancel until someone logs in |
 | Portal: my session | `GET /sessions/me/current`, `/reservations/:id/extend-options`, `POST /reservations/:id/extend`, `session_notice` | Time played, cost so far, balance, end time; re-read every 15 s, the station's notices (low balance, time left) arrive live. **Extend** by 30 / 60 / 90 minutes near the end, if the PC is free and the wallet covers it (walk-in rate) |
@@ -159,7 +159,7 @@ Seed first (`back-end/`), start at least one real agent (Play now needs the PC O
 ```sh
 npm run build      # typecheck + vite build → dist/
 npm run typecheck
-npm test           # 25 unit tests: money, branches, bookings, plan and ledger wording, Users page permissions,
+npm test           # 27 unit tests: money, branches, bookings, plan and ledger wording, pass windows, Users page permissions,
                    # wallet search, booking dates, peripherals, telemetry history, command wording
 ```
 

@@ -5,7 +5,16 @@ import type { BranchPricing, MembershipPlan, MembershipPlanInput, SubscriptionPl
 import { ErrorBox } from '../../shared/ErrorBox';
 import { CURRENCY, dinarsToMillimes, formatDateTime, formatMillimes, formatMoney, millimesToDinars } from '../../shared/format';
 import { ActionMessages, useAction, type Action } from '../../shared/useAction';
-import { benefitsText, discountText, WEEK_DAYS } from '../../shared/plans';
+import {
+  benefitsText,
+  discountText,
+  MAX_WINDOWS,
+  NEW_WINDOW,
+  rowsToWindows,
+  WEEK_DAYS,
+  windowRows,
+  type WindowRow,
+} from '../../shared/plans';
 import { useApiQuery } from '../../shared/useApiQuery';
 import { useBranchScope } from '../branch/BranchContext';
 
@@ -162,8 +171,9 @@ function TierSection({ action }: { action: Action }) {
 
 /**
  * Passes: a monthly price for cheaper or free play inside time windows
- * (e.g. every night 00:00–06:00 free). A new pass gets one window; editing
- * changes name, price and length and keeps the windows.
+ * (e.g. every night 00:00–06:00 free, weekends half price). A pass has one or
+ * more windows, added, changed and removed here. Gamers who already bought a
+ * pass keep the windows they paid for (the backend snapshots them).
  */
 function PassSection({ action }: { action: Action }) {
   const passes = useApiQuery<SubscriptionPlan[]>('/subscription-plans');
@@ -172,24 +182,20 @@ function PassSection({ action }: { action: Action }) {
     name: '',
     price: '',
     durationDays: '30',
-    days: [0, 1, 2, 3, 4, 5, 6],
-    startTime: '00:00',
-    endTime: '06:00',
-    discountPercent: '100',
+    windows: [NEW_WINDOW],
+    // Editing a pass whose benefits aren't windows (seeded shapes): saved
+    // without benefits, so they stay, unless windows are added.
+    otherBenefits: false,
   };
   const [form, setForm] = useState(empty);
+  const windows = rowsToWindows(form.windows);
+  const canSave = windows !== null && (windows.length > 0 || form.otherBenefits);
 
   async function save(e: FormEvent) {
     e.preventDefault();
+    if (!windows || !canSave) return;
     const base = { name: form.name.trim(), price: Number(form.price), durationDays: Number(form.durationDays) };
-    const body: Partial<SubscriptionPlanInput> = form.id
-      ? base
-      : {
-          ...base,
-          benefits: {
-            windows: [{ daysOfWeek: form.days, startTime: form.startTime, endTime: form.endTime, discountPercent: Number(form.discountPercent) }],
-          },
-        };
+    const body: Partial<SubscriptionPlanInput> = windows.length ? { ...base, benefits: { windows } } : base;
     const saved = await action.run(
       'save-pass',
       () => api<SubscriptionPlan>(form.id ? 'PATCH' : 'POST', form.id ? `/subscription-plans/${form.id}` : '/subscription-plans', body),
@@ -207,8 +213,26 @@ function PassSection({ action }: { action: Action }) {
     if (done) passes.reload();
   }
 
-  function toggleDay(d: number) {
-    setForm((f) => ({ ...f, days: f.days.includes(d) ? f.days.filter((x) => x !== d) : [...f.days, d].sort() }));
+  function edit(p: SubscriptionPlan) {
+    const rows = windowRows(p.benefits);
+    setForm({ id: p.id, name: p.name, price: String(Number(p.price)), durationDays: String(p.durationDays), windows: rows, otherBenefits: rows.length === 0 });
+  }
+
+  function setWindow(i: number, change: Partial<WindowRow>) {
+    setForm((f) => ({ ...f, windows: f.windows.map((w, j) => (j === i ? { ...w, ...change } : w)) }));
+  }
+
+  function toggleDay(i: number, d: number) {
+    const days = form.windows[i].days;
+    setWindow(i, { days: days.includes(d) ? days.filter((x) => x !== d) : [...days, d].sort((x, y) => x - y) });
+  }
+
+  function addWindow() {
+    setForm((f) => ({ ...f, windows: [...f.windows, NEW_WINDOW] }));
+  }
+
+  function removeWindow(i: number) {
+    setForm((f) => ({ ...f, windows: f.windows.filter((_, j) => j !== i) }));
   }
 
   return (
@@ -236,11 +260,7 @@ function PassSection({ action }: { action: Action }) {
               <td>{benefitsText(p.benefits)}</td>
               <td>{p.durationDays} days</td>
               <td className="nowrap">
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => setForm({ ...empty, id: p.id, name: p.name, price: String(Number(p.price)), durationDays: String(p.durationDays) })}
-                >
+                <button type="button" className="secondary" onClick={() => edit(p)}>
                   Edit
                 </button>{' '}
                 <button type="button" className="secondary" disabled={action.busy === p.id} onClick={() => remove(p)}>
@@ -276,40 +296,75 @@ function PassSection({ action }: { action: Action }) {
               onChange={(e) => setForm({ ...form, durationDays: e.target.value })}
             />
           </div>
-          {!form.id && (
-            <>
-              <div className="form-row">
-                <label>Days</label>
-                {WEEK_DAYS.map((d) => (
-                  <label key={d.value} className="inline">
-                    <input type="checkbox" checked={form.days.includes(d.value)} onChange={() => toggleDay(d.value)} /> {d.label}
-                  </label>
-                ))}
-              </div>
-              <div className="form-row">
-                <label htmlFor="p-start">From / to</label>
-                <input id="p-start" type="time" required value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} /> –{' '}
-                <input aria-label="To" type="time" required value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} />
-              </div>
-              <div className="form-row">
-                <label htmlFor="p-discount">Discount (%)</label>
-                <input
-                  id="p-discount"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  required
-                  value={form.discountPercent}
-                  onChange={(e) => setForm({ ...form, discountPercent: e.target.value })}
-                />{' '}
-                <span className="muted">100 = free</span>
-              </div>
-            </>
+          <p className="muted">
+            Windows: when the pass gives its discount (100 % = free). A window that ends before it starts runs past
+            midnight. Changes apply to new buyers; gamers who already bought the pass keep what they paid for.
+          </p>
+          {form.otherBenefits && (
+            <p className="muted">
+              This pass&apos;s benefits ({benefitsText(passes.data?.find((p) => p.id === form.id)?.benefits)}) aren&apos;t
+              time windows: they stay as they are unless you add windows, which replace them.
+            </p>
           )}
+          {form.windows.length > 0 && (
+            <table className="grid">
+              <thead>
+                <tr>
+                  <th>Days</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Discount (%)</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {form.windows.map((w, i) => (
+                  <tr key={i}>
+                    <td className="nowrap">
+                      {WEEK_DAYS.map((d) => (
+                        <label key={d.value} className="inline">
+                          <input type="checkbox" checked={w.days.includes(d.value)} onChange={() => toggleDay(i, d.value)} /> {d.label}
+                        </label>
+                      ))}
+                      {w.days.length === 0 && <span className="status-bad">pick a day</span>}
+                    </td>
+                    <td>
+                      <input aria-label={`Window ${i + 1} from`} type="time" required value={w.startTime} onChange={(e) => setWindow(i, { startTime: e.target.value })} />
+                    </td>
+                    <td>
+                      <input aria-label={`Window ${i + 1} to`} type="time" required value={w.endTime} onChange={(e) => setWindow(i, { endTime: e.target.value })} />
+                    </td>
+                    <td>
+                      <input
+                        aria-label={`Window ${i + 1} discount`}
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        required
+                        value={w.discountPercent}
+                        onChange={(e) => setWindow(i, { discountPercent: e.target.value })}
+                      />
+                    </td>
+                    <td>
+                      <button type="button" className="secondary" onClick={() => removeWindow(i)}>
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <div className="form-row" style={{ marginTop: 6 }}>
+            <button type="button" className="secondary" disabled={form.windows.length >= MAX_WINDOWS} onClick={addWindow}>
+              Add window
+            </button>{' '}
+            {form.windows.length === 0 && !form.otherBenefits && <span className="status-bad">A pass needs at least one window.</span>}
+          </div>
           <div className="form-row">
             <label />
-            <button type="submit" disabled={action.busy === 'save-pass' || (!form.id && form.days.length === 0)}>
+            <button type="submit" disabled={action.busy === 'save-pass' || !canSave}>
               {form.id ? 'Save changes' : 'Create pass'}
             </button>{' '}
             {form.id && (

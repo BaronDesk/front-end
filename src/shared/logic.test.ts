@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Machine, Reservation } from '../api/types';
 import { deriveBranches } from '../admin/branch/branches';
 import { currentBooking, isCancellable, knownStations } from '../portal/bookings';
-import { benefitsText, discountText } from './plans';
+import { benefitsText, discountText, NEW_WINDOW, rowsToWindows, windowRows } from './plans';
 import { entryText } from './wallet';
 
 const machine = (id: string, branchId: string, serialNumber: string): Machine => ({
@@ -83,6 +83,29 @@ describe('plan and ledger wording', () => {
     expect(benefitsText({ type: 'unlimited_free_play', window: { start: '00:00', end: '06:00' } })).toBe('Free play 00:00–06:00');
     expect(discountText('10')).toBe('−10 %');
     expect(discountText('0')).toBe('no discount');
+  });
+
+  it('turns a pass with several windows into form rows and back', () => {
+    const windows = [
+      { daysOfWeek: [5, 1, 3], startTime: '14:00', endTime: '18:00', discountPercent: 30 },
+      { daysOfWeek: [6, 0], startTime: '22:00', endTime: '02:00', discountPercent: 100 },
+    ];
+    const rows = windowRows({ windows });
+    expect(rows).toEqual([
+      { days: [1, 3, 5], startTime: '14:00', endTime: '18:00', discountPercent: '30' },
+      { days: [0, 6], startTime: '22:00', endTime: '02:00', discountPercent: '100' },
+    ]);
+    expect(rowsToWindows(rows)).toEqual([
+      { daysOfWeek: [1, 3, 5], startTime: '14:00', endTime: '18:00', discountPercent: 30 },
+      { daysOfWeek: [0, 6], startTime: '22:00', endTime: '02:00', discountPercent: 100 },
+    ]);
+  });
+
+  it('pass form rows: other benefit shapes give no rows, a row without a day blocks saving', () => {
+    expect(windowRows({ type: 'free_hours', hours: 15 })).toEqual([]);
+    expect(windowRows(null)).toEqual([]);
+    expect(rowsToWindows([])).toEqual([]);
+    expect(rowsToWindows([{ ...NEW_WINDOW, days: [] }])).toBeNull();
   });
 
   it('names ledger lines: a PAYMENT with a session is play time', () => {
