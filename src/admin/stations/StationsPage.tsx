@@ -5,9 +5,9 @@ import type { Alert, CommandType, Game, Station } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { hasRole } from '../../auth/roles';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
-import { ErrorBox } from '../../shared/ErrorBox';
-import { useApiQuery } from '../../shared/useApiQuery';
-import { useBranchScope } from '../branch/BranchContext';
+import { ErrorBox } from '../../shared/components/ErrorBox';
+import { useApiQuery } from '../../shared/hooks/useApiQuery';
+import { useBranchScope } from '../branches/BranchContext';
 import { ALERTS_PATH } from '../alerts/labels';
 import { GAMES_PATH } from '../games/games';
 import { CommandError } from './CommandError';
@@ -16,6 +16,7 @@ import { applyStatus, isOnline, screenText, shutdownConfirmText, stationLabel } 
 import { formatMetric, isHot } from './telemetry';
 import { COMMAND_LABEL, useCommands } from './useCommands';
 import { useStationList } from './useStationList';
+import { EmptyRow } from '../../shared/components/EmptyRow';
 
 function Temp({ metrics, metric }: { metrics: Record<string, number> | undefined; metric: string }) {
   const value = metrics?.[metric];
@@ -217,11 +218,7 @@ export function StationsPage() {
             );
           })}
           {!stations.loading && list.length === 0 && (
-            <tr>
-              <td colSpan={10} className="muted">
-                No stations yet. Approve new stations under <Link to="/enrollment">New stations</Link>.
-              </td>
-            </tr>
+            <EmptyRow colSpan={10}>No stations yet. Approve new stations under <Link to="/enrollment">New stations</Link>.</EmptyRow>
           )}
         </tbody>
       </table>

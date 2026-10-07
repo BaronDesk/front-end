@@ -1,4 +1,4 @@
-import type { MenuItem } from '../shared/menu';
+import type { MenuItem } from '../shared/lib/menu';
 
 // Gamer portal pages (Frontend Implementation Plan §4, step 9).
 export const PORTAL_MENU: MenuItem[] = [

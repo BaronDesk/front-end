@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 
 import type { Station } from '../../api/types';
-import { useApiQuery, type ApiQuery } from '../../shared/useApiQuery';
-import { useBranchScope } from '../branch/BranchContext';
+import { useApiQuery, type ApiQuery } from '../../shared/hooks/useApiQuery';
+import { useBranchScope } from '../branches/BranchContext';
 import { STATIONS_PATH } from './station';
 
 /**

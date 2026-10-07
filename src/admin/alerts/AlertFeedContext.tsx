@@ -2,8 +2,8 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 
 import type { Alert } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
-import { useApiQuery } from '../../shared/useApiQuery';
-import { useBranchScope } from '../branch/BranchContext';
+import { useApiQuery } from '../../shared/hooks/useApiQuery';
+import { useBranchScope } from '../branches/BranchContext';
 import { ALERTS_PATH } from './labels';
 
 interface AlertFeed {

@@ -3,15 +3,17 @@ import { useState, type FormEvent } from 'react';
 import { api, ApiError } from '../../api/http';
 import type { Game, GameAssignments, GameInput, GameLaunchType, InstalledGame, StationGame, StationGameOverrides } from '../../api/types';
 import { useRealtimeEvent } from '../../realtime/RealtimeContext';
-import { ErrorBox } from '../../shared/ErrorBox';
-import { formatDateTime } from '../../shared/format';
-import { ActionMessages, useAction } from '../../shared/useAction';
-import { useApiQuery } from '../../shared/useApiQuery';
-import { useBranchScope } from '../branch/BranchContext';
-import { StationSelect } from '../pickers';
+import { ErrorBox } from '../../shared/components/ErrorBox';
+import { formatDateTime } from '../../shared/lib/format';
+import { ActionMessages } from '../../shared/components/ActionMessages';
+import { useAction } from '../../shared/hooks/useAction';
+import { useApiQuery } from '../../shared/hooks/useApiQuery';
+import { useBranchScope } from '../branches/BranchContext';
+import { StationSelect } from '../stations/StationSelect';
 import { STATIONS_PATH } from '../stations/station';
-import { useStationNames } from '../useLookups';
+import { useStationNames } from '../stations/useStationNames';
 import { applyCatalogStatus, GAMES_PATH, installText, LAUNCH_TYPE_LABEL, LAUNCH_TYPES, TARGET_HINT } from './games';
+import { EmptyRow } from '../../shared/components/EmptyRow';
 
 interface GameForm {
   id: string | null;
@@ -240,11 +242,7 @@ export function GamesPage() {
                 </tr>
               ))}
               {!games.loading && catalog.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="muted">
-                    The catalog is empty.
-                  </td>
-                </tr>
+                <EmptyRow colSpan={7}>The catalog is empty.</EmptyRow>
               )}
             </tbody>
           </table>
@@ -395,11 +393,7 @@ export function GamesPage() {
                 </tr>
               ))}
               {!stationGames.loading && (stationGames.data ?? []).length === 0 && (
-                <tr>
-                  <td colSpan={5} className="muted">
-                    No game reaches this station yet.
-                  </td>
-                </tr>
+                <EmptyRow colSpan={5}>No game reaches this station yet.</EmptyRow>
               )}
             </tbody>
           </table>
@@ -456,11 +450,7 @@ export function GamesPage() {
             </tr>
           ))}
           {!installed.loading && (installed.data ?? []).length === 0 && (
-            <tr>
-              <td colSpan={4} className="muted">
-                No station has reported installed launcher games yet (they report after each catalog sync).
-              </td>
-            </tr>
+            <EmptyRow colSpan={4}>No station has reported installed launcher games yet (they report after each catalog sync).</EmptyRow>
           )}
         </tbody>
       </table>

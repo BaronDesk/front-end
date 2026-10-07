@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react';
 
 import { api } from '../../api/http';
 import type { ReservationStatus, StaffReservation } from '../../api/types';
-import { RESERVATION_TEXT, isCancellable, stationOf } from '../../portal/bookings';
+import { RESERVATION_TEXT, isCancellable, stationOf } from '../../shared/lib/bookings';
 import { useOnReconnect } from '../../realtime/RealtimeContext';
-import { ErrorBox } from '../../shared/ErrorBox';
-import { formatDateTime } from '../../shared/format';
-import { ActionMessages, useAction } from '../../shared/useAction';
-import { useApiQuery } from '../../shared/useApiQuery';
-import { useBranchScope } from '../branch/BranchContext';
-import { dayRange, localDateInput } from './bookings';
+import { ErrorBox } from '../../shared/components/ErrorBox';
+import { formatDateTime } from '../../shared/lib/format';
+import { ActionMessages } from '../../shared/components/ActionMessages';
+import { useAction } from '../../shared/hooks/useAction';
+import { useApiQuery } from '../../shared/hooks/useApiQuery';
+import { useBranchScope } from '../branches/BranchContext';
+import { dayRange, localDateInput } from '../../shared/lib/dates';
+import { EmptyRow } from '../../shared/components/EmptyRow';
 
 const RESERVATIONS_PATH = '/api/v1/reservations';
 
@@ -126,11 +128,7 @@ export function BookingsPage() {
             </tr>
           ))}
           {!list.loading && rows.length === 0 && (
-            <tr>
-              <td colSpan={showBranch ? 7 : 6} className="muted">
-                No booking in this time.
-              </td>
-            </tr>
+            <EmptyRow colSpan={showBranch ? 7 : 6}>No booking in this time.</EmptyRow>
           )}
         </tbody>
       </table>

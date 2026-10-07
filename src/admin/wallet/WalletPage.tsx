@@ -5,13 +5,15 @@ import type { PublicUser, Wallet, WalletEntry, WalletMovement } from '../../api/
 import { useAuth } from '../../auth/AuthContext';
 import { hasRole } from '../../auth/roles';
 import { useOnReconnect } from '../../realtime/RealtimeContext';
-import { ErrorBox } from '../../shared/ErrorBox';
-import { dinarsToMillimes, formatDateTime, formatMillimes, formatSignedMillimes } from '../../shared/format';
-import { ActionMessages, useAction } from '../../shared/useAction';
-import { useApiQuery } from '../../shared/useApiQuery';
-import { entryText } from '../../shared/wallet';
-import { useBranchScope } from '../branch/BranchContext';
-import { exactMatch, toWalletGamers, useRecentGamers, type WalletGamer } from './wallet';
+import { ErrorBox } from '../../shared/components/ErrorBox';
+import { dinarsToMillimes, formatDateTime, formatMillimes, formatSignedMillimes } from '../../shared/lib/format';
+import { ActionMessages } from '../../shared/components/ActionMessages';
+import { useAction } from '../../shared/hooks/useAction';
+import { useApiQuery } from '../../shared/hooks/useApiQuery';
+import { entryText } from '../../shared/lib/wallet';
+import { useBranchScope } from '../branches/BranchContext';
+import { exactMatch, toWalletGamers, useRecentGamers, type WalletGamer } from './gamerSearch';
+import { EmptyRow } from '../../shared/components/EmptyRow';
 
 const QUICK_DINARS = ['5', '10', '20', '50'];
 
@@ -156,11 +158,7 @@ export function WalletPage() {
               </tr>
             ))}
             {results.length === 0 && (
-              <tr>
-                <td colSpan={3} className="muted">
-                  No gamer matches “{input.trim()}”.
-                </td>
-              </tr>
+              <EmptyRow colSpan={3}>No gamer matches “{input.trim()}”.</EmptyRow>
             )}
           </tbody>
         </table>
@@ -239,11 +237,7 @@ export function WalletPage() {
                 </tr>
               ))}
               {!entries.loading && lines.length === 0 && (
-                <tr>
-                  <td colSpan={canRefund ? 5 : 4} className="muted">
-                    No movement yet.
-                  </td>
-                </tr>
+                <EmptyRow colSpan={canRefund ? 5 : 4}>No movement yet.</EmptyRow>
               )}
             </tbody>
           </table>

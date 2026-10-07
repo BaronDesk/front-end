@@ -2,12 +2,13 @@ import { useState } from 'react';
 
 import { ApiError } from '../../api/http';
 import type { AuditLogEntry } from '../../api/types';
-import { ErrorBox } from '../../shared/ErrorBox';
-import { formatDateTime } from '../../shared/format';
-import { useApiQuery } from '../../shared/useApiQuery';
-import { dayRange, localDateInput } from '../bookings/bookings';
-import { useBranchScope } from '../branch/BranchContext';
+import { ErrorBox } from '../../shared/components/ErrorBox';
+import { formatDateTime } from '../../shared/lib/format';
+import { useApiQuery } from '../../shared/hooks/useApiQuery';
+import { dayRange, localDateInput } from '../../shared/lib/dates';
+import { useBranchScope } from '../branches/BranchContext';
 import { actionText, AUDIT_ACTIONS, detailsText, isSerious, targetText } from './audit';
+import { EmptyRow } from '../../shared/components/EmptyRow';
 
 const LIST_LIMIT = 100;
 
@@ -111,11 +112,7 @@ export function AuditPage() {
             </tr>
           ))}
           {!logs.loading && !logs.error && rows.length === 0 && (
-            <tr>
-              <td colSpan={columns} className="muted">
-                Nothing recorded since that day.
-              </td>
-            </tr>
+            <EmptyRow colSpan={columns}>Nothing recorded since that day.</EmptyRow>
           )}
         </tbody>
       </table>

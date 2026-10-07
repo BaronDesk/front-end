@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 
 import { ApiError } from '../../api/http';
-import { ErrorBox } from '../../shared/ErrorBox';
+import { ErrorBox } from '../../shared/components/ErrorBox';
 import { commandErrorHint } from './station';
 
 /**

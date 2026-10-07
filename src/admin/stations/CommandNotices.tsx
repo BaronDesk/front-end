@@ -1,4 +1,4 @@
-import { formatClock } from '../../shared/format';
+import { formatClock } from '../../shared/lib/format';
 import { COMMAND_LABEL, type CommandNotice } from './useCommands';
 
 const STATUS_TEXT: Record<CommandNotice['status'], string> = {

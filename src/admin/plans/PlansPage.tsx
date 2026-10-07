@@ -2,9 +2,10 @@ import { useEffect, useState, type FormEvent } from 'react';
 
 import { api, ApiError } from '../../api/http';
 import type { BranchPricing, MembershipPlan, MembershipPlanInput, SubscriptionPlan, SubscriptionPlanInput } from '../../api/types';
-import { ErrorBox } from '../../shared/ErrorBox';
-import { CURRENCY, dinarsToMillimes, formatDateTime, formatMillimes, formatMoney, millimesToDinars } from '../../shared/format';
-import { ActionMessages, useAction, type Action } from '../../shared/useAction';
+import { ErrorBox } from '../../shared/components/ErrorBox';
+import { CURRENCY, dinarsToMillimes, formatDateTime, formatMillimes, formatMoney, millimesToDinars } from '../../shared/lib/format';
+import { ActionMessages } from '../../shared/components/ActionMessages';
+import { useAction, type Action } from '../../shared/hooks/useAction';
 import {
   benefitsText,
   discountText,
@@ -14,9 +15,9 @@ import {
   WEEK_DAYS,
   windowRows,
   type WindowRow,
-} from '../../shared/plans';
-import { useApiQuery } from '../../shared/useApiQuery';
-import { useBranchScope } from '../branch/BranchContext';
+} from '../../shared/lib/plans';
+import { useApiQuery } from '../../shared/hooks/useApiQuery';
+import { useBranchScope } from '../branches/BranchContext';
 
 /** Membership tiers: a discount on every hour of play, and how far ahead a member may book. */
 function TierSection({ action }: { action: Action }) {

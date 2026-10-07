@@ -3,10 +3,11 @@ import { Link, useParams } from 'react-router';
 
 import { api } from '../../api/http';
 import type { Command, Session } from '../../api/types';
-import { ErrorBox } from '../../shared/ErrorBox';
-import { formatDateTime, formatDuration, formatMillimes } from '../../shared/format';
-import { ActionMessages, useAction } from '../../shared/useAction';
-import { useApiQuery } from '../../shared/useApiQuery';
+import { ErrorBox } from '../../shared/components/ErrorBox';
+import { formatDateTime, formatDuration, formatMillimes } from '../../shared/lib/format';
+import { ActionMessages } from '../../shared/components/ActionMessages';
+import { useAction } from '../../shared/hooks/useAction';
+import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import { isOpenSession, SESSION_STATUS_TEXT } from './labels';
 
 /** The backend pushes no session event: an open session is re-read this often. */

@@ -93,14 +93,14 @@ Every screen reads and writes the real backend. The last column says what each s
 | Wallet (desk) | `GET /gamers?q=`, `/wallets/:gamerProfileId…` | Find the gamer by **username** (an exact name opens at once, else pick from the matches; recent gamers are remembered per browser); idempotent top-up and refund (refund: branch admin and HQ) |
 | Users & Staff | `GET /users`, `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `PATCH /users/:id/status`, `POST /users/:id/password` | List and search by username and role (HQ: everyone, or the branch picked in the top bar; a branch admin: gamers and their own staff). A new gamer needs a home branch. Suspend / Reactivate and Reset password show only where the server allows them (`src/admin/users/permissions.ts`) |
 | Plans & prices | `/branches/:id/pricing`, `/membership-plans`, `/subscription-plans` | Create, edit, delete tiers and passes. A pass has one or more time windows (days, from–to, discount), added, changed and removed in its form; gamers who already bought it keep the windows they paid for |
-| Audit log (HQ) | `GET /audit-logs?branchId&from&action&q&limit` | Who did which sensitive action, on what, when: role changes, suspensions, password resets, refunds, shutdowns, revoked stations, branch / plan / price changes (HQ: the branch in the top bar). Filter by day, action, name. **Not on the backend yet**: until it is, the page says so (404). Expected answer: `AuditLogEntry[]` in `src/api/types.ts`; action wording in `src/admin/audit/audit.ts` |
+| Audit log (HQ) | `GET /audit-logs?branchId&from&action&q&limit` | Who did which sensitive action, on what, when: role changes, suspensions, password resets, refunds, shutdowns, revoked stations, branch / plan / price changes (HQ: the branch in the top bar). Filter by day, action, name. **Not on the backend yet**: until it is, the page says so (404). Expected answer: `AuditLogEntry[]` in `src/api/types/audit.ts`; action wording in `src/admin/audit/audit.ts` |
 | Portal: sign-up, settings | `GET /branches`, `POST /users`, `PATCH /users/me/branch`, `POST /auth/change-password` | Sign-up picks the **home branch**; Settings changes it and the password. A gamer with no branch (e.g. seeded) is asked to pick one after login |
 | Portal: book, play now, my bookings | `GET /branches/:id/stations`, `/reservations`, `/reservations/walk-in`, `/reservations/:id/check-in` | Lists the home branch's stations, free or busy until when; the desk's booking link (QR) preselects a PC. The wallet must cover the whole booking (`INSUFFICIENT_FUNDS`). Every booking and Play now answers with its **PIN**, shown on the booking: it works on that PC from the start for 30 minutes, then the booking is *Missed* (no-show). *New PIN* replaces it. Cancel until someone logs in |
 | Portal: my session | `GET /sessions/me/current`, `/reservations/:id/extend-options`, `POST /reservations/:id/extend`, `session_notice` | Time played, cost so far, balance, end time; re-read every 15 s, the station's notices (low balance, time left) arrive live. **Extend** by 30 / 60 / 90 minutes near the end, if the PC is free and the wallet covers it (walk-in rate) |
 | Portal: wallet | `/wallets/me…` | No self top-up on the backend: shows the username to give the desk |
 | Portal: profile & plans | `/memberships/me`, `/subscriptions/me`, `…/purchase`, `POST /memberships/me/cancel` | Paid from the wallet, idempotent. A dearer tier is an **Upgrade** (pay the difference, prorated); **Cancel** ends the tier, no refund |
 
-**Money:** the backend stores every amount as integer **millimes** (1 DT = 1000); plan prices are the exception (decimal dinars). Screens convert with `formatMillimes` / `dinarsToMillimes` in `src/shared/format.ts` and show the server's numbers only.
+**Money:** the backend stores every amount as integer **millimes** (1 DT = 1000); plan prices are the exception (decimal dinars). Screens convert with `formatMillimes` / `dinarsToMillimes` in `src/shared/lib/format.ts` and show the server's numbers only.
 
 ### The desk and the gamer app
 
@@ -137,7 +137,7 @@ Seed first (`back-end/`), start at least one real agent (Play now needs the PC O
 - The access token is kept in memory; the refresh token in `sessionStorage` (one per app). A reload keeps you logged in; closing the tab logs out.
 - A `401` triggers one token refresh and a retry. If the refresh fails, the login page says the session expired.
 - The menu hides what the role can't use; opening such a page by URL shows **Access denied**. The server's `403` is still the real rule.
-- **Own password:** admin top bar → **Password** (`#/account`), portal → Settings. Both use `src/shared/ChangePasswordForm.tsx` (`POST /auth/change-password`): every other login of the account ends, this tab stays logged in with the new tokens. A lost password is reset by a branch admin or HQ on Users & Staff.
+- **Own password:** admin top bar → **Password** (`#/account`), portal → Settings. Both use `src/shared/components/ChangePasswordForm.tsx` (`POST /auth/change-password`): every other login of the account ends, this tab stays logged in with the new tokens. A lost password is reset by a branch admin or HQ on Users & Staff.
 
 ## Live updates
 
@@ -154,7 +154,7 @@ Seed first (`back-end/`), start at least one real agent (Play now needs the PC O
 - **Audit log** (`#/audit`, HQ only): see the screens table; it needs `GET /audit-logs` on the backend.
 - **HQ overview** (`#/hq`, HQ's start page): stations, online, in session and open alerts per branch, computed from the machines, the stations and the open alerts.
 - **Branches:** below the table, HQ creates a branch (name, location) with `POST /branches`; **Edit** on a row renames or moves it with `PATCH /branches/:id`. A new branch then needs its PCs (New stations) and its prices (Plans & prices).
-- Code: `src/admin/branch/BranchContext.tsx` (`useBranchScope()`: `scoped(path)`, `inScope(branchId)`), `src/admin/hq/HqPage.tsx`.
+- Code: `src/admin/branches/BranchContext.tsx` (`useBranchScope()`: `scoped(path)`, `inScope(branchId)`), `src/admin/branches/HqPage.tsx`.
 
 ## Build and test
 
@@ -168,14 +168,40 @@ npm test           # 30 unit tests: money, branches, bookings, plan and ledger w
 ## Layout
 
 ```text
-admin/index.html     admin entry
-portal/index.html    portal entry
-src/admin/           admin layout, menu, pages
-src/portal/          portal layout, menu, pages
-src/api/             backend types + api() (fetch with token refresh)
-src/realtime/        live updates: Socket.IO client for /dashboard-io
-src/shared/          code used by both apps
-src/styles/classic.css   the whole theme (black / white / gold / red)
+admin/index.html, portal/index.html   the two entry pages (multi-page build)
+src/
+  api/              http.ts: api() (fetch with token refresh)
+    types/          backend shapes, one file per domain (stations, sessions, bookings, wallet,
+                    plans, games, commands, alerts, audit, events…); import from 'api/types'
+  auth/             login state, tokens, role checks, route guards
+  realtime/         live updates: Socket.IO client for /dashboard-io
+  shared/           used by both apps; no app-specific code here
+    components/     TopBar + LogoutLink, ErrorBox, ActionMessages, EmptyRow, NotFoundPage,
+                    LoginForm, ChangePasswordForm, ConnectionBanner, CopyButton, PageErrorBoundary
+    hooks/          useApiQuery (GET + reload), useAction (busy / error / success of buttons)
+    lib/            pure helpers with their tests: format (money, dates), dates (day ranges),
+                    errors (explainRefusal), plans, wallet, bookings, menu types
+  admin/            the staff app
+    main.tsx, AdminApp.tsx (routes), menu.ts
+    layout/         AdminLayout (top bar, side menu), AccessDenied
+    <feature>/      one folder per menu entry: stations, sessions, bookings, wallet, alerts,
+                    users, plans, games, branches (HQ overview + branch scope), audit, account
+  portal/           the gamer app
+    main.tsx, PortalApp.tsx (routes), menu.ts
+    layout/         PortalLayout
+    <feature>/      home, booking (book, PIN), session, wallet, profile, account (sign-up, settings)
+  styles/classic.css   the whole theme (black / white / gold / red)
 ```
+
+**Where new code goes**
+- A screen goes in its app's feature folder (`src/admin/<feature>/XxxPage.tsx`), with the feature's own
+  helpers, hooks and small components next to it (`station.ts`, `useCommands.ts`, `CommandError.tsx`).
+- A pure helper's test sits next to it (`station.ts` → `station.test.ts`).
+- Code needed by **both** apps moves to `src/shared/` (`components/`, `hooks/` or `lib/`). An app never
+  imports from the other app.
+- A new backend shape goes in the matching `src/api/types/<domain>.ts` (a new domain also gets a line in
+  `src/api/types/index.ts`).
+- A server refusal shown in words: a `Record<code, sentence>` in the page and `explainRefusal(err, map)`
+  from `shared/lib/errors.ts`.
 
 Routing uses hash URLs (`/admin/#/stations`) and the build uses relative asset paths, so the apps work behind a plain file server (Caddy) or inside a desktop shell, with no server rewrite rules.

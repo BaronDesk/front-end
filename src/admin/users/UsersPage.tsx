@@ -4,12 +4,14 @@ import { api } from '../../api/http';
 import type { AccountStatus, PublicUser, Role } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { hasRole, ROLE_LABEL } from '../../auth/roles';
-import { ErrorBox } from '../../shared/ErrorBox';
-import { formatDateTime } from '../../shared/format';
-import { ActionMessages, useAction } from '../../shared/useAction';
-import { useApiQuery } from '../../shared/useApiQuery';
-import { useBranchScope } from '../branch/BranchContext';
+import { ErrorBox } from '../../shared/components/ErrorBox';
+import { formatDateTime } from '../../shared/lib/format';
+import { ActionMessages } from '../../shared/components/ActionMessages';
+import { useAction } from '../../shared/hooks/useAction';
+import { useApiQuery } from '../../shared/hooks/useApiQuery';
+import { useBranchScope } from '../branches/BranchContext';
 import { accountBranchId, canChangeRole, canResetPassword, canSetStatus } from './permissions';
+import { EmptyRow } from '../../shared/components/EmptyRow';
 
 const STAFF_ROLES: Role[] = ['EMPLOYEE', 'MANAGER'];
 const ALL_ROLES: Role[] = ['GAMER', 'EMPLOYEE', 'MANAGER', 'ADMIN'];
@@ -279,11 +281,7 @@ export function UsersPage() {
             );
           })}
           {!list.loading && rows.length === 0 && (
-            <tr>
-              <td colSpan={7} className="muted">
-                No account matches.
-              </td>
-            </tr>
+            <EmptyRow colSpan={7}>No account matches.</EmptyRow>
           )}
         </tbody>
       </table>

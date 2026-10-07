@@ -3,12 +3,14 @@ import { useEffect, useState } from 'react';
 import { api } from '../../api/http';
 import type { EnrollmentToken, Machine, MachineEnrollmentStatus } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
-import { ErrorBox } from '../../shared/ErrorBox';
-import { formatAgo, formatDateTime, useNow } from '../../shared/format';
-import { ActionMessages, useAction } from '../../shared/useAction';
-import { useApiQuery } from '../../shared/useApiQuery';
-import { useBranchScope } from '../branch/BranchContext';
+import { ErrorBox } from '../../shared/components/ErrorBox';
+import { formatAgo, formatDateTime, useNow } from '../../shared/lib/format';
+import { ActionMessages } from '../../shared/components/ActionMessages';
+import { useAction } from '../../shared/hooks/useAction';
+import { useApiQuery } from '../../shared/hooks/useApiQuery';
+import { useBranchScope } from '../branches/BranchContext';
 import { stationLabel } from './station';
+import { EmptyRow } from '../../shared/components/EmptyRow';
 
 const MACHINES_PATH = '/machines';
 
@@ -212,11 +214,7 @@ export function EnrollmentPage() {
             </tr>
           ))}
           {!machines.loading && list.length === 0 && (
-            <tr>
-              <td colSpan={7} className="muted">
-                {filter === 'PENDING' ? 'No PC is waiting for approval.' : 'Nothing here.'}
-              </td>
-            </tr>
+            <EmptyRow colSpan={7}>{filter === 'PENDING' ? 'No PC is waiting for approval.' : 'Nothing here.'}</EmptyRow>
           )}
         </tbody>
       </table>

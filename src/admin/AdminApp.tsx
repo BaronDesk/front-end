@@ -4,20 +4,20 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router';
 import { AuthProvider, useAuth } from '../auth/AuthContext';
 import { RequireAuth, RequireRole } from '../auth/guards';
 import { RealtimeProvider } from '../realtime/RealtimeContext';
-import { LoginForm } from '../shared/LoginForm';
-import { AdminLayout, AdminLoginLayout } from './AdminLayout';
+import { LoginForm } from '../shared/components/LoginForm';
+import { NotFoundPage } from '../shared/components/NotFoundPage';
+import { AdminLayout, AdminLoginLayout } from './layout/AdminLayout';
 import { AlertsPage } from './alerts/AlertsPage';
 import { AuditPage } from './audit/AuditPage';
 import { BookingsPage } from './bookings/BookingsPage';
 import { GamesPage } from './games/GamesPage';
-import { HqPage } from './hq/HqPage';
+import { HqPage } from './branches/HqPage';
 import { ADMIN_MENU } from './menu';
-import { AccessDenied } from './pages/AccessDenied';
-import { AccountPage } from './pages/AccountPage';
+import { AccessDenied } from './layout/AccessDenied';
+import { AccountPage } from './account/AccountPage';
 import { PlansPage } from './plans/PlansPage';
 import { SessionBillPage } from './sessions/SessionBillPage';
 import { SessionsPage } from './sessions/SessionsPage';
-import { NotFound } from './pages/NotFound';
 import { EnrollmentPage } from './stations/EnrollmentPage';
 import { StationDetailPage } from './stations/StationDetailPage';
 import { StationsPage } from './stations/StationsPage';
@@ -83,7 +83,7 @@ export function AdminApp() {
                 <Route path="/sessions/:id" element={<SessionBillPage />} />
                 <Route path="/account" element={<AccountPage />} />
                 <Route path="/denied" element={<AccessDenied />} />
-                <Route path="*" element={<NotFound />} />
+                <Route path="*" element={<NotFoundPage back="stations" />} />
               </Route>
             </Route>
           </Routes>

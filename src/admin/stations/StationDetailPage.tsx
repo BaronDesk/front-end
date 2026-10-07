@@ -17,12 +17,13 @@ import type {
 import { useAuth } from '../../auth/AuthContext';
 import { hasRole } from '../../auth/roles';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
-import { CopyButton } from '../../shared/CopyButton';
-import { ErrorBox } from '../../shared/ErrorBox';
-import { formatAgo, formatClock, formatDateTime, formatDuration, secondsSince, useNow } from '../../shared/format';
-import { ActionMessages, useAction } from '../../shared/useAction';
-import { useApiQuery } from '../../shared/useApiQuery';
-import { useBranchScope } from '../branch/BranchContext';
+import { CopyButton } from '../../shared/components/CopyButton';
+import { ErrorBox } from '../../shared/components/ErrorBox';
+import { formatAgo, formatClock, formatDateTime, formatDuration, secondsSince, useNow } from '../../shared/lib/format';
+import { ActionMessages } from '../../shared/components/ActionMessages';
+import { useAction } from '../../shared/hooks/useAction';
+import { useApiQuery } from '../../shared/hooks/useApiQuery';
+import { useBranchScope } from '../branches/BranchContext';
 import { ALERTS_PATH, alertDetail, isSevere, repeatText, typeLabel } from '../alerts/labels';
 import { applyCatalogStatus } from '../games/games';
 import { SESSION_STATUS_TEXT } from '../sessions/labels';
@@ -40,6 +41,7 @@ import {
 } from './station';
 import { appendReading, describeMetric, formatMetric, isHot, sortedMetrics, summarize } from './telemetry';
 import { COMMAND_LABEL, isOpen, useCommands } from './useCommands';
+import { EmptyRow } from '../../shared/components/EmptyRow';
 
 /** Telemetry history spans the desk can pick (the server keeps up to 48 hours). */
 const HISTORY_HOURS = [1, 6, 24, 48];
@@ -437,11 +439,7 @@ export function StationDetailPage() {
             </tr>
           ))}
           {(log.data ?? []).length === 0 && (
-            <tr>
-              <td colSpan={4} className="muted">
-                No commands sent to this station yet.
-              </td>
-            </tr>
+            <EmptyRow colSpan={4}>No commands sent to this station yet.</EmptyRow>
           )}
         </tbody>
       </table>
@@ -470,11 +468,7 @@ export function StationDetailPage() {
             </tr>
           ))}
           {stationAlerts.length === 0 && (
-            <tr>
-              <td colSpan={5} className="muted">
-                No alerts for this station.
-              </td>
-            </tr>
+            <EmptyRow colSpan={5}>No alerts for this station.</EmptyRow>
           )}
         </tbody>
       </table>

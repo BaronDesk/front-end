@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router';
 
-import { useStationNames } from '../useLookups';
+import { useStationNames } from '../stations/useStationNames';
 import { useAlertFeed } from './AlertFeedContext';
 import { alertDetail, repeatText, typeLabel } from './labels';
 

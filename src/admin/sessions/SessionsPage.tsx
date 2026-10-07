@@ -4,16 +4,18 @@ import { Link } from 'react-router';
 import { api } from '../../api/http';
 import type { Command, Session, SessionStatus, StaffSession, Station } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
-import { ErrorBox } from '../../shared/ErrorBox';
-import { formatClock, formatDateTime, formatDuration, formatMillimes, secondsSince, useNow } from '../../shared/format';
-import { ActionMessages, useAction } from '../../shared/useAction';
-import { useApiQuery } from '../../shared/useApiQuery';
-import { dayRange, localDateInput } from '../bookings/bookings';
-import { useBranchScope } from '../branch/BranchContext';
+import { ErrorBox } from '../../shared/components/ErrorBox';
+import { formatClock, formatDateTime, formatDuration, formatMillimes, secondsSince, useNow } from '../../shared/lib/format';
+import { ActionMessages } from '../../shared/components/ActionMessages';
+import { useAction } from '../../shared/hooks/useAction';
+import { useApiQuery } from '../../shared/hooks/useApiQuery';
+import { dayRange, localDateInput } from '../../shared/lib/dates';
+import { useBranchScope } from '../branches/BranchContext';
 import { applyStatus, stationLabel } from '../stations/station';
 import { useStationList } from '../stations/useStationList';
-import { useStationNames } from '../useLookups';
+import { useStationNames } from '../stations/useStationNames';
 import { isOpenSession, SESSION_STATUS_TEXT } from './labels';
+import { EmptyRow } from '../../shared/components/EmptyRow';
 
 const LIST_LIMIT = 100;
 const LIST_STATUSES: SessionStatus[] = ['ACTIVE', 'PAUSED', 'PENDING', 'COMPLETED', 'CANCELLED'];
@@ -94,11 +96,7 @@ export function SessionsPage() {
             <RunningRow key={s.id} station={s} action={action} />
           ))}
           {!stations.loading && running.length === 0 && (
-            <tr>
-              <td colSpan={5} className="muted">
-                No station reports a session.
-              </td>
-            </tr>
+            <EmptyRow colSpan={5}>No station reports a session.</EmptyRow>
           )}
         </tbody>
       </table>
@@ -142,11 +140,7 @@ export function SessionsPage() {
             <SessionRow key={s.id} session={s} branch={showBranch ? branchName(s.station.branchId) : null} />
           ))}
           {!sessions.loading && rows.length === 0 && (
-            <tr>
-              <td colSpan={showBranch ? 8 : 7} className="muted">
-                No session since that day.
-              </td>
-            </tr>
+            <EmptyRow colSpan={showBranch ? 8 : 7}>No session since that day.</EmptyRow>
           )}
         </tbody>
       </table>

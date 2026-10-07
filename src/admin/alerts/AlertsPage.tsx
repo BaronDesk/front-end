@@ -4,13 +4,14 @@ import { Link } from 'react-router';
 import { api } from '../../api/http';
 import type { Alert, AlertCategory, AlertSeverity, AlertStatus } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
-import { ErrorBox } from '../../shared/ErrorBox';
-import { formatAgo, formatDateTime, useNow } from '../../shared/format';
-import { useApiQuery } from '../../shared/useApiQuery';
-import { useBranchScope } from '../branch/BranchContext';
-import { useStationNames } from '../useLookups';
+import { ErrorBox } from '../../shared/components/ErrorBox';
+import { formatAgo, formatDateTime, useNow } from '../../shared/lib/format';
+import { useApiQuery } from '../../shared/hooks/useApiQuery';
+import { useBranchScope } from '../branches/BranchContext';
+import { useStationNames } from '../stations/useStationNames';
 import { useAlertFeed } from './AlertFeedContext';
 import { ALERTS_PATH, alertDetail, CATEGORY_LABEL, isSevere, repeatText, SEVERITIES, typeLabel } from './labels';
+import { EmptyRow } from '../../shared/components/EmptyRow';
 
 type StatusFilter = AlertStatus | 'all';
 
@@ -196,11 +197,7 @@ export function AlertsPage() {
             </tr>
           ))}
           {!alerts.loading && list.length === 0 && (
-            <tr>
-              <td colSpan={9} className="muted">
-                No alerts match these filters.
-              </td>
-            </tr>
+            <EmptyRow colSpan={9}>No alerts match these filters.</EmptyRow>
           )}
         </tbody>
       </table>

@@ -1,4 +1,4 @@
-import type { MenuItem } from '../shared/menu';
+import type { MenuItem } from '../shared/lib/menu';
 
 // Order = the order staff use them at the desk. Roles follow brief §5:
 // Staff = EMPLOYEE, Branch admin = MANAGER, HQ = ADMIN.

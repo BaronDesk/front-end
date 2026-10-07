@@ -1,16 +1,9 @@
-/*
- * BaronDesk classic theme: a plain 2011 web app.
- * Palette from Graphic-Charter/Palette.txt. No UI library, no icons,
- * no animations. Tables, forms and buttons only.
- */
 
 :root {
   --black: #0d0d0d;
   --white: #ffffff;
   --offwhite: #efe5d2;
   --gold: #c28d39;
-  /* Charter gold is too light for small text on white; this darker shade
-     of the same hue is used for links and headings on white only. */
   --gold-text: #8a6424;
   --red: #710912;
   --red-dark: #4a050b;
