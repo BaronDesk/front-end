@@ -7,6 +7,7 @@ import { RealtimeProvider } from '../realtime/RealtimeContext';
 import { LoginForm } from '../shared/LoginForm';
 import { AdminLayout, AdminLoginLayout } from './AdminLayout';
 import { AlertsPage } from './alerts/AlertsPage';
+import { AuditPage } from './audit/AuditPage';
 import { BookingsPage } from './bookings/BookingsPage';
 import { GamesPage } from './games/GamesPage';
 import { HqPage } from './hq/HqPage';
@@ -35,6 +36,7 @@ const PAGES: Record<string, ReactNode> = {
   '/sessions': <SessionsPage />,
   '/bookings': <BookingsPage />,
   '/hq': <HqPage />,
+  '/audit': <AuditPage />,
 };
 
 /** HQ starts on the all-branches overview; everyone else on their stations. */

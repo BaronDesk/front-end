@@ -24,7 +24,7 @@ Both applications talk only to the real BaronDesk backend; there is no fake or d
 | Money | Desk top-up and refund by username | Wallet balance and history |
 | Plans | Membership tiers, passes and play prices per branch | Buy, upgrade or cancel a membership; buy a pass |
 | Games and alerts | Game catalog per branch and station; hardware and anti-theft alerts | — |
-| Multi-branch | HQ overview of every branch, branch switcher, branch creation | — |
+| Multi-branch | HQ overview of every branch, branch switcher, branch creation, audit log of sensitive actions | — |
 
 ---
 
@@ -55,7 +55,7 @@ cp .env.example .env.local   # then set VITE_BACKEND_URL
 npm run dev                  # http://localhost:5173
 ```
 
-The dev server forwards every backend path (`/auth`, `/users`, `/gamers`, `/employees`, `/health`, `/api`, `/machines`, `/branches`, `/wallets`, `/membership-plans`, `/memberships`, `/subscription-plans`, `/subscriptions`, `/reservations`, `/sessions`, and the `/dashboard-io` socket) to `VITE_BACKEND_URL`. A new backend module needs a line in `BACKEND_PATHS` in `vite.config.ts`.
+The dev server forwards every backend path (`/auth`, `/users`, `/gamers`, `/employees`, `/health`, `/api`, `/machines`, `/branches`, `/wallets`, `/membership-plans`, `/memberships`, `/subscription-plans`, `/subscriptions`, `/reservations`, `/sessions`, `/audit-logs`, and the `/dashboard-io` socket) to `VITE_BACKEND_URL`. A new backend module needs a line in `BACKEND_PATHS` in `vite.config.ts`.
 
 The backend runs on the same PC: start it in `back-end/` with `npm run docker:dev` (Nest on `http://localhost:3000`, the default `VITE_BACKEND_URL`). Restart `npm run dev` after changing `.env.local`.
 
@@ -93,6 +93,7 @@ Every screen reads and writes the real backend. The last column says what each s
 | Wallet (desk) | `GET /gamers?q=`, `/wallets/:gamerProfileId…` | Find the gamer by **username** (an exact name opens at once, else pick from the matches; recent gamers are remembered per browser); idempotent top-up and refund (refund: branch admin and HQ) |
 | Users & Staff | `GET /users`, `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `PATCH /users/:id/status`, `POST /users/:id/password` | List and search by username and role (HQ: everyone, or the branch picked in the top bar; a branch admin: gamers and their own staff). A new gamer needs a home branch. Suspend / Reactivate and Reset password show only where the server allows them (`src/admin/users/permissions.ts`) |
 | Plans & prices | `/branches/:id/pricing`, `/membership-plans`, `/subscription-plans` | Create, edit, delete tiers and passes. A pass has one or more time windows (days, from–to, discount), added, changed and removed in its form; gamers who already bought it keep the windows they paid for |
+| Audit log (HQ) | `GET /audit-logs?branchId&from&action&q&limit` | Who did which sensitive action, on what, when: role changes, suspensions, password resets, refunds, shutdowns, revoked stations, branch / plan / price changes (HQ: the branch in the top bar). Filter by day, action, name. **Not on the backend yet**: until it is, the page says so (404). Expected answer: `AuditLogEntry[]` in `src/api/types.ts`; action wording in `src/admin/audit/audit.ts` |
 | Portal: sign-up, settings | `GET /branches`, `POST /users`, `PATCH /users/me/branch`, `POST /auth/change-password` | Sign-up picks the **home branch**; Settings changes it and the password. A gamer with no branch (e.g. seeded) is asked to pick one after login |
 | Portal: book, play now, my bookings | `GET /branches/:id/stations`, `/reservations`, `/reservations/walk-in`, `/reservations/:id/check-in` | Lists the home branch's stations, free or busy until when; the desk's booking link (QR) preselects a PC. The wallet must cover the whole booking (`INSUFFICIENT_FUNDS`). Every booking and Play now answers with its **PIN**, shown on the booking: it works on that PC from the start for 30 minutes, then the booking is *Missed* (no-show). *New PIN* replaces it. Cancel until someone logs in |
 | Portal: my session | `GET /sessions/me/current`, `/reservations/:id/extend-options`, `POST /reservations/:id/extend`, `session_notice` | Time played, cost so far, balance, end time; re-read every 15 s, the station's notices (low balance, time left) arrive live. **Extend** by 30 / 60 / 90 minutes near the end, if the PC is free and the wallet covers it (walk-in rate) |
@@ -150,6 +151,7 @@ Seed first (`back-end/`), start at least one real agent (Play now needs the PC O
 
 - HQ (`ADMIN`, `branchId = null`) gets a **Branch** dropdown in the top bar: *All branches* or one branch. Branch admins and staff see their branch name as plain text.
 - With a branch picked, lists ask for `?branchId=…` and live events from other branches are ignored, so actions run on the selected branch. The choice survives a reload (per tab).
+- **Audit log** (`#/audit`, HQ only): see the screens table; it needs `GET /audit-logs` on the backend.
 - **HQ overview** (`#/hq`, HQ's start page): stations, online, in session and open alerts per branch, computed from the machines, the stations and the open alerts.
 - **Branches:** below the table, HQ creates a branch (name, location) with `POST /branches`; **Edit** on a row renames or moves it with `PATCH /branches/:id`. A new branch then needs its PCs (New stations) and its prices (Plans & prices).
 - Code: `src/admin/branch/BranchContext.tsx` (`useBranchScope()`: `scoped(path)`, `inScope(branchId)`), `src/admin/hq/HqPage.tsx`.
@@ -159,7 +161,7 @@ Seed first (`back-end/`), start at least one real agent (Play now needs the PC O
 ```sh
 npm run build      # typecheck + vite build → dist/
 npm run typecheck
-npm test           # 27 unit tests: money, branches, bookings, plan and ledger wording, pass windows, Users page permissions,
+npm test           # 30 unit tests: money, branches, bookings, plan and ledger wording, pass windows, audit wording, Users page permissions,
                    # wallet search, booking dates, peripherals, telemetry history, command wording
 ```
 
