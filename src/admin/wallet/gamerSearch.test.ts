@@ -11,6 +11,7 @@ const gamer = (username: string, gamerProfileId: string | null): PublicUser => (
   branchId: null,
   gamerProfileId,
   homeBranchId: null,
+  avatarUrl: null,
   createdAt: '2026-10-01T00:00:00Z',
 });
 

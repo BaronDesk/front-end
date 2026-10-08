@@ -16,6 +16,7 @@ import { ADMIN_MENU } from './menu';
 import { AccessDenied } from './layout/AccessDenied';
 import { AccountPage } from './account/AccountPage';
 import { PlansPage } from './plans/PlansPage';
+import { RanksPage } from './ranks/RanksPage';
 import { SessionBillPage } from './sessions/SessionBillPage';
 import { SessionsPage } from './sessions/SessionsPage';
 import { EnrollmentPage } from './stations/EnrollmentPage';
@@ -32,6 +33,7 @@ const PAGES: Record<string, ReactNode> = {
   '/users': <UsersPage />,
   '/wallet': <WalletPage />,
   '/plans': <PlansPage />,
+  '/ranks': <RanksPage />,
   '/games': <GamesPage />,
   '/sessions': <SessionsPage />,
   '/bookings': <BookingsPage />,

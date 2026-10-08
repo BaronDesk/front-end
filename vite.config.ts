@@ -21,6 +21,8 @@ const BACKEND_PATHS = [
   '/reservations',
   '/sessions',
   '/audit-logs',
+  '/ranks',
+  '/uploads',
 ];
 
 export default defineConfig(({ mode }) => {

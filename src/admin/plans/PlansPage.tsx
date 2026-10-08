@@ -1,8 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
 
 import { api, ApiError } from '../../api/http';
+import { uploadImage } from '../../api/images';
 import type { BranchPricing, MembershipPlan, MembershipPlanInput, SubscriptionPlan, SubscriptionPlanInput } from '../../api/types';
 import { ErrorBox } from '../../shared/components/ErrorBox';
+import { ImageField } from '../../shared/components/ImageField';
+import { Thumb } from '../../shared/components/Thumb';
 import { CURRENCY, dinarsToMillimes, formatDateTime, formatMillimes, formatMoney, millimesToDinars } from '../../shared/lib/format';
 import { ActionMessages } from '../../shared/components/ActionMessages';
 import { useAction, type Action } from '../../shared/hooks/useAction';
@@ -22,8 +25,17 @@ import { useBranchScope } from '../branches/BranchContext';
 /** Membership tiers: a discount on every hour of play, and how far ahead a member may book. */
 function TierSection({ action }: { action: Action }) {
   const tiers = useApiQuery<MembershipPlan[]>('/membership-plans');
-  const empty = { id: null as string | null, name: '', price: '', durationDays: '30', discountPercent: '10', bookingAdvanceDays: '7' };
+  const empty = {
+    id: null as string | null,
+    name: '',
+    price: '',
+    durationDays: '30',
+    discountPercent: '10',
+    bookingAdvanceDays: '7',
+    badgeUrl: null as string | null,
+  };
   const [form, setForm] = useState(empty);
+  const [uploading, setUploading] = useState(false);
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -33,6 +45,7 @@ function TierSection({ action }: { action: Action }) {
       durationDays: Number(form.durationDays),
       discountPercent: Number(form.discountPercent),
       bookingAdvanceDays: Number(form.bookingAdvanceDays),
+      badgeUrl: form.badgeUrl,
     };
     const saved = await action.run(
       'save-tier',
@@ -71,7 +84,10 @@ function TierSection({ action }: { action: Action }) {
           {(tiers.data ?? []).map((p) => (
             <tr key={p.id}>
               <td>
-                <b>{p.name}</b>
+                <span className="with-thumb">
+                  <Thumb url={p.badgeUrl} />
+                  <b>{p.name}</b>
+                </span>
               </td>
               <td>{formatMoney(p.price)}</td>
               <td>{discountText(p.discountPercent)}</td>
@@ -89,6 +105,7 @@ function TierSection({ action }: { action: Action }) {
                       durationDays: String(p.durationDays),
                       discountPercent: String(Number(p.discountPercent)),
                       bookingAdvanceDays: String(p.bookingAdvanceDays),
+                      badgeUrl: p.badgeUrl,
                     })
                   }
                 >
@@ -153,9 +170,17 @@ function TierSection({ action }: { action: Action }) {
               onChange={(e) => setForm({ ...form, durationDays: e.target.value })}
             />
           </div>
+          <ImageField
+            id="t-badge"
+            label="Badge"
+            value={form.badgeUrl}
+            upload={uploadImage}
+            onChange={(badgeUrl) => setForm((f) => ({ ...f, badgeUrl }))}
+            onBusy={setUploading}
+          />
           <div className="form-row">
             <label />
-            <button type="submit" disabled={action.busy === 'save-tier'}>
+            <button type="submit" disabled={action.busy === 'save-tier' || uploading}>
               {form.id ? 'Save changes' : 'Create tier'}
             </button>{' '}
             {form.id && (
@@ -187,15 +212,17 @@ function PassSection({ action }: { action: Action }) {
     // Editing a pass whose benefits aren't windows (seeded shapes): saved
     // without benefits, so they stay, unless windows are added.
     otherBenefits: false,
+    badgeUrl: null as string | null,
   };
   const [form, setForm] = useState(empty);
+  const [uploading, setUploading] = useState(false);
   const windows = rowsToWindows(form.windows);
   const canSave = windows !== null && (windows.length > 0 || form.otherBenefits);
 
   async function save(e: FormEvent) {
     e.preventDefault();
     if (!windows || !canSave) return;
-    const base = { name: form.name.trim(), price: Number(form.price), durationDays: Number(form.durationDays) };
+    const base = { name: form.name.trim(), price: Number(form.price), durationDays: Number(form.durationDays), badgeUrl: form.badgeUrl };
     const body: Partial<SubscriptionPlanInput> = windows.length ? { ...base, benefits: { windows } } : base;
     const saved = await action.run(
       'save-pass',
@@ -216,7 +243,15 @@ function PassSection({ action }: { action: Action }) {
 
   function edit(p: SubscriptionPlan) {
     const rows = windowRows(p.benefits);
-    setForm({ id: p.id, name: p.name, price: String(Number(p.price)), durationDays: String(p.durationDays), windows: rows, otherBenefits: rows.length === 0 });
+    setForm({
+      id: p.id,
+      name: p.name,
+      price: String(Number(p.price)),
+      durationDays: String(p.durationDays),
+      windows: rows,
+      otherBenefits: rows.length === 0,
+      badgeUrl: p.badgeUrl,
+    });
   }
 
   function setWindow(i: number, change: Partial<WindowRow>) {
@@ -255,7 +290,10 @@ function PassSection({ action }: { action: Action }) {
           {(passes.data ?? []).map((p) => (
             <tr key={p.id}>
               <td>
-                <b>{p.name}</b>
+                <span className="with-thumb">
+                  <Thumb url={p.badgeUrl} />
+                  <b>{p.name}</b>
+                </span>
               </td>
               <td>{formatMoney(p.price)}</td>
               <td>{benefitsText(p.benefits)}</td>
@@ -297,6 +335,14 @@ function PassSection({ action }: { action: Action }) {
               onChange={(e) => setForm({ ...form, durationDays: e.target.value })}
             />
           </div>
+          <ImageField
+            id="p-badge"
+            label="Badge"
+            value={form.badgeUrl}
+            upload={uploadImage}
+            onChange={(badgeUrl) => setForm((f) => ({ ...f, badgeUrl }))}
+            onBusy={setUploading}
+          />
           <p className="muted">
             Windows: when the pass gives its discount (100 % = free). A window that ends before it starts runs past
             midnight. Changes apply to new buyers; gamers who already bought the pass keep what they paid for.
@@ -365,7 +411,7 @@ function PassSection({ action }: { action: Action }) {
           </div>
           <div className="form-row">
             <label />
-            <button type="submit" disabled={action.busy === 'save-pass' || !canSave}>
+            <button type="submit" disabled={action.busy === 'save-pass' || !canSave || uploading}>
               {form.id ? 'Save changes' : 'Create pass'}
             </button>{' '}
             {form.id && (

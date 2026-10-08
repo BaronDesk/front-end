@@ -13,6 +13,8 @@ export * from './commands';
 export * from './alerts';
 export * from './wallet';
 export * from './plans';
+export * from './ranks';
+export * from './uploads';
 export * from './bookings';
 export * from './sessions';
 export * from './audit';

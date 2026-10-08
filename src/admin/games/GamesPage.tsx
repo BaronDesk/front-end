@@ -1,9 +1,12 @@
 import { useState, type FormEvent } from 'react';
 
 import { api, ApiError } from '../../api/http';
+import { uploadImage } from '../../api/images';
 import type { Game, GameAssignments, GameInput, GameLaunchType, InstalledGame, StationGame, StationGameOverrides } from '../../api/types';
 import { useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/components/ErrorBox';
+import { ImageField } from '../../shared/components/ImageField';
+import { Thumb } from '../../shared/components/Thumb';
 import { formatDateTime } from '../../shared/lib/format';
 import { ActionMessages } from '../../shared/components/ActionMessages';
 import { useAction } from '../../shared/hooks/useAction';
@@ -24,7 +27,7 @@ interface GameForm {
   arguments: string;
   workingDirectory: string;
   processName: string;
-  iconUrl: string;
+  iconUrl: string | null;
   enabled: boolean;
 }
 
@@ -37,7 +40,7 @@ const EMPTY: GameForm = {
   arguments: '',
   workingDirectory: '',
   processName: '',
-  iconUrl: '',
+  iconUrl: null,
   enabled: true,
 };
 
@@ -51,7 +54,7 @@ function toForm(g: Game): GameForm {
     arguments: g.arguments ?? '',
     workingDirectory: g.workingDirectory ?? '',
     processName: g.processName ?? '',
-    iconUrl: g.iconUrl ?? '',
+    iconUrl: g.iconUrl,
     enabled: g.enabled,
   };
 }
@@ -68,7 +71,7 @@ function toInput(f: GameForm): GameInput {
     arguments: f.launchType === 'epic' ? null : orNull(f.arguments),
     workingDirectory: f.launchType === 'exe' ? orNull(f.workingDirectory) : null,
     processName: orNull(f.processName),
-    iconUrl: orNull(f.iconUrl),
+    iconUrl: f.iconUrl,
     enabled: f.enabled,
   };
 }
@@ -84,6 +87,7 @@ export function GamesPage() {
   const action = useAction();
   const { branchId, branchName } = useBranchScope();
   const [form, setForm] = useState<GameForm>(EMPTY);
+  const [uploading, setUploading] = useState(false);
   const [branchGame, setBranchGame] = useState('');
   const [stationId, setStationId] = useState('');
   const [addGame, setAddGame] = useState('');
@@ -214,7 +218,10 @@ export function GamesPage() {
               {catalog.map((g) => (
                 <tr key={g.id} className={g.enabled ? '' : 'row-muted'}>
                   <td>
-                    <b>{g.name}</b>
+                    <span className="with-thumb">
+                      <Thumb url={g.iconUrl} />
+                      <b>{g.name}</b>
+                    </span>
                   </td>
                   <td>
                     <code>{g.gameId}</code>
@@ -316,17 +323,21 @@ export function GamesPage() {
                 onChange={(e) => setForm({ ...form, processName: e.target.value })}
               />
             </div>
-            <div className="form-row">
-              <label htmlFor="g-icon">Icon URL</label>
-              <input id="g-icon" size={34} placeholder="optional" value={form.iconUrl} onChange={(e) => setForm({ ...form, iconUrl: e.target.value })} />
-            </div>
+            <ImageField
+              id="g-icon"
+              label="Image"
+              value={form.iconUrl}
+              upload={uploadImage}
+              onChange={(iconUrl) => setForm((f) => ({ ...f, iconUrl }))}
+              onBusy={setUploading}
+            />
             <div className="form-row">
               <label htmlFor="g-enabled">Enabled</label>
               <input id="g-enabled" type="checkbox" checked={form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })} />
             </div>
             <div className="form-row">
               <label />
-              <button type="submit" disabled={action.busy === 'save'}>
+              <button type="submit" disabled={action.busy === 'save' || uploading}>
                 {form.id ? 'Save changes' : 'Add game'}
               </button>{' '}
               {form.id && (

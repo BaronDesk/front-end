@@ -19,6 +19,7 @@ export interface Game {
   workingDirectory: string | null;
   /** e.g. cs2.exe: lets the agent track the game and close it at session end. */
   processName: string | null;
+  /** /uploads/images/<id>.webp, or null. */
   iconUrl: string | null;
   /** A disabled game stays in the catalog but reaches no station. */
   enabled: boolean;
@@ -59,6 +60,7 @@ export interface GameInput {
   arguments?: string | null;
   workingDirectory?: string | null;
   processName?: string | null;
+  /** A link from uploadImage() (any other link is refused); null removes it. */
   iconUrl?: string | null;
   enabled?: boolean;
   sortOrder?: number;

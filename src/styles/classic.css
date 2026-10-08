@@ -391,6 +391,35 @@ label.inline {
   margin-right: 8px;
 }
 
+/* ---------- Images (badges, game images, avatars) ---------- */
+
+.thumb {
+  object-fit: contain;
+  vertical-align: middle;
+  border: 1px solid var(--border);
+  background: var(--offwhite);
+}
+
+.thumb-round {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* A name with its badge in front. */
+.with-thumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Current image, file picker and Remove on one line (wraps on a phone). */
+.image-field {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* ---------- Buttons ---------- */
 
 button,

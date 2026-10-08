@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { hasRole } from '../../auth/roles';
 import { useOnReconnect } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/components/ErrorBox';
+import { Thumb } from '../../shared/components/Thumb';
 import { dinarsToMillimes, formatDateTime, formatMillimes, formatSignedMillimes } from '../../shared/lib/format';
 import { ActionMessages } from '../../shared/components/ActionMessages';
 import { useAction } from '../../shared/hooks/useAction';
@@ -146,7 +147,10 @@ export function WalletPage() {
             {results.map((u) => (
               <tr key={u.id}>
                 <td>
-                  <b>{u.username}</b>
+                  <span className="with-thumb">
+                    <Thumb url={u.avatarUrl} size={24} round />
+                    <b>{u.username}</b>
+                  </span>
                   {u.accountStatus !== 'ACTIVE' && <span className="status-bad"> ({u.accountStatus.toLowerCase()})</span>}
                 </td>
                 <td>{u.homeBranchId ? branchName(u.homeBranchId) : <span className="muted">—</span>}</td>

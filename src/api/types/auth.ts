@@ -16,6 +16,8 @@ export interface PublicUser {
   gamerProfileId: string | null;
   /** The branch a gamer plays at: the booking page lists its stations. */
   homeBranchId: string | null;
+  /** A gamer's profile picture (/uploads/avatars/<id>.webp), or null. Set with setMyAvatar(). */
+  avatarUrl: string | null;
   createdAt: string;
 }
 

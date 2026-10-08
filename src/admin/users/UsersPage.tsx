@@ -5,6 +5,7 @@ import type { AccountStatus, PublicUser, Role } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { hasRole, ROLE_LABEL } from '../../auth/roles';
 import { ErrorBox } from '../../shared/components/ErrorBox';
+import { Thumb } from '../../shared/components/Thumb';
 import { formatDateTime } from '../../shared/lib/format';
 import { ActionMessages } from '../../shared/components/ActionMessages';
 import { useAction } from '../../shared/hooks/useAction';
@@ -236,7 +237,10 @@ export function UsersPage() {
             return (
               <tr key={u.id}>
                 <td>
-                  <b>{u.username}</b>
+                  <span className="with-thumb">
+                    <Thumb url={u.avatarUrl} size={24} round />
+                    <b>{u.username}</b>
+                  </span>
                   {u.id === user?.id && <span className="muted"> (you)</span>}
                 </td>
                 <td>{ROLE_LABEL[u.role]}</td>

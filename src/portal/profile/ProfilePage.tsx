@@ -1,9 +1,12 @@
 import { useState } from 'react';
 
 import { api, newIdempotencyKey } from '../../api/http';
+import { removeMyAvatar, setMyAvatar } from '../../api/images';
 import type { Membership, MembershipPlan, Subscription, SubscriptionPlan, Wallet } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { ErrorBox } from '../../shared/components/ErrorBox';
+import { ImageField } from '../../shared/components/ImageField';
+import { Thumb } from '../../shared/components/Thumb';
 import { formatDateTime, formatMillimes, formatMoney } from '../../shared/lib/format';
 import { benefitsText, discountText } from '../../shared/lib/plans';
 import { ActionMessages } from '../../shared/components/ActionMessages';
@@ -11,11 +14,11 @@ import { useAction } from '../../shared/hooks/useAction';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 
 /**
- * My profile & plans (brief §6.9): the active membership
+ * My profile & plans (brief §6.9): the profile picture, the active membership
  * and passes, and buying one with the wallet (the purchase is idempotent).
  */
 export function ProfilePage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const wallet = useApiQuery<Wallet>('/wallets/me');
   const memberships = useApiQuery<Membership[]>('/memberships/me');
   const subscriptions = useApiQuery<Subscription[]>('/subscriptions/me');
@@ -61,6 +64,21 @@ export function ProfilePage() {
       <ActionMessages action={action} />
       <ErrorBox error={wallet.error ?? memberships.error ?? subscriptions.error ?? tiers.error ?? passes.error} />
 
+      <ImageField
+        id="avatar"
+        label="Profile picture"
+        round
+        value={user?.avatarUrl ?? null}
+        upload={async (file) => {
+          const updated = await setMyAvatar(file);
+          updateUser(updated);
+          return updated.avatarUrl;
+        }}
+        remove={async () => updateUser(await removeMyAvatar())}
+        // The account (useAuth) already holds the new picture.
+        onChange={() => undefined}
+      />
+
       <table className="kv">
         <tbody>
           <tr>
@@ -76,7 +94,7 @@ export function ProfilePage() {
             <td>
               {activeTier ? (
                 <>
-                  <b>{activeTier.membershipPlan?.name ?? 'Member'}</b> {discountText(activeTier.discountPercentSnapshot)} on play, until{' '}
+                  <Thumb url={activeTier.membershipPlan?.badgeUrl} size={24} /> <b>{activeTier.membershipPlan?.name ?? 'Member'}</b> {discountText(activeTier.discountPercentSnapshot)} on play, until{' '}
                   {formatDateTime(activeTier.endDate)}{' '}
                   <button type="button" className="secondary" disabled={action.busy === 'cancel'} onClick={cancelMembership}>
                     Cancel
@@ -93,7 +111,7 @@ export function ProfilePage() {
               {activePasses.length ? (
                 activePasses.map((s) => (
                   <div key={s.id}>
-                    <b>{s.subscriptionPlan?.name ?? 'Pass'}</b>: {benefitsText(s.benefitsSnapshot)}, until {formatDateTime(s.endDate)}
+                    <Thumb url={s.subscriptionPlan?.badgeUrl} size={24} /> <b>{s.subscriptionPlan?.name ?? 'Pass'}</b>: {benefitsText(s.benefitsSnapshot)}, until {formatDateTime(s.endDate)}
                   </div>
                 ))
               ) : (
@@ -110,7 +128,10 @@ export function ProfilePage() {
           {(tiers.data ?? []).map((p) => (
             <tr key={p.id}>
               <td>
-                <b>{p.name}</b>
+                <span className="with-thumb">
+                  <Thumb url={p.badgeUrl} size={40} />
+                  <b>{p.name}</b>
+                </span>
                 <div className="muted">
                   {discountText(p.discountPercent)} on play · book {p.bookingAdvanceDays} days ahead · {p.durationDays} days
                 </div>
@@ -144,7 +165,10 @@ export function ProfilePage() {
           {(passes.data ?? []).map((p) => (
             <tr key={p.id}>
               <td>
-                <b>{p.name}</b>
+                <span className="with-thumb">
+                  <Thumb url={p.badgeUrl} size={40} />
+                  <b>{p.name}</b>
+                </span>
                 <div className="muted">
                   {benefitsText(p.benefits)} · {p.durationDays} days
                 </div>

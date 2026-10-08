@@ -11,6 +11,7 @@ export const ADMIN_MENU: MenuItem[] = [
   { path: '/alerts', label: 'Alerts', step: 6 },
   { path: '/users', label: 'Users & Staff', step: 7, minRole: 'MANAGER' },
   { path: '/plans', label: 'Plans', step: 7, minRole: 'MANAGER' },
+  { path: '/ranks', label: 'Ranks', step: 7, minRole: 'MANAGER' },
   { path: '/games', label: 'Games', step: 7, minRole: 'MANAGER' },
   { path: '/hq', label: 'HQ overview', step: 8, minRole: 'ADMIN' },
   { path: '/audit', label: 'Audit log', step: 8, minRole: 'ADMIN' },

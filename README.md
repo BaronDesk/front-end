@@ -22,8 +22,8 @@ Both applications talk only to the real BaronDesk backend; there is no fake or d
 | Stations | Live status, telemetry, peripherals, remote commands (lock, unlock, launch game, shut down), enrollment of new PCs | Free/busy view of the home branch's stations |
 | Sessions and bookings | Running sessions, session history with bills, bookings with cancellation | Book ahead or play now, PIN for the station, live session view with extension |
 | Money | Desk top-up and refund by username | Wallet balance and history |
-| Plans | Membership tiers, passes and play prices per branch | Buy, upgrade or cancel a membership; buy a pass |
-| Games and alerts | Game catalog per branch and station; hardware and anti-theft alerts | — |
+| Plans | Membership tiers, passes and play prices per branch, each tier and pass with its badge; gamer ranks (XP thresholds, badges) | Buy, upgrade or cancel a membership; buy a pass; profile picture |
+| Games and alerts | Game catalog per branch and station, with game images; hardware and anti-theft alerts | — |
 | Multi-branch | HQ overview of every branch, branch switcher, branch creation, audit log of sensitive actions | — |
 
 ---
@@ -85,14 +85,16 @@ Every screen reads and writes the real backend. The last column says what each s
 | Stations, station detail, telemetry | `/api/v1/stations…` joined with `/machines`, `peripheral_status` | Only enrolled PCs, each with its branch. The detail page has the **booking link** for gamers, **Rename** (branch admin and HQ, `PATCH /api/v1/stations/:id`; a rename sticks, the PC's own name never overrides it) and the **peripherals** the station watches (disconnected first, live). Telemetry: now, plus min / avg / max over the last 1, 6, 24 or 48 hours (`…/telemetry/history`, one sample a minute; live readings join it once a minute) |
 | Remote commands | `/api/v1/stations/:id/commands`, `command_update` | **Unlock** only resumes the gamer's session on that PC: with none, or when their money ran out, the page says what to do (`NO_SESSION_TO_UNLOCK`, `INSUFFICIENT_FUNDS` → top up first). **Shut down** (branch admin and HQ) bills a running session up to now, and its confirmation says so |
 | Alerts | `/api/v1/alerts…`, `alert`, `alert_resolved` | |
-| Games | `/api/v1/games…`, `catalog_status` | |
+| Games | `/api/v1/games…`, `catalog_status`, `POST /uploads/images` | The form's **Image** uploads a picture (`iconUrl`); the catalog shows it |
 | New stations (enrollment) | `/machines…` | Polled every 15 s (no event for a new request) |
 | Sessions | `GET /sessions`, `GET /sessions/:id`, `POST /sessions/:id/end`, `session_runout_warning` | Gamers start their own sessions (PIN in the app). "Running now" = stations reporting a session (live). Below, the sessions played since a day, by status, with gamer and bill (HQ: the branch in the top bar); reloaded when a station's status changes |
 | Session and bill | `GET /sessions/:id` | Read again every 5 s until the bill is settled |
 | Bookings | `GET /api/v1/reservations`, `DELETE /api/v1/reservations/:id` | Who booked which station, for one day or 7 days, by status (HQ: the branch in the top bar). **Cancel** a booking nobody plays on yet (its PIN stops working). Polled every 30 s (no event for a new booking) |
 | Wallet (desk) | `GET /gamers?q=`, `/wallets/:gamerProfileId…` | Find the gamer by **username** (an exact name opens at once, else pick from the matches; recent gamers are remembered per browser); idempotent top-up and refund (refund: branch admin and HQ) |
-| Users & Staff | `GET /users`, `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `PATCH /users/:id/status`, `POST /users/:id/password` | List and search by username and role (HQ: everyone, or the branch picked in the top bar; a branch admin: gamers and their own staff). A new gamer needs a home branch. Suspend / Reactivate and Reset password show only where the server allows them (`src/admin/users/permissions.ts`) |
-| Plans & prices | `/branches/:id/pricing`, `/membership-plans`, `/subscription-plans` | Create, edit, delete tiers and passes. A pass has one or more time windows (days, from–to, discount), added, changed and removed in its form; gamers who already bought it keep the windows they paid for |
+| Users & Staff (gamers with their profile picture) | `GET /users`, `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `PATCH /users/:id/status`, `POST /users/:id/password` | List and search by username and role (HQ: everyone, or the branch picked in the top bar; a branch admin: gamers and their own staff). A new gamer needs a home branch. Suspend / Reactivate and Reset password show only where the server allows them (`src/admin/users/permissions.ts`) |
+| Plans & prices | `/branches/:id/pricing`, `/membership-plans`, `/subscription-plans` | Create, edit, delete tiers and passes. A pass has one or more time windows (days, from–to, discount), added, changed and removed in its form; gamers who already bought it keep the windows they paid for. **Badge** on each tier and pass: the picture is uploaded when picked (`POST /uploads/images`) and saved with the form |
+| Ranks | `GET/POST/PATCH/DELETE /ranks`, `POST /uploads/images` | The gamer ranks (Wood → GrandMaster): name, the XP each starts at, badge. Shared by every branch; warns when no rank starts at 0 XP |
+| Images (how pages use them) | `POST /uploads/images`, `PUT/DELETE /users/me/avatar`, `GET /uploads/…` | Forms use `src/shared/components/ImageField.tsx` (picker, preview, Remove; checks type and size before sending) and lists `Thumb.tsx`. The portal profile sets the gamer's picture with it. `src/api/images.ts`: `uploadImage(file)` answers a link to save as the `badgeUrl` of a tier, pass or rank, or the `iconUrl` of a game (any other link is refused); `setMyAvatar(file)` for the gamer; show any of them with `<img src={imageSrc(url)}>`. PNG, JPEG or WebP, at most 2 MB (`IMAGE_MAX_BYTES`, `IMAGE_ACCEPT`). Rank shapes in `src/api/types/ranks.ts` |
 | Audit log (HQ) | `GET /audit-logs?branchId&from&action&q&limit` | Who did which sensitive action, on what, when: role changes, suspensions, password resets, refunds, shutdowns, revoked stations, branch / plan / price changes (HQ: the branch in the top bar). Filter by day, action, name. **Not on the backend yet**: until it is, the page says so (404). Expected answer: `AuditLogEntry[]` in `src/api/types/audit.ts`; action wording in `src/admin/audit/audit.ts` |
 | Portal: sign-up, settings | `GET /branches`, `POST /users`, `PATCH /users/me/branch`, `POST /auth/change-password` | Sign-up picks the **home branch**; Settings changes it and the password. A gamer with no branch (e.g. seeded) is asked to pick one after login |
 | Portal: book, play now, my bookings | `GET /branches/:id/stations`, `/reservations`, `/reservations/walk-in`, `/reservations/:id/check-in` | Lists the home branch's stations, free or busy until when; the desk's booking link (QR) preselects a PC. The wallet must cover the whole booking (`INSUFFICIENT_FUNDS`). Every booking and Play now answers with its **PIN**, shown on the booking: it works on that PC from the start for 30 minutes, then the booking is *Missed* (no-show). *New PIN* replaces it. Cancel until someone logs in |
@@ -170,22 +172,24 @@ npm test           # 30 unit tests: money, branches, bookings, plan and ledger w
 ```text
 admin/index.html, portal/index.html   the two entry pages (multi-page build)
 src/
-  api/              http.ts: api() (fetch with token refresh)
+  api/              http.ts: api() (fetch with token refresh; a FormData body goes as multipart)
+                    images.ts: uploadImage, setMyAvatar / removeMyAvatar, imageSrc for <img src>
     types/          backend shapes, one file per domain (stations, sessions, bookings, wallet,
-                    plans, games, commands, alerts, audit, events…); import from 'api/types'
+                    plans, ranks, uploads, games, commands, alerts, audit, events…); import from 'api/types'
   auth/             login state, tokens, role checks, route guards
   realtime/         live updates: Socket.IO client for /dashboard-io
   shared/           used by both apps; no app-specific code here
     components/     TopBar + LogoutLink, ErrorBox, ActionMessages, EmptyRow, NotFoundPage,
-                    LoginForm, ChangePasswordForm, ConnectionBanner, CopyButton, PageErrorBoundary
+                    LoginForm, ChangePasswordForm, ConnectionBanner, CopyButton, PageErrorBoundary,
+                    ImageField (upload a picture in a form), Thumb (a stored image)
     hooks/          useApiQuery (GET + reload), useAction (busy / error / success of buttons)
     lib/            pure helpers with their tests: format (money, dates), dates (day ranges),
-                    errors (explainRefusal), plans, wallet, bookings, menu types
+                    errors (explainRefusal), plans, wallet, bookings, images (file checks), menu types
   admin/            the staff app
     main.tsx, AdminApp.tsx (routes), menu.ts
     layout/         AdminLayout (top bar, side menu), AccessDenied
     <feature>/      one folder per menu entry: stations, sessions, bookings, wallet, alerts,
-                    users, plans, games, branches (HQ overview + branch scope), audit, account
+                    users, plans, ranks, games, branches (HQ overview + branch scope), audit, account
   portal/           the gamer app
     main.tsx, PortalApp.tsx (routes), menu.ts
     layout/         PortalLayout

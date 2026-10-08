@@ -37,7 +37,8 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 /**
  * One call to the backend. Throws ApiError with the backend's `{ error, code }`
  * on a non-2xx answer. On a 401 the access token is refreshed once and the
- * call retried.
+ * call retried. A FormData body goes as multipart (uploads, src/api/images.ts);
+ * anything else as JSON.
  */
 export async function api<T>(method: HttpMethod, path: string, body?: unknown): Promise<T> {
   try {
@@ -53,14 +54,16 @@ async function send<T>(method: HttpMethod, path: string, body?: unknown): Promis
   const token = tokenProvider();
   const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const form = body instanceof FormData;
+  // FormData: the browser sets the multipart type and its boundary itself.
+  if (body !== undefined && !form) headers['Content-Type'] = 'application/json';
 
   let res: Response;
   try {
     res = await fetch(config.apiBase + path, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : form ? body : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, 'NETWORK_ERROR', 'Cannot reach the server.');

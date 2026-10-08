@@ -10,6 +10,8 @@ export interface MembershipPlan {
   discountPercent: string;
   /** How many days ahead a member may book. */
   bookingAdvanceDays: number;
+  /** /uploads/images/<id>.webp, or null. Show it with imageSrc() (src/api/images.ts). */
+  badgeUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,6 +22,8 @@ export interface MembershipPlanInput {
   durationDays: number;
   discountPercent: number;
   bookingAdvanceDays?: number;
+  /** A link from uploadImage(); null removes the badge. */
+  badgeUrl?: string | null;
 }
 
 /**
@@ -38,6 +42,8 @@ export interface SubscriptionPlan {
   price: string;
   durationDays: number;
   benefits: SubscriptionBenefits;
+  /** /uploads/images/<id>.webp, or null. */
+  badgeUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,6 +53,8 @@ export interface SubscriptionPlanInput {
   price: number;
   durationDays: number;
   benefits: { windows: NonNullable<SubscriptionBenefits['windows']> };
+  /** A link from uploadImage(); null removes the badge. */
+  badgeUrl?: string | null;
 }
 
 export type PlanStatus = 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'SUSPENDED' | 'PENDING';
