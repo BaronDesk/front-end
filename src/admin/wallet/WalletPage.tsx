@@ -7,7 +7,7 @@ import { hasRole } from '../../auth/roles';
 import { useOnReconnect } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/components/ErrorBox';
 import { Thumb } from '../../shared/components/Thumb';
-import { dinarsToMillimes, formatDateTime, formatMillimes, formatSignedMillimes } from '../../shared/lib/format';
+import { coinsInCurrency, CURRENCY, currencyToCoins, formatCoins, formatDateTime, formatSignedCoins } from '../../shared/lib/format';
 import { ActionMessages } from '../../shared/components/ActionMessages';
 import { useAction } from '../../shared/hooks/useAction';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
@@ -16,7 +16,8 @@ import { useBranchScope } from '../branches/BranchContext';
 import { exactMatch, toWalletGamers, useRecentGamers, type WalletGamer } from './gamerSearch';
 import { EmptyRow } from '../../shared/components/EmptyRow';
 
-const QUICK_DINARS = ['5', '10', '20', '50'];
+/** Common cash amounts at the desk. */
+const QUICK_CASH = ['5', '10', '20', '50'];
 
 /**
  * Electronic Wallet at the desk (brief §6.7). The desk finds the gamer by
@@ -67,13 +68,13 @@ export function WalletPage() {
 
   async function topup(e: FormEvent) {
     e.preventDefault();
-    const millimes = dinarsToMillimes(amount);
-    if (!millimes || millimes <= 0) return;
-    const body: WalletMovement = { amount: millimes, type: 'CREDIT', idempotencyKey: topupKey };
+    const coins = currencyToCoins(amount);
+    if (!coins || coins <= 0) return;
+    const body: WalletMovement = { amount: coins, type: 'CREDIT', idempotencyKey: topupKey };
     const entry = await action.run(
       'topup',
       () => api<WalletEntry>('POST', `/wallets/${code}/credit`, body),
-      (x) => `Added ${formatMillimes(x.amount)}. New balance ${formatMillimes(x.balanceAfter)}.`,
+      (x) => `Added ${formatCoins(x.amount)} (${coinsInCurrency(x.amount)}). New balance ${formatCoins(x.balanceAfter)}.`,
     );
     if (entry) {
       setTopupKey(newIdempotencyKey());
@@ -82,7 +83,7 @@ export function WalletPage() {
   }
 
   async function refund(entry: WalletEntry) {
-    if (!window.confirm(`Refund ${formatMillimes(-entry.amount)} to this gamer?`)) return;
+    if (!window.confirm(`Refund ${formatCoins(-entry.amount)} to this gamer?`)) return;
     // Keyed on the refunded entry: refunding it twice is a no-op.
     const body: WalletMovement = {
       amount: -entry.amount,
@@ -93,12 +94,13 @@ export function WalletPage() {
     const done = await action.run(
       entry.id,
       () => api<WalletEntry>('POST', `/wallets/${code}/credit`, body),
-      (x) => `Refunded ${formatMillimes(x.amount)}. New balance ${formatMillimes(x.balanceAfter)}.`,
+      (x) => `Refunded ${formatCoins(x.amount)}. New balance ${formatCoins(x.balanceAfter)}.`,
     );
     if (done) reload();
   }
 
   const lines = entries.data ?? [];
+  const topupCoins = currencyToCoins(amount);
 
   return (
     <>
@@ -175,7 +177,7 @@ export function WalletPage() {
         <>
           <div className="big-figure">
             Balance
-            <b className={wallet.data.balance <= 0 ? 'status-bad' : ''}>{formatMillimes(wallet.data.balance)}</b>
+            <b className={wallet.data.balance <= 0 ? 'status-bad' : ''}>{formatCoins(wallet.data.balance)}</b>
             <span className="muted">{picked?.username}</span>
           </div>
 
@@ -183,7 +185,7 @@ export function WalletPage() {
             <fieldset>
               <legend>Top up (cash at the desk)</legend>
               <div className="form-row">
-                <label htmlFor="w-amount">Amount (DT)</label>
+                <label htmlFor="w-amount">Cash taken ({CURRENCY})</label>
                 <input
                   id="w-amount"
                   type="number"
@@ -193,7 +195,7 @@ export function WalletPage() {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                 />{' '}
-                {QUICK_DINARS.map((q) => (
+                {QUICK_CASH.map((q) => (
                   <button key={q} type="button" className="secondary" onClick={() => setAmount(q)}>
                     {q}
                   </button>
@@ -202,7 +204,7 @@ export function WalletPage() {
               <div className="form-row">
                 <label />
                 <button type="submit" disabled={action.busy === 'topup'}>
-                  Add to wallet
+                  Add {topupCoins ? `${formatCoins(topupCoins)} ` : ''}to wallet
                 </button>
               </div>
             </fieldset>
@@ -227,8 +229,8 @@ export function WalletPage() {
                     {entryText(x)}
                     {x.sessionId && <span className="muted"> (session {x.sessionId.slice(0, 8)})</span>}
                   </td>
-                  <td className={x.amount < 0 ? 'status-bad' : 'status-ok'}>{formatSignedMillimes(x.amount)}</td>
-                  <td>{formatMillimes(x.balanceAfter)}</td>
+                  <td className={x.amount < 0 ? 'status-bad' : 'status-ok'}>{formatSignedCoins(x.amount)}</td>
+                  <td>{formatCoins(x.balanceAfter)}</td>
                   {canRefund && (
                     <td>
                       {x.amount < 0 && (

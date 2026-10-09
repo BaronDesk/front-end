@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import type { Reservation, Wallet } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
-import { formatMillimes } from '../../shared/lib/format';
+import { formatCoins } from '../../shared/lib/format';
 import { currentBooking, stationOf } from '../../shared/lib/bookings';
 import { PORTAL_MENU } from '../menu';
 
@@ -19,7 +19,7 @@ export function PortalHome() {
       <h1>Welcome, {user?.username}</h1>
       <div className="big-figure">
         Balance
-        <b className={wallet.data && wallet.data.balance <= 0 ? 'status-bad' : ''}>{wallet.data ? formatMillimes(wallet.data.balance) : '…'}</b>
+        <b className={wallet.data && wallet.data.balance <= 0 ? 'status-bad' : ''}>{wallet.data ? formatCoins(wallet.data.balance) : '…'}</b>
       </div>
       {user && !user.homeBranchId && (
         <div className="msg msg-error">

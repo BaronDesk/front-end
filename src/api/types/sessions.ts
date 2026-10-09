@@ -12,29 +12,29 @@ export interface CurrentSession {
   station: StationRef;
   startedAt: string;
   endsAt: string;
-  rateCentsPerMinute: number;
+  rateCoinsPerHour: number;
   playedSeconds: number;
-  costSoFarCents: number;
+  costSoFarCoins: number;
   balance: number;
   /** What the wallet holds once this session is paid. */
-  balanceAfterCents: number;
+  balanceAfterCoins: number;
 }
 
 /** Prisma SessionStatus. PENDING = waiting for the PIN on the station; PAUSED = locked mid-session. */
 export type SessionStatus = 'PENDING' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
 
-/** Session.billingBreakdown once settled. Amounts are millimes despite the "Cents" names. */
+/** Session.billingBreakdown once settled. Amounts are coins. */
 export interface BillingBreakdown {
   /** The bill. */
-  totalCents: number;
+  totalCoins: number;
   /** What the wallet paid of it: less than the bill when the wallet ran dry. */
-  chargedCents?: number;
+  chargedCoins?: number;
   /** The unpaid rest, left for the desk to collect. */
-  shortfallCents?: number;
+  shortfallCoins?: number;
   /** The wallet charge failed outright; the desk reconciles. */
   debitFailed?: boolean;
   meteredSeconds: number;
-  rateCentsPerMinute: number;
+  rateCoinsPerHour: number;
   appliedMembershipId: string | null;
   [key: string]: unknown;
 }
@@ -45,8 +45,8 @@ export interface Session {
   reservationId: string;
   appliedMembershipId: string | null;
   status: SessionStatus;
-  /** Millimes per minute, the member discount already applied. */
-  rateCentsPerMinute: number | null;
+  /** Coins per hour (billed by the second), the member discount already applied. */
+  rateCoinsPerHour: number | null;
   meteredSeconds: number;
   startTime: string | null;
   endTime: string | null;
@@ -60,8 +60,8 @@ export interface Session {
 export interface StaffSession extends Session {
   station: StationRef;
   gamerUsername: string;
-  /** Millimes, while the session is open; null once it is closed (see billingBreakdown). */
-  costSoFarCents: number | null;
+  /** Coins, while the session is open; null once it is closed (see billingBreakdown). */
+  costSoFarCoins: number | null;
 }
 
 /** POST /sessions answer: the session plus the one-time PIN the gamer types on the lock screen. */

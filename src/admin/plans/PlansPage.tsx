@@ -1,12 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react';
 
 import { api, ApiError } from '../../api/http';
+import { useAuth } from '../../auth/AuthContext';
 import { uploadImage } from '../../api/images';
-import type { BranchPricing, MembershipPlan, MembershipPlanInput, SubscriptionPlan, SubscriptionPlanInput } from '../../api/types';
+import type { MembershipPlan, MembershipPlanInput, SubscriptionPlan, Pricing, SubscriptionPlanInput } from '../../api/types';
 import { ErrorBox } from '../../shared/components/ErrorBox';
 import { ImageField } from '../../shared/components/ImageField';
 import { Thumb } from '../../shared/components/Thumb';
-import { CURRENCY, dinarsToMillimes, formatDateTime, formatMillimes, formatMoney, millimesToDinars } from '../../shared/lib/format';
+import { coinsInCurrency, formatCoins, formatDateTime, parseCoins } from '../../shared/lib/format';
 import { ActionMessages } from '../../shared/components/ActionMessages';
 import { useAction, type Action } from '../../shared/hooks/useAction';
 import {
@@ -20,7 +21,6 @@ import {
   type WindowRow,
 } from '../../shared/lib/plans';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
-import { useBranchScope } from '../branches/BranchContext';
 
 /** Membership tiers: a discount on every hour of play, and how far ahead a member may book. */
 function TierSection({ action }: { action: Action }) {
@@ -89,7 +89,7 @@ function TierSection({ action }: { action: Action }) {
                   <b>{p.name}</b>
                 </span>
               </td>
-              <td>{formatMoney(p.price)}</td>
+              <td>{formatCoins(p.price)}</td>
               <td>{discountText(p.discountPercent)}</td>
               <td>{p.bookingAdvanceDays} days</td>
               <td>{p.durationDays} days</td>
@@ -101,7 +101,7 @@ function TierSection({ action }: { action: Action }) {
                     setForm({
                       id: p.id,
                       name: p.name,
-                      price: String(Number(p.price)),
+                      price: String(p.price),
                       durationDays: String(p.durationDays),
                       discountPercent: String(Number(p.discountPercent)),
                       bookingAdvanceDays: String(p.bookingAdvanceDays),
@@ -128,8 +128,8 @@ function TierSection({ action }: { action: Action }) {
             <input id="t-name" required maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </div>
           <div className="form-row">
-            <label htmlFor="t-price">Price ({CURRENCY})</label>
-            <input id="t-price" type="number" min="0" step="0.01" required value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+            <label htmlFor="t-price">Price (coins)</label>
+            <input id="t-price" type="number" min="0" step="1" required value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
           </div>
           <div className="form-row">
             <label htmlFor="t-discount">Discount (%)</label>
@@ -246,7 +246,7 @@ function PassSection({ action }: { action: Action }) {
     setForm({
       id: p.id,
       name: p.name,
-      price: String(Number(p.price)),
+      price: String(p.price),
       durationDays: String(p.durationDays),
       windows: rows,
       otherBenefits: rows.length === 0,
@@ -295,7 +295,7 @@ function PassSection({ action }: { action: Action }) {
                   <b>{p.name}</b>
                 </span>
               </td>
-              <td>{formatMoney(p.price)}</td>
+              <td>{formatCoins(p.price)}</td>
               <td>{benefitsText(p.benefits)}</td>
               <td>{p.durationDays} days</td>
               <td className="nowrap">
@@ -319,8 +319,8 @@ function PassSection({ action }: { action: Action }) {
             <input id="p-name" required maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </div>
           <div className="form-row">
-            <label htmlFor="p-price">Price ({CURRENCY})</label>
-            <input id="p-price" type="number" min="0" step="0.01" required value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+            <label htmlFor="p-price">Price (coins)</label>
+            <input id="p-price" type="number" min="0" step="1" required value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
           </div>
           <div className="form-row">
             <label htmlFor="p-days">Lasts (days)</label>
@@ -426,20 +426,26 @@ function PassSection({ action }: { action: Action }) {
   );
 }
 
+/** An hourly rate in other words: "1,000 coins per 15 min, 4.000 DT / hour". */
+function rateHint(coinsPerHour: number): string {
+  return `${formatCoins(Math.round(coinsPerHour / 4))} per 15 min, ${coinsInCurrency(coinsPerHour)} / hour`;
+}
+
 /**
- * Play prices of one branch (GET / PUT /branches/:branchId/pricing), in dinars
- * on screen and integer millimes on the wire. A branch without prices can't start
- * sessions, so the empty form says so.
+ * The play prices (GET / PUT /pricing), whole coins per hour, the same in
+ * every branch. Only HQ (ADMIN) changes them; managers see them. Without
+ * prices no session can start, so the empty form says so.
  */
 function PricingForm({ action }: { action: Action }) {
-  const { branchId, branchName } = useBranchScope();
-  const pricing = useApiQuery<BranchPricing>(branchId ? `/branches/${branchId}/pricing` : null);
+  const { user } = useAuth();
+  const canEdit = user?.role === 'ADMIN';
+  const pricing = useApiQuery<Pricing>('/pricing');
   const [form, setForm] = useState({ paygRate: '', bookingRate: '' });
   const notSet = pricing.error instanceof ApiError && pricing.error.code === 'PRICING_NOT_SET';
 
   useEffect(() => {
     if (pricing.data) {
-      setForm({ paygRate: millimesToDinars(pricing.data.paygRate), bookingRate: millimesToDinars(pricing.data.bookingRate) });
+      setForm({ paygRate: String(pricing.data.paygRate), bookingRate: String(pricing.data.bookingRate) });
     } else if (notSet) {
       setForm({ paygRate: '', bookingRate: '' });
     }
@@ -447,68 +453,64 @@ function PricingForm({ action }: { action: Action }) {
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    const paygRate = dinarsToMillimes(form.paygRate);
-    const bookingRate = dinarsToMillimes(form.bookingRate);
-    if (!branchId || paygRate === null || bookingRate === null) return;
-    const saved = await action.run(
-      'pricing',
-      () => api<BranchPricing>('PUT', `/branches/${branchId}/pricing`, { paygRate, bookingRate }),
-      `Prices of ${branchName(branchId)} saved.`,
-    );
+    const paygRate = parseCoins(form.paygRate);
+    const bookingRate = parseCoins(form.bookingRate);
+    if (!paygRate || !bookingRate) return;
+    const saved = await action.run('pricing', () => api<Pricing>('PUT', '/pricing', { paygRate, bookingRate }), 'Prices saved for every branch.');
     if (saved) {
       pricing.setData(() => saved);
       pricing.reload(); // clears a PRICING_NOT_SET error
     }
   }
 
-  if (!branchId) {
-    return <p className="muted">Pick a branch in the top bar to see and change its prices: each branch has its own.</p>;
-  }
+  const rateField = (id: string, label: string, key: 'paygRate' | 'bookingRate') => {
+    const coins = parseCoins(form[key]);
+    return (
+      <div className="form-row">
+        <label htmlFor={id}>{label} (coins / hour)</label>
+        <input id={id} type="number" min="1" step="1" required value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
+        {coins ? <span className="muted"> {rateHint(coins)}</span> : null}
+      </div>
+    );
+  };
 
   return (
     <form onSubmit={save}>
       {!notSet && <ErrorBox error={pricing.error} />}
       <fieldset className="wide-labels">
-        <legend>Prices of {branchName(branchId)}</legend>
-        {notSet && (
-          <p className="status-bad">No prices set for this branch yet: sessions can&apos;t start until they are.</p>
+        <legend>Play prices (every branch)</legend>
+        {notSet && <p className="status-bad">No prices set yet: sessions can&apos;t start until HQ sets them.</p>}
+        {canEdit ? (
+          <>
+            {rateField('p-payg', 'Walk-in play', 'paygRate')}
+            {rateField('p-booking', 'Booked play', 'bookingRate')}
+          </>
+        ) : (
+          pricing.data && (
+            <ul>
+              <li>
+                Walk-in play: <b>{formatCoins(pricing.data.paygRate)} / hour</b> ({rateHint(pricing.data.paygRate)})
+              </li>
+              <li>
+                Booked play: <b>{formatCoins(pricing.data.bookingRate)} / hour</b> ({rateHint(pricing.data.bookingRate)})
+              </li>
+            </ul>
+          )
         )}
-        <div className="form-row">
-          <label htmlFor="p-payg">Walk-in play ({CURRENCY} / hour)</label>
-          <input
-            id="p-payg"
-            type="number"
-            min="0.001"
-            step="0.001"
-            required
-            value={form.paygRate}
-            onChange={(e) => setForm({ ...form, paygRate: e.target.value })}
-          />
-        </div>
-        <div className="form-row">
-          <label htmlFor="p-booking">Booked play ({CURRENCY} / hour)</label>
-          <input
-            id="p-booking"
-            type="number"
-            min="0.001"
-            step="0.001"
-            required
-            value={form.bookingRate}
-            onChange={(e) => setForm({ ...form, bookingRate: e.target.value })}
-          />
-        </div>
         {pricing.data && (
           <p className="muted">
-            Now: walk-in {formatMillimes(pricing.data.paygRate)} / hour, booked {formatMillimes(pricing.data.bookingRate)} / hour (changed{' '}
-            {formatDateTime(pricing.data.updatedAt)}). Membership discounts apply on top.
+            Changed {formatDateTime(pricing.data.updatedAt)}. Billed by the second; a tier&apos;s or pass&apos;s discount applies on top (the better of the two).
+            {!canEdit && ' Only HQ changes them.'}
           </p>
         )}
-        <div className="form-row">
-          <label />
-          <button type="submit" disabled={action.busy === 'pricing' || pricing.loading}>
-            Save prices
-          </button>
-        </div>
+        {canEdit && (
+          <div className="form-row">
+            <label />
+            <button type="submit" disabled={action.busy === 'pricing' || pricing.loading}>
+              Save prices
+            </button>
+          </div>
+        )}
       </fieldset>
     </form>
   );

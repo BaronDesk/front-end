@@ -7,7 +7,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { ErrorBox } from '../../shared/components/ErrorBox';
 import { ImageField } from '../../shared/components/ImageField';
 import { Thumb } from '../../shared/components/Thumb';
-import { formatDateTime, formatMillimes, formatMoney } from '../../shared/lib/format';
+import { formatDateTime, formatCoins } from '../../shared/lib/format';
 import { benefitsText, discountText } from '../../shared/lib/plans';
 import { ActionMessages } from '../../shared/components/ActionMessages';
 import { useAction } from '../../shared/hooks/useAction';
@@ -42,8 +42,8 @@ export function ProfilePage() {
   async function buy(kind: 'membership' | 'subscription', plan: MembershipPlan | SubscriptionPlan) {
     const upgrade = kind === 'membership' && Boolean(activeTier);
     const question = upgrade
-      ? `Upgrade to ${plan.name}? You pay ${formatMoney(plan.price)} minus what is left of your current tier, from your wallet.`
-      : `Buy ${plan.name} for ${formatMoney(plan.price)}? It is paid from your wallet.`;
+      ? `Upgrade to ${plan.name}? You pay ${formatCoins(plan.price)} minus what is left of your current tier, from your wallet.`
+      : `Buy ${plan.name} for ${formatCoins(plan.price)}? It is paid from your wallet.`;
     if (!window.confirm(question)) return;
     const done = await action.run(
       plan.id,
@@ -87,7 +87,7 @@ export function ProfilePage() {
           </tr>
           <tr>
             <th>Balance</th>
-            <td>{wallet.data ? formatMillimes(wallet.data.balance) : '…'}</td>
+            <td>{wallet.data ? formatCoins(wallet.data.balance) : '…'}</td>
           </tr>
           <tr>
             <th>Membership</th>
@@ -136,7 +136,7 @@ export function ProfilePage() {
                   {discountText(p.discountPercent)} on play · book {p.bookingAdvanceDays} days ahead · {p.durationDays} days
                 </div>
               </td>
-              <td>{formatMoney(p.price)}</td>
+              <td>{formatCoins(p.price)}</td>
               <td>
                 {activeTier?.membershipPlanId === p.id ? (
                   <span className="status-ok">yours</span>
@@ -173,7 +173,7 @@ export function ProfilePage() {
                   {benefitsText(p.benefits)} · {p.durationDays} days
                 </div>
               </td>
-              <td>{formatMoney(p.price)}</td>
+              <td>{formatCoins(p.price)}</td>
               <td>
                 {activePasses.some((s) => s.subscriptionPlanId === p.id) ? (
                   <span className="status-ok">yours</span>

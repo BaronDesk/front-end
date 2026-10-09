@@ -1,28 +1,33 @@
 import { describe, expect, it } from 'vitest';
 
-import { dinarsToMillimes, formatMillimes, formatMoney, formatSignedMillimes, millimesToDinars } from './format';
+import { coinsInCurrency, currencyToCoins, formatCoins, formatSignedCoins, parseCoins } from './format';
 
-describe('money: dinars on screen, integer millimes on the wire', () => {
-  it('parses a form value into millimes', () => {
-    expect(dinarsToMillimes('4.5')).toBe(4500);
-    expect(dinarsToMillimes('2,750')).toBe(2750);
-    expect(dinarsToMillimes('0.0004')).toBe(0);
-    expect(dinarsToMillimes('')).toBeNull();
-    expect(dinarsToMillimes('abc')).toBeNull();
-  });
-
+describe('money: whole coins on screen and on the wire', () => {
   it('formats what the server sent', () => {
-    expect(formatMillimes(4000)).toBe('4.000 DT');
-    expect(formatMillimes(null)).toBe('—');
-    expect(formatSignedMillimes(10000)).toBe('+10.000 DT');
-    expect(formatSignedMillimes(-1500)).toBe('-1.500 DT');
-    expect(millimesToDinars(2750)).toBe('2.750');
+    expect(formatCoins(4000)).toBe('4,000 coins');
+    expect(formatCoins(1)).toBe('1 coin');
+    expect(formatCoins(0)).toBe('0 coins');
+    expect(formatCoins(null)).toBe('—');
+    expect(formatSignedCoins(10000)).toBe('+10,000 coins');
+    expect(formatSignedCoins(-1500)).toBe('-1,500 coins');
   });
 
-  it('formats the backend Decimal columns (plan prices come as strings)', () => {
-    expect(formatMoney('15')).toBe('15.000 DT');
-    expect(formatMoney(4.5)).toBe('4.500 DT');
-    expect(formatMoney(null)).toBe('—');
-    expect(formatMoney('abc')).toBe('—');
+  it('reads whole coins from a form', () => {
+    expect(parseCoins('4000')).toBe(4000);
+    expect(parseCoins(' 4 000 ')).toBe(4000);
+    expect(parseCoins('4,000')).toBe(4000);
+    expect(parseCoins('0')).toBe(0);
+    expect(parseCoins('4.5')).toBeNull();
+    expect(parseCoins('-5')).toBeNull();
+    expect(parseCoins('')).toBeNull();
+  });
+
+  it('turns the cash taken at the desk into coins (1000 coins = 1 DT)', () => {
+    expect(currencyToCoins('10')).toBe(10000);
+    expect(currencyToCoins('2,5')).toBe(2500);
+    expect(currencyToCoins('0.0004')).toBe(0);
+    expect(currencyToCoins('')).toBeNull();
+    expect(currencyToCoins('abc')).toBeNull();
+    expect(coinsInCurrency(4500)).toBe('4.500 DT');
   });
 });

@@ -1,7 +1,7 @@
 import type { Wallet, WalletEntry } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { ErrorBox } from '../../shared/components/ErrorBox';
-import { formatDateTime, formatMillimes, formatSignedMillimes } from '../../shared/lib/format';
+import { formatDateTime, formatCoins, formatSignedCoins } from '../../shared/lib/format';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import { entryText } from '../../shared/lib/wallet';
 import { EmptyRow } from '../../shared/components/EmptyRow';
@@ -22,7 +22,7 @@ export function WalletPage() {
       <ErrorBox error={wallet.error ?? entries.error} />
       <div className="big-figure">
         Balance
-        <b className={w && w.balance <= 0 ? 'status-bad' : ''}>{w ? formatMillimes(w.balance) : '…'}</b>
+        <b className={w && w.balance <= 0 ? 'status-bad' : ''}>{w ? formatCoins(w.balance) : '…'}</b>
       </div>
 
       <div className="msg">
@@ -44,8 +44,8 @@ export function WalletPage() {
             <tr key={x.id}>
               <td>{formatDateTime(x.createdAt)}</td>
               <td>{entryText(x)}</td>
-              <td className={x.amount < 0 ? 'status-bad' : 'status-ok'}>{formatSignedMillimes(x.amount)}</td>
-              <td>{formatMillimes(x.balanceAfter)}</td>
+              <td className={x.amount < 0 ? 'status-bad' : 'status-ok'}>{formatSignedCoins(x.amount)}</td>
+              <td>{formatCoins(x.balanceAfter)}</td>
             </tr>
           ))}
           {!entries.loading && !entries.data?.length && (

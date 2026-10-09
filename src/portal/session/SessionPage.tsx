@@ -6,7 +6,7 @@ import type { CheckIn, CurrentSession, ExtendOptions, Reservation, SessionNotice
 import { useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/components/ErrorBox';
 import { explainRefusal } from '../../shared/lib/errors';
-import { formatClock, formatDateTime, formatDuration, formatMillimes, formatSignedMillimes, useNow } from '../../shared/lib/format';
+import { formatClock, formatDateTime, formatDuration, formatCoins, formatSignedCoins, useNow } from '../../shared/lib/format';
 import { ActionMessages } from '../../shared/components/ActionMessages';
 import { useAction } from '../../shared/hooks/useAction';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
@@ -142,13 +142,13 @@ export function SessionPage() {
               <tr>
                 <th>Cost so far</th>
                 <td>
-                  {formatMillimes(session.costSoFarCents)} <span className="muted">({formatMillimes(session.rateCentsPerMinute)} / minute)</span>
+                  {formatCoins(session.costSoFarCoins)} <span className="muted">({formatCoins(session.rateCoinsPerHour)} / hour)</span>
                 </td>
               </tr>
               <tr>
                 <th>Balance after</th>
                 <td>
-                  {formatMillimes(session.balanceAfterCents)} <span className="muted">(paid when the session ends)</span>
+                  {formatCoins(session.balanceAfterCoins)} <span className="muted">(paid when the session ends)</span>
                 </td>
               </tr>
             </tbody>
@@ -161,7 +161,7 @@ export function SessionPage() {
               {(extendOptions.data?.options ?? []).map((o) => (
                 <span key={o.minutes}>
                   <button type="button" disabled={!o.available || action.busy === `extend-${o.minutes}`} onClick={() => extend(o.minutes)}>
-                    +{o.minutes} min ({formatMillimes(o.costCents)})
+                    +{o.minutes} min ({formatCoins(o.costCoins)})
                   </button>{' '}
                 </span>
               ))}
@@ -224,7 +224,7 @@ export function SessionPage() {
             <tr key={x.id}>
               <td>{formatDateTime(x.createdAt)}</td>
               <td>Play time</td>
-              <td className="status-bad">{formatSignedMillimes(x.amount)}</td>
+              <td className="status-bad">{formatSignedCoins(x.amount)}</td>
             </tr>
           ))}
           {!entries.loading && charges.length === 0 && (

@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router';
 import { api } from '../../api/http';
 import type { Command, Session } from '../../api/types';
 import { ErrorBox } from '../../shared/components/ErrorBox';
-import { formatDateTime, formatDuration, formatMillimes } from '../../shared/lib/format';
+import { formatDateTime, formatDuration, formatCoins } from '../../shared/lib/format';
 import { ActionMessages } from '../../shared/components/ActionMessages';
 import { useAction } from '../../shared/hooks/useAction';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
@@ -92,7 +92,7 @@ export function SessionBillPage() {
           <tr>
             <th>Rate</th>
             <td>
-              {s.rateCentsPerMinute != null ? `${formatMillimes(s.rateCentsPerMinute)} / minute` : '—'}
+              {s.rateCoinsPerHour != null ? `${formatCoins(s.rateCoinsPerHour)} / hour` : '—'}
               {s.appliedMembershipId && <span className="muted"> (member discount included)</span>}
             </td>
           </tr>
@@ -121,20 +121,20 @@ export function SessionBillPage() {
             </tr>
             <tr>
               <th>Rate</th>
-              <td>{formatMillimes(bill.rateCentsPerMinute)} / minute</td>
+              <td>{formatCoins(bill.rateCoinsPerHour)} / hour</td>
             </tr>
             <tr>
               <th>Bill</th>
               <td>
-                <b>{formatMillimes(bill.totalCents)}</b>
+                <b>{formatCoins(bill.totalCoins)}</b>
               </td>
             </tr>
-            {bill.shortfallCents ? (
+            {bill.shortfallCoins ? (
               <tr>
                 <th>Unpaid</th>
                 <td className="status-bad">
-                  <b>{formatMillimes(bill.shortfallCents)}</b> to collect at the desk: the wallet only held{' '}
-                  {formatMillimes(bill.chargedCents ?? 0)}.
+                  <b>{formatCoins(bill.shortfallCoins)}</b> to collect at the desk: the wallet only held{' '}
+                  {formatCoins(bill.chargedCoins ?? 0)}.
                 </td>
               </tr>
             ) : null}

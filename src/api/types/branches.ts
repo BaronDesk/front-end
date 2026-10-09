@@ -26,13 +26,11 @@ export interface BranchStation {
 }
 
 /**
- * GET / PUT /branches/:branchId/pricing (pricing/util/public-pricing.ts).
- * Rates are integer millimes (1/1000 dinar) per hour; GET is 404
- * PRICING_NOT_SET until a manager sets them, and a session can't start then.
+ * GET / PUT /pricing (pricing/util/public-pricing.ts): one price list for
+ * every branch, in coins per hour. GET is 404 PRICING_NOT_SET until HQ sets
+ * it, and a session can't start then. Only HQ (ADMIN) may PUT.
  */
-export interface BranchPricing {
-  id: string;
-  branchId: string;
+export interface Pricing {
   /** Play now (walk-in). */
   paygRate: number;
   /** Play booked ahead. */

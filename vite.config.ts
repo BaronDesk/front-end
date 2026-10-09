@@ -14,6 +14,7 @@ const BACKEND_PATHS = [
   '/machines',
   '/branches',
   '/wallets',
+  '/pricing',
   '/membership-plans',
   '/memberships',
   '/subscription-plans',

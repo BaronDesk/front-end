@@ -1,11 +1,11 @@
-/** Membership tiers and passes (prices are Decimal strings, in dinars). */
+/** Membership tiers and passes (prices in whole coins). */
 
-/** GET/POST/PATCH /membership-plans. price and discountPercent are Decimals (strings on the wire). */
+/** GET/POST/PATCH /membership-plans. discountPercent is a Decimal (a string on the wire). */
 export interface MembershipPlan {
   id: string;
   name: string;
-  /** Dinars, e.g. "15". */
-  price: string;
+  /** Coins, e.g. 15000. */
+  price: number;
   durationDays: number;
   discountPercent: string;
   /** How many days ahead a member may book. */
@@ -39,7 +39,8 @@ export interface SubscriptionBenefits {
 export interface SubscriptionPlan {
   id: string;
   name: string;
-  price: string;
+  /** Coins. */
+  price: number;
   durationDays: number;
   benefits: SubscriptionBenefits;
   /** /uploads/images/<id>.webp, or null. */

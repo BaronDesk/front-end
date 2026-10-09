@@ -5,7 +5,7 @@ import { api } from '../../api/http';
 import type { Command, Session, SessionStatus, StaffSession, Station } from '../../api/types';
 import { useOnReconnect, useRealtimeEvent } from '../../realtime/RealtimeContext';
 import { ErrorBox } from '../../shared/components/ErrorBox';
-import { formatClock, formatDateTime, formatDuration, formatMillimes, secondsSince, useNow } from '../../shared/lib/format';
+import { formatClock, formatDateTime, formatDuration, formatCoins, secondsSince, useNow } from '../../shared/lib/format';
 import { ActionMessages } from '../../shared/components/ActionMessages';
 import { useAction } from '../../shared/hooks/useAction';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
@@ -182,7 +182,7 @@ function RunningRow({ station, action }: { station: Station; action: ReturnType<
           <span className="muted">—</span>
         )}
       </td>
-      <td>{s?.rateCentsPerMinute != null ? `${formatMillimes(s.rateCentsPerMinute)} / min` : '—'}</td>
+      <td>{s?.rateCoinsPerHour != null ? `${formatCoins(s.rateCoinsPerHour)} / h` : '—'}</td>
       <td className="nowrap">
         {s && isOpenSession(s.status) && (
           <>
@@ -213,9 +213,9 @@ function SessionRow({ session: s, branch }: { session: StaffSession; branch: str
       <td>{open ? <span className="muted">running</span> : formatDuration(s.meteredSeconds)}</td>
       <td>
         {s.billingBreakdown ? (
-          <b>{formatMillimes(s.billingBreakdown.totalCents)}</b>
-        ) : s.costSoFarCents != null ? (
-          <span className="muted">{formatMillimes(s.costSoFarCents)} so far</span>
+          <b>{formatCoins(s.billingBreakdown.totalCoins)}</b>
+        ) : s.costSoFarCoins != null ? (
+          <span className="muted">{formatCoins(s.costSoFarCoins)} so far</span>
         ) : (
           <span className="muted">not billed yet</span>
         )}

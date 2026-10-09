@@ -6,7 +6,7 @@ import type { StationRef } from './stations';
 export interface ExtendOptions {
   reservationId: string;
   endsAt: string;
-  options: { minutes: number; costCents: number; available: boolean; reason: 'SLOT_TAKEN' | 'INSUFFICIENT_FUNDS' | null }[];
+  options: { minutes: number; costCoins: number; available: boolean; reason: 'SLOT_TAKEN' | 'INSUFFICIENT_FUNDS' | null }[];
 }
 
 /** GET /api/v1/reservations (staff): a booking with who booked it and on which station. */

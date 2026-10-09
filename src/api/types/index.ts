@@ -1,7 +1,7 @@
 /*
  * Shapes the frontend reads from the backend (back-end/src DTOs, checked
- * against the running API). Money: Int columns are millimes (1 DT = 1000);
- * plan prices and discount percents are Prisma Decimals, sent as strings.
+ * against the running API). Money is whole coins (1000 coins = 1 DT here);
+ * discount percents are Prisma Decimals, sent as strings.
  */
 
 export * from './common';

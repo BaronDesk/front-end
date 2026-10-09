@@ -22,7 +22,7 @@ Both applications talk only to the real BaronDesk backend; there is no fake or d
 | Stations | Live status, telemetry, peripherals, remote commands (lock, unlock, launch game, shut down), enrollment of new PCs | Free/busy view of the home branch's stations |
 | Sessions and bookings | Running sessions, session history with bills, bookings with cancellation | Book ahead or play now, PIN for the station, live session view with extension |
 | Money | Desk top-up and refund by username | Wallet balance and history |
-| Plans | Membership tiers, passes and play prices per branch, each tier and pass with its badge; gamer ranks (XP thresholds, badges) | Buy, upgrade or cancel a membership; buy a pass; profile picture |
+| Plans | Membership tiers, passes and the play prices (one price list for every branch), each tier and pass with its badge; gamer ranks (XP thresholds, badges) | Buy, upgrade or cancel a membership; buy a pass; profile picture |
 | Games and alerts | Game catalog per branch and station, with game images; hardware and anti-theft alerts | — |
 | Multi-branch | HQ overview of every branch, branch switcher, branch creation, audit log of sensitive actions | — |
 
@@ -72,7 +72,7 @@ The backend's database must be up to date: in `back-end/`, run `npm run db:deplo
 | `employee.manar1`, `employee.manar2`, `employee.lac2.1`, `employee.lac2.2` | EMPLOYEE | El Manar / Lac 2 | password `password123` |
 | `gamer.newbie`, `gamer.regular`, `gamer.wood`, `gamer.iron`, `gamer.silver`, `gamer.gold`, `gamer.diamond`, `gamer.master`, `gamer.grandmaster`, `gamer.midswitch` | GAMER | none yet: the portal asks them to pick one at first login | password `password123`; plans and balances per the seed's header comment |
 
-The seed also creates 5 enrolled PCs per branch (`MNR-PC-01…05`, `LAC-PC-01…05`), prices (El Manar 4.000 DT/h, Lac 2 4.500 / 5.000 DT/h), the Pro/Elite tiers, two passes and 7 games. Seeded PCs show as online in the database but are only really online when an agent with that serial is connected.
+The seed also creates 5 enrolled PCs per branch (`MNR-PC-01…05`, `LAC-PC-01…05`), the price list (4,000 coins/h walk-in and booked, i.e. 1 DT per 15 min), the Pro/Elite tiers, two passes and 7 games. Seeded PCs show as online in the database but are only really online when an agent with that serial is connected.
 
 ## Screens and their endpoints
 
@@ -92,7 +92,7 @@ Every screen reads and writes the real backend. The last column says what each s
 | Bookings | `GET /api/v1/reservations`, `DELETE /api/v1/reservations/:id` | Who booked which station, for one day or 7 days, by status (HQ: the branch in the top bar). **Cancel** a booking nobody plays on yet (its PIN stops working). Polled every 30 s (no event for a new booking) |
 | Wallet (desk) | `GET /gamers?q=`, `/wallets/:gamerProfileId…` | Find the gamer by **username** (an exact name opens at once, else pick from the matches; recent gamers are remembered per browser); idempotent top-up and refund (refund: branch admin and HQ) |
 | Users & Staff (gamers with their profile picture) | `GET /users`, `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `PATCH /users/:id/status`, `POST /users/:id/password` | List and search by username and role (HQ: everyone, or the branch picked in the top bar; a branch admin: gamers and their own staff). A new gamer needs a home branch. Suspend / Reactivate and Reset password show only where the server allows them (`src/admin/users/permissions.ts`) |
-| Plans & prices | `/branches/:id/pricing`, `/membership-plans`, `/subscription-plans` | Create, edit, delete tiers and passes. A pass has one or more time windows (days, from–to, discount), added, changed and removed in its form; gamers who already bought it keep the windows they paid for. **Badge** on each tier and pass: the picture is uploaded when picked (`POST /uploads/images`) and saved with the form |
+| Plans & prices | `/pricing`, `/membership-plans`, `/subscription-plans` | The play prices in coins per hour, the same in every branch: HQ edits them, managers see them. Create, edit, delete tiers and passes (prices in coins). A pass has one or more time windows (days, from–to, discount), added, changed and removed in its form; gamers who already bought it keep the windows they paid for. **Badge** on each tier and pass: the picture is uploaded when picked (`POST /uploads/images`) and saved with the form |
 | Ranks | `GET/POST/PATCH/DELETE /ranks`, `POST /uploads/images` | The gamer ranks (Wood → GrandMaster): name, the XP each starts at, badge. Shared by every branch; warns when no rank starts at 0 XP |
 | Images (how pages use them) | `POST /uploads/images`, `PUT/DELETE /users/me/avatar`, `GET /uploads/…` | Forms use `src/shared/components/ImageField.tsx` (picker, preview, Remove; checks type and size before sending) and lists `Thumb.tsx`. The portal profile sets the gamer's picture with it. `src/api/images.ts`: `uploadImage(file)` answers a link to save as the `badgeUrl` of a tier, pass or rank, or the `iconUrl` of a game (any other link is refused); `setMyAvatar(file)` for the gamer; show any of them with `<img src={imageSrc(url)}>`. PNG, JPEG or WebP, at most 2 MB (`IMAGE_MAX_BYTES`, `IMAGE_ACCEPT`). Rank shapes in `src/api/types/ranks.ts` |
 | Audit log (HQ) | `GET /audit-logs?branchId&from&action&q&limit` | Who did which sensitive action, on what, when: role changes, suspensions, password resets, refunds, shutdowns, revoked stations, branch / plan / price changes (HQ: the branch in the top bar). Filter by day, action, name. **Not on the backend yet**: until it is, the page says so (404). Expected answer: `AuditLogEntry[]` in `src/api/types/audit.ts`; action wording in `src/admin/audit/audit.ts` |
@@ -102,7 +102,7 @@ Every screen reads and writes the real backend. The last column says what each s
 | Portal: wallet | `/wallets/me…` | No self top-up on the backend: shows the username to give the desk |
 | Portal: profile & plans | `/memberships/me`, `/subscriptions/me`, `…/purchase`, `POST /memberships/me/cancel` | Paid from the wallet, idempotent. A dearer tier is an **Upgrade** (pay the difference, prorated); **Cancel** ends the tier, no refund |
 
-**Money:** the backend stores every amount as integer **millimes** (1 DT = 1000); plan prices are the exception (decimal dinars). Screens convert with `formatMillimes` / `dinarsToMillimes` in `src/shared/lib/format.ts` and show the server's numbers only.
+**Money:** the platform counts in **coins**, whole numbers, everywhere (wallets, prices, bills); screens show them with `formatCoins` in `src/shared/lib/format.ts` and never compute money. What a coin is worth is set there too (`COINS_PER_CURRENCY = 1000`, `CURRENCY = 'DT'`): only the desk top-up uses it, taking cash in DT and crediting the coins. Rates are coins per hour, billed by the second.
 
 ### The desk and the gamer app
 
@@ -155,7 +155,7 @@ Seed first (`back-end/`), start at least one real agent (Play now needs the PC O
 - With a branch picked, lists ask for `?branchId=…` and live events from other branches are ignored, so actions run on the selected branch. The choice survives a reload (per tab).
 - **Audit log** (`#/audit`, HQ only): see the screens table; it needs `GET /audit-logs` on the backend.
 - **HQ overview** (`#/hq`, HQ's start page): stations, online, in session and open alerts per branch, computed from the machines, the stations and the open alerts.
-- **Branches:** below the table, HQ creates a branch (name, location) with `POST /branches`; **Edit** on a row renames or moves it with `PATCH /branches/:id`. A new branch then needs its PCs (New stations) and its prices (Plans & prices).
+- **Branches:** below the table, HQ creates a branch (name, location) with `POST /branches`; **Edit** on a row renames or moves it with `PATCH /branches/:id`. A new branch then needs its PCs (New stations); the prices are the same in every branch.
 - Code: `src/admin/branches/BranchContext.tsx` (`useBranchScope()`: `scoped(path)`, `inScope(branchId)`), `src/admin/branches/HqPage.tsx`.
 
 ## Build and test
