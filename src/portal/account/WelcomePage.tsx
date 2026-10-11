@@ -10,7 +10,8 @@ export function WelcomePage() {
   const { state } = useAuth();
   // Where the gamer was going: login and sign-up bring them back there.
   const from = useLocation().state as { from?: string } | null;
-  if (state.status === 'authenticated') return <Navigate to="/" replace />;
+  // Already logged in (e.g. the login came back after a reload): on to where they were going.
+  if (state.status === 'authenticated') return <Navigate to={from?.from ?? '/'} replace />;
 
   return (
     <AuthScreen variant="welcome">

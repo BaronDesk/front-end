@@ -60,6 +60,12 @@ export function currencyToCoins(text: string): number | null {
   return text.trim() && Number.isFinite(value) ? Math.round(value * COINS_PER_CURRENCY) : null;
 }
 
+/** A coin balance as the portal shows it, grouped with dots: 30000 → "30.000". */
+export function groupThousands(coins: number): string {
+  const sign = coins < 0 ? '-' : '';
+  return sign + String(Math.trunc(Math.abs(coins))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
 /** What coins are worth in cash: 4500 → "4.500 DT". */
 export function coinsInCurrency(coins: number): string {
   return `${(coins / COINS_PER_CURRENCY).toFixed(3)} ${CURRENCY}`;

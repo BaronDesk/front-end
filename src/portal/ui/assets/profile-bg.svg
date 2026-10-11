@@ -1,0 +1,16 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="360" height="696" viewBox="0 0 360 696" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Bg Shape">
+<mask id="mask0_0_20" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="360" height="696">
+<path id="Bg" d="M0 20C0 8.95431 8.95431 0 20 0H340C351.046 0 360 8.95431 360 20V676C360 687.046 351.046 696 340 696H20C8.95431 696 0 687.046 0 676V20Z" fill="#EFE5D2"/>
+</mask>
+<g mask="url(#mask0_0_20)">
+<path id="Ellipse 6" d="M180 -336C280.08 -336 370.638 -310.296 436.145 -268.79C501.664 -227.277 542 -170.05 542 -107C542 -43.9498 501.664 13.2765 436.145 54.79C370.638 96.2957 280.08 122 180 122C79.9204 122 -10.6378 96.2957 -76.1445 54.79C-141.664 13.2765 -182 -43.9498 -182 -107C-182 -170.05 -141.664 -227.277 -76.1445 -268.79C-10.6378 -310.296 79.9204 -336 180 -336Z" fill="url(#paint0_linear_0_20)" fill-opacity="0.96" stroke="#362822" stroke-width="2"/>
+</g>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_20" x1="180" y1="-337" x2="180" y2="123" gradientUnits="userSpaceOnUse">
+<stop stop-color="#362822" stop-opacity="0.61"/>
+<stop offset="1" stop-color="#362822" stop-opacity="0"/>
+</linearGradient>
+</defs>
+</svg>

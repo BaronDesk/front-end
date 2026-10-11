@@ -3,18 +3,25 @@ import { Link } from 'react-router';
 
 import bookingIcon from './assets/booking-icon.svg';
 import homeIcon from './assets/home-icon.svg';
+import navBookActive from './assets/nav-book-active.svg';
 import navBump from './assets/nav-bump.svg';
+import navHomeOutline from './assets/nav-home-outline.svg';
+import navSettingsActive from './assets/nav-settings-active.svg';
+import navUserActive from './assets/nav-user-active.svg';
 import settingsIcon from './assets/settings-icon.svg';
 import userIcon from './assets/user-icon.svg';
 import { ART, Art } from './units';
 
 export type NavKey = 'home' | 'book' | 'profile' | 'settings';
 
-const ITEMS: Record<NavKey, { to: string; label: string; icon: string; size: readonly [number, number] }> = {
-  home: { to: '/', label: 'Home', icon: homeIcon, size: ART.homeIcon },
-  book: { to: '/book', label: 'Bookings', icon: bookingIcon, size: ART.bookingIcon },
-  profile: { to: '/profile', label: 'Profile', icon: userIcon, size: ART.userIcon },
-  settings: { to: '/settings', label: 'Settings', icon: settingsIcon, size: ART.settingsIcon },
+type Icon = { src: string; size: readonly [number, number] };
+
+/** Each item's icon: filled in the raised circle (the current page), outlined on the bar. */
+const ITEMS: Record<NavKey, { to: string; label: string; active: Icon; idle: Icon }> = {
+  home: { to: '/', label: 'Home', active: { src: homeIcon, size: ART.homeIcon }, idle: { src: navHomeOutline, size: ART.navHomeOutline } },
+  book: { to: '/book', label: 'Bookings', active: { src: navBookActive, size: ART.navBookActive }, idle: { src: bookingIcon, size: ART.bookingIcon } },
+  profile: { to: '/profile', label: 'Profile', active: { src: navUserActive, size: ART.navUserActive }, idle: { src: userIcon, size: ART.userIcon } },
+  settings: { to: '/settings', label: 'Settings', active: { src: navSettingsActive, size: ART.navSettingsActive }, idle: { src: settingsIcon, size: ART.settingsIcon } },
 };
 
 const ORDER: NavKey[] = ['home', 'book', 'profile', 'settings'];
@@ -46,6 +53,7 @@ export function BottomNav({ active }: { active: NavKey }) {
       <div className="bd-nav-bar" />
       {ORDER.map((key) => {
         const item = ITEMS[key];
+        const icon = key === active ? item.active : item.idle;
         return (
           <Link
             key={key}
@@ -55,7 +63,7 @@ export function BottomNav({ active }: { active: NavKey }) {
             aria-label={item.label}
             aria-current={key === active ? 'page' : undefined}
           >
-            <Art src={item.icon} w={item.size[0]} h={item.size[1]} />
+            <Art src={icon.src} w={icon.size[0]} h={icon.size[1]} />
           </Link>
         );
       })}

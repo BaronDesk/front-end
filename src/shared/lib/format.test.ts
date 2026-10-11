@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { coinsInCurrency, currencyToCoins, formatCoins, formatSignedCoins, parseCoins } from './format';
+import { coinsInCurrency, currencyToCoins, formatCoins, formatSignedCoins, groupThousands, parseCoins } from './format';
 
 describe('money: whole coins on screen and on the wire', () => {
   it('formats what the server sent', () => {
@@ -29,5 +29,15 @@ describe('money: whole coins on screen and on the wire', () => {
     expect(currencyToCoins('')).toBeNull();
     expect(currencyToCoins('abc')).toBeNull();
     expect(coinsInCurrency(4500)).toBe('4.500 DT');
+  });
+});
+
+describe('groupThousands: the portal balance', () => {
+  it('groups the digits by three with dots, as drawn ("30.000")', () => {
+    expect(groupThousands(30000)).toBe('30.000');
+    expect(groupThousands(1234567)).toBe('1.234.567');
+    expect(groupThousands(999)).toBe('999');
+    expect(groupThousands(0)).toBe('0');
+    expect(groupThousands(-4500)).toBe('-4.500');
   });
 });

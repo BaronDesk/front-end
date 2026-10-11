@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { benefitsText, discountText, NEW_WINDOW, rowsToWindows, windowRows } from './plans';
+import { benefitsText, discountText, NEW_WINDOW, rowsToWindows, windowRows, passLines, tierLines } from './plans';
 
 describe('plan wording and pass form rows', () => {
   it('describes pass benefits of every shape the backend stores', () => {
@@ -37,5 +37,18 @@ describe('plan wording and pass form rows', () => {
     expect(windowRows(null)).toEqual([]);
     expect(rowsToWindows([])).toEqual([]);
     expect(rowsToWindows([{ ...NEW_WINDOW, days: [] }])).toBeNull();
+  });
+});
+
+describe('card lines (portal Settings)', () => {
+  it('reads a free night pass as drawn, and a weekend half price', () => {
+    expect(passLines({ windows: [{ daysOfWeek: [0, 1, 2, 3, 4, 5, 6], startTime: '00:00', endTime: '06:00', discountPercent: 100 }] })).toEqual(['Free Play From', '00:00 to 06:00']);
+    expect(passLines({ windows: [{ daysOfWeek: [0, 6], startTime: '00:00', endTime: '00:00', discountPercent: 50 }] })).toEqual(['50% Off', 'Weekends, all day']);
+  });
+
+  it('reads a tier: no discount at the full rate, or its discount and the rate it gives', () => {
+    expect(tierLines('0', 4000)).toEqual(['No Discounts', '4000 Coins/Hour']);
+    expect(tierLines(20, 4000)).toEqual(['20% Discount', '3200 Coins/Hour']);
+    expect(tierLines(10, null)).toEqual(['10% Discount', '']);
   });
 });

@@ -77,3 +77,25 @@ export function discountText(percent: string | number): string {
   const n = Number(percent);
   return Number.isFinite(n) && n > 0 ? `−${n} %` : 'no discount';
 }
+
+/**
+ * A pass in the two short lines of its card (Figma Settings → Plans):
+ * "Free Play From" / "00:00 to 06:00", or "50% Off" / "Weekends, all day".
+ * Its first time window only: the card has room for one.
+ */
+export function passLines(b: SubscriptionBenefits | null | undefined): [string, string] {
+  const w = Array.isArray(b?.windows) ? b.windows[0] : undefined;
+  if (!w) return [benefitsText(b), ''];
+  const when = w.startTime === w.endTime ? 'all day' : `${w.startTime} to ${w.endTime}`;
+  const on = days(w.daysOfWeek);
+  const someDays = on === 'every day' ? null : `${on.charAt(0).toUpperCase()}${on.slice(1)}`;
+  if (w.discountPercent >= 100) return [someDays ? `Free Play on ${someDays}` : 'Free Play From', when];
+  return [`${w.discountPercent}% Off`, someDays ? `${someDays}, ${when}` : when];
+}
+
+/** A membership tier's card lines (Settings → Membership): its discount, and the hourly rate it gives. */
+export function tierLines(discountPercent: string | number, bookingRate: number | null): [string, string] {
+  const d = Number(discountPercent);
+  const rate = bookingRate === null ? '' : `${Math.round(bookingRate * (1 - d / 100))} Coins/Hour`;
+  return [d > 0 ? `${d}% Discount` : 'No Discounts', rate];
+}

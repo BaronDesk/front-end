@@ -1,17 +1,22 @@
 import { useState, type FormEvent } from 'react';
 
 import { api } from '../../api/http';
+import { removeMyAvatar, setMyAvatar } from '../../api/images';
 import type { Branch, PublicUser } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { ChangePasswordForm } from '../../shared/components/ChangePasswordForm';
 import { ErrorBox } from '../../shared/components/ErrorBox';
+import { ImageField } from '../../shared/components/ImageField';
 import { ActionMessages } from '../../shared/components/ActionMessages';
 import { useAction } from '../../shared/hooks/useAction';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import { BranchSelect } from './BranchSelect';
 
-/** Settings: the branch the gamer plays at (their booking page follows it) and their password. */
-export function SettingsPage() {
+/**
+ * My account (Settings → the profile card): the gamer's picture, the branch
+ * they play at (their booking page follows it) and their password.
+ */
+export function AccountPage() {
   const { user, updateUser } = useAuth();
   const branches = useApiQuery<Branch[]>('/branches');
   const action = useAction();
@@ -30,9 +35,24 @@ export function SettingsPage() {
 
   return (
     <>
-      <h1>Settings</h1>
+      <h1>My account</h1>
       <ActionMessages action={action} />
       <ErrorBox error={branches.error} />
+
+      <ImageField
+        id="avatar"
+        label="Profile picture"
+        round
+        value={user?.avatarUrl ?? null}
+        upload={async (file) => {
+          const updated = await setMyAvatar(file);
+          updateUser(updated);
+          return updated.avatarUrl;
+        }}
+        remove={async () => updateUser(await removeMyAvatar())}
+        // The account (useAuth) already holds the new picture.
+        onChange={() => undefined}
+      />
 
       <form onSubmit={saveBranch}>
         <fieldset>

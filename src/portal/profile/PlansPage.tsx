@@ -1,11 +1,9 @@
 import { useState } from 'react';
 
 import { api, newIdempotencyKey } from '../../api/http';
-import { removeMyAvatar, setMyAvatar } from '../../api/images';
 import type { Membership, MembershipPlan, Subscription, SubscriptionPlan, Wallet } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { ErrorBox } from '../../shared/components/ErrorBox';
-import { ImageField } from '../../shared/components/ImageField';
 import { Thumb } from '../../shared/components/Thumb';
 import { formatDateTime, formatCoins } from '../../shared/lib/format';
 import { benefitsText, discountText } from '../../shared/lib/plans';
@@ -14,11 +12,11 @@ import { useAction } from '../../shared/hooks/useAction';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 
 /**
- * My profile & plans (brief §6.9): the profile picture, the active membership
+ * Memberships & passes (Settings → See All, brief §6.9): the active membership
  * and passes, and buying one with the wallet (the purchase is idempotent).
  */
-export function ProfilePage() {
-  const { user, updateUser } = useAuth();
+export function PlansPage() {
+  const { user } = useAuth();
   const wallet = useApiQuery<Wallet>('/wallets/me');
   const memberships = useApiQuery<Membership[]>('/memberships/me');
   const subscriptions = useApiQuery<Subscription[]>('/subscriptions/me');
@@ -60,24 +58,9 @@ export function ProfilePage() {
 
   return (
     <>
-      <h1>My profile &amp; plans</h1>
+      <h1>Memberships &amp; passes</h1>
       <ActionMessages action={action} />
       <ErrorBox error={wallet.error ?? memberships.error ?? subscriptions.error ?? tiers.error ?? passes.error} />
-
-      <ImageField
-        id="avatar"
-        label="Profile picture"
-        round
-        value={user?.avatarUrl ?? null}
-        upload={async (file) => {
-          const updated = await setMyAvatar(file);
-          updateUser(updated);
-          return updated.avatarUrl;
-        }}
-        remove={async () => updateUser(await removeMyAvatar())}
-        // The account (useAuth) already holds the new picture.
-        onChange={() => undefined}
-      />
 
       <table className="kv">
         <tbody>

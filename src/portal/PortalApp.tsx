@@ -6,24 +6,26 @@ import { RequireAuth } from '../auth/guards';
 import { RealtimeProvider } from '../realtime/RealtimeContext';
 import { NotFoundPage } from '../shared/components/NotFoundPage';
 import { LoginPage } from './account/LoginPage';
-import { SettingsPage } from './account/SettingsPage';
+import { AccountPage } from './account/AccountPage';
+import { FaqPage, HistoryPage, TermsPage } from './account/InfoPages';
+import { SettingsScreen } from './account/SettingsScreen';
 import { SignupPage } from './account/SignupPage';
 import { WelcomePage } from './account/WelcomePage';
 import { BookPage } from './booking/BookPage';
 import { EventsPage } from './events/EventsPage';
 import { PortalHome } from './home/PortalHome';
 import { PortalLayout } from './layout/PortalLayout';
-import { PORTAL_MENU } from './menu';
-import { ProfilePage } from './profile/ProfilePage';
+import { PlansPage } from './profile/PlansPage';
+import { ProfileScreen } from './profile/ProfileScreen';
 import { SessionPage } from './session/SessionPage';
 import { WalletPage } from './wallet/WalletPage';
 
+/** Pages not in the Figma design yet: the classic layout. */
 const PAGES: Record<string, ReactNode> = {
-  '/book': <BookPage />,
   '/session': <SessionPage />,
   '/wallet': <WalletPage />,
-  '/profile': <ProfilePage />,
-  '/settings': <SettingsPage />,
+  '/account': <AccountPage />,
+  '/plans': <PlansPage />,
 };
 
 export function PortalApp() {
@@ -40,12 +42,18 @@ export function PortalApp() {
             <Route element={<RequireAuth loginPath="/welcome" />}>
               <Route index element={<PortalHome />} />
               <Route path="/events" element={<EventsPage />} />
+              <Route path="/book" element={<BookPage />} />
+              <Route path="/profile" element={<ProfileScreen />} />
+              <Route path="/settings" element={<SettingsScreen />} />
+              <Route path="/history" element={<HistoryPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/faq" element={<FaqPage />} />
             </Route>
             {/* The pages not redesigned yet keep the classic layout. */}
             <Route element={<PortalLayout />}>
               <Route element={<RequireAuth loginPath="/welcome" />}>
-                {PORTAL_MENU.map((item) => (
-                  <Route key={item.path} path={item.path} element={PAGES[item.path]} />
+                {Object.entries(PAGES).map(([path, page]) => (
+                  <Route key={path} path={path} element={page} />
                 ))}
                 <Route path="*" element={<NotFoundPage back="the menu" />} />
               </Route>
