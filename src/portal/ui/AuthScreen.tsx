@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import blob from './assets/auth-blob.svg';
 import outline from './assets/auth-outline.svg';
 import largeLogo from './assets/large-logo.svg';
+import { ART, Art, u } from './units';
 import { describeError } from '../../shared/lib/errors';
 import './portal.css';
 
@@ -17,8 +18,8 @@ const SHAPES = {
 } as const;
 const OUTLINE_CENTER = [277.2, 975.2];
 
-const BLOB = { w: 558.422, h: 540.654 };
-const OUTLINE = { w: 879.867, h: 851.871 };
+const BLOB = { w: ART.authBlob[0], h: ART.authBlob[1] };
+const OUTLINE = { w: ART.authOutline[0], h: ART.authOutline[1] };
 
 /**
  * The signed-out screens (welcome, login, sign-up): the gradient with its
@@ -31,12 +32,13 @@ export function AuthScreen({ variant, children }: { variant: keyof typeof SHAPES
       <div className="bd-app bd-auth">
         <div className="bd-auth-shapes" aria-hidden="true">
           {/* Anchored to the corner each one decorates, so they stay there on any phone. */}
-          <img src={blob} alt="" style={{ left: left[0] - BLOB.w / 2, top: left[1] - BLOB.h / 2, transform: 'rotate(-10.25deg)' }} />
-          <img src={blob} alt="" style={{ right: 360 - right[0] - BLOB.w / 2, top: right[1] - BLOB.h / 2, transform: 'rotate(22.74deg)' }} />
-          <img
+          <Art src={blob} w={BLOB.w} h={BLOB.h} style={{ left: u(left[0] - BLOB.w / 2), top: u(left[1] - BLOB.h / 2), transform: 'rotate(-10.25deg)' }} />
+          <Art src={blob} w={BLOB.w} h={BLOB.h} style={{ right: u(360 - right[0] - BLOB.w / 2), top: u(right[1] - BLOB.h / 2), transform: 'rotate(22.74deg)' }} />
+          <Art
             src={outline}
-            alt=""
-            style={{ left: `calc(50% - 180px + ${OUTLINE_CENTER[0] - OUTLINE.w / 2}px)`, bottom: 696 - OUTLINE_CENTER[1] - OUTLINE.h / 2, transform: 'rotate(165deg)' }}
+            w={OUTLINE.w}
+            h={OUTLINE.h}
+            style={{ left: `calc(50% + ${u(OUTLINE_CENTER[0] - 180 - OUTLINE.w / 2)})`, bottom: u(696 - OUTLINE_CENTER[1] - OUTLINE.h / 2), transform: 'rotate(165deg)' }}
           />
         </div>
         <div className="bd-auth-stage">{children}</div>
@@ -47,7 +49,7 @@ export function AuthScreen({ variant, children }: { variant: keyof typeof SHAPES
 
 /** The BaronDesk logo, at its place on the screen (102 px from the left on the welcome screen, 103 on the forms). */
 export function AuthLogo({ top, left = 103 }: { top: number; left?: number }) {
-  return <img className="bd-auth-logo" src={largeLogo} alt="BaronDesk" style={{ top, left }} />;
+  return <Art className="bd-auth-logo" src={largeLogo} w={ART.largeLogo[0]} h={ART.largeLogo[1]} alt="BaronDesk" style={{ top: u(top), left: u(left) }} />;
 }
 
 /** A refusal under the form, in the charter's red. */

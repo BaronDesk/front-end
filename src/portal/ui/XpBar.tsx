@@ -28,22 +28,24 @@ export function xpProgress(user: Pick<PublicUser, 'xp' | 'rank' | 'nextRank'>): 
 export function XpBar({ user }: { user: Pick<PublicUser, 'xp' | 'rank' | 'nextRank'> }) {
   const box = useRef<HTMLDivElement>(null);
   const maskId = useId();
-  const [width, setWidth] = useState(237.153);
+  // The bar's size on screen; it is drawn in Figma px (28 high) and scaled to fit.
+  const [size, setSize] = useState({ width: 237.153, height: 28 });
 
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
-    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    const observer = new ResizeObserver(([entry]) => setSize({ width: entry.contentRect.width, height: entry.contentRect.height }));
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
+  const width = size.height > 0 ? (size.width * 28) / size.height : 237.153;
   const fill = Math.max(MIN_FILL, xpProgress(user) * width);
   const goal = user.nextRank ? `${user.nextRank.minXp - 1}XP` : 'MAX';
 
   return (
     <div className="bd-xp" ref={box} role="img" aria-label={`${user.xp ?? 0} XP${user.nextRank ? `, ${user.nextRank.name} at ${user.nextRank.minXp} XP` : ''}`}>
-      <svg width={width} height={28} viewBox={`0 0 ${width} 28`} aria-hidden="true">
+      <svg width={size.width} height={size.height} viewBox={`0 0 ${width} 28`} aria-hidden="true">
         <defs>
           <mask id={maskId}>
             <path d={barPath(width - 14)} fill="white" />

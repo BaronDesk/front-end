@@ -8,6 +8,7 @@ import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import bidi from '../ui/assets/bidi-form.svg';
 import { AuthError, AuthLogo, AuthScreen } from '../ui/AuthScreen';
 import { PasswordField, SelectField, TextField } from '../ui/Fields';
+import { ART, Art, u } from '../ui/units';
 
 /**
  * Figma "Sign Up": create a gamer account. Every gamer picks the branch they
@@ -47,8 +48,8 @@ export function SignupPage() {
   return (
     <AuthScreen variant="form">
       <AuthLogo top={44} />
-      <img className="bd-auth-bidi bd-auth-bidi-form" src={bidi} alt="" style={{ top: 98 }} />
-      <form className="bd-auth-form" style={{ top: 367 }} onSubmit={submit}>
+      <Art className="bd-auth-bidi bd-auth-bidi-form" src={bidi} w={ART.bidiForm[0]} h={ART.bidiForm[1]} style={{ top: u(98) }} />
+      <form className="bd-auth-form" style={{ top: u(367) }} onSubmit={submit}>
         <div className="bd-auth-fields bd-auth-fields-signup">
           <TextField
             placeholder="Username"
@@ -86,7 +87,7 @@ export function SignupPage() {
             onChange={(e) => setForm({ ...form, confirm: e.target.value })}
           />
         </div>
-        <button type="submit" className="bd-auth-submit" style={{ width: 112, marginTop: 37 }} disabled={pending}>
+        <button type="submit" className="bd-auth-submit" style={{ width: u(112), marginTop: u(37) }} disabled={pending}>
           Sign Up
         </button>
         <AuthError error={error ?? branches.error} text={mismatch ? 'The two passwords are not the same.' : undefined} />

@@ -1,7 +1,9 @@
 import { useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
 
 import eyeHidden from './assets/eye-hidden.svg';
+import eyeShown from './assets/eye-shown.svg';
 import selectArrow from './assets/select-arrow.svg';
+import { ART, Art } from './units';
 
 /** A rounded cream field (Figma inputs: 212 × 40). The placeholder is its label. */
 export function TextField(props: InputHTMLAttributes<HTMLInputElement> & { placeholder: string }) {
@@ -25,7 +27,7 @@ export function PasswordField(props: Omit<InputHTMLAttributes<HTMLInputElement>,
         aria-label={shown ? 'Hide the password' : 'Show the password'}
         aria-pressed={shown}
       >
-        <img src={eyeHidden} alt="" />
+        {shown ? <Art src={eyeShown} w={ART.eyeShown[0]} h={ART.eyeShown[1]} /> : <Art src={eyeHidden} w={ART.eyeHidden[0]} h={ART.eyeHidden[1]} />}
       </button>
     </div>
   );
@@ -38,7 +40,7 @@ export function SelectField({ label, children, ...props }: SelectHTMLAttributes<
       <select {...props} aria-label={label} className={props.value ? undefined : 'bd-field-empty'}>
         {children}
       </select>
-      <img className="bd-field-arrow" src={selectArrow} alt="" />
+      <Art className="bd-field-arrow" src={selectArrow} w={ART.selectArrow[0]} h={ART.selectArrow[1]} />
     </div>
   );
 }

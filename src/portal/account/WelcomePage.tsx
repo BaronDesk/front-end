@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation } from 'react-router';
 import { useAuth } from '../../auth/AuthContext';
 import bidi from '../ui/assets/bidi-welcome.svg';
 import { AuthLogo, AuthScreen } from '../ui/AuthScreen';
+import { ART, Art } from '../ui/units';
 
 /** Figma "Sign Up / Login": the first screen of a signed-out gamer. */
 export function WelcomePage() {
@@ -14,7 +15,7 @@ export function WelcomePage() {
   return (
     <AuthScreen variant="welcome">
       <AuthLogo top={124} left={102} />
-      <img className="bd-auth-bidi bd-auth-bidi-welcome" src={bidi} alt="" />
+      <Art className="bd-auth-bidi bd-auth-bidi-welcome" src={bidi} w={ART.bidiWelcome[0]} h={ART.bidiWelcome[1]} />
       <Link to="/login" state={from} className="bd-auth-choice bd-auth-choice-login">
         Login
       </Link>

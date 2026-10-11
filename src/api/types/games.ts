@@ -30,6 +30,9 @@ export interface Game {
   assignments?: GameAssignments;
 }
 
+/** GET /api/v1/games for a gamer (toPublicGameDto): only the enabled games offered somewhere, no launch details. */
+export type PublicGame = Pick<Game, 'id' | 'gameId' | 'name' | 'iconUrl' | 'sortOrder'>;
+
 export interface GameAssignments {
   /** Offered at every station of these branches… */
   branchIds: string[];

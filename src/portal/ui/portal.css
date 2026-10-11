@@ -49,25 +49,37 @@
   --bd-regular: 483;
   --bd-semibold: 650;
 
-  --bd-nav-height: 77px;
   --bd-column: 430px;
+  /*
+   * The design unit: the screens are drawn 360 wide, so 1 unit is 1/360 of
+   * the column. Every size below is a number of units: the design scales
+   * with the phone.
+   */
+  --u: calc(min(100vw, var(--bd-column)) / 360);
+  --bd-nav-height: calc(77 * var(--u));
 
   position: relative;
   min-height: 100vh;
   min-height: 100dvh;
   max-width: var(--bd-column);
   margin: 0 auto;
-  padding-bottom: calc(var(--bd-nav-height) + 12px);
+  padding-bottom: calc(var(--bd-nav-height) + calc(12 * var(--u)));
   overflow-x: hidden;
   color: var(--bd-brown);
   font-family: 'Neue Kaine', sans-serif;
   font-weight: var(--bd-regular);
-  font-size: 16px;
+  font-size: calc(16 * var(--u));
   line-height: normal;
   background:
     linear-gradient(180deg, rgba(63, 19, 19, 0.2) 0%, rgba(102, 102, 102, 0) 14.904%),
     linear-gradient(180deg, rgba(194, 141, 57, 0.32) 0%, rgba(0, 0, 0, 0) 100%),
     var(--bd-cream);
+}
+
+/* A one-screen design: the unit also follows the height (696 drawn), so it all fits. */
+.bd-fit {
+  --u: min(calc(min(100vw, var(--bd-column)) / 360), calc(100vh / 696));
+  --u: min(calc(min(100vw, var(--bd-column)) / 360), calc(100dvh / 696));
 }
 
 /* Around the phone-width column on a wide screen. */
@@ -101,7 +113,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid var(--bd-brown);
+  border: calc(1 * var(--u)) solid var(--bd-brown);
   border-radius: 50%;
 }
 
@@ -133,20 +145,25 @@
   align-items: center;
 }
 
-.bd-badges img {
+/* Each badge shows only its drawing: the picture is moved inside a box its drawing's size. */
+.bd-badge {
+  position: relative;
+  flex: none;
   display: block;
-  object-fit: cover;
+  overflow: hidden;
 }
 
-.bd-badges img + img {
-  margin-left: -3.5px;
+.bd-badge img {
+  position: absolute;
+  display: block;
+  max-width: none;
 }
 
 /* ---------- XP bar ---------- */
 
 .bd-xp {
   position: relative;
-  height: 28px;
+  height: calc(28 * var(--u));
 }
 
 .bd-xp svg {
@@ -158,19 +175,19 @@
 .bd-xp-value,
 .bd-xp-goal {
   position: absolute;
-  top: 9px;
+  top: calc(9 * var(--u));
   font-weight: var(--bd-light);
-  font-size: 10px;
+  font-size: calc(10 * var(--u));
   white-space: nowrap;
 }
 
 .bd-xp-value {
-  left: 15px;
+  left: calc(15 * var(--u));
   color: #dbc7a6;
 }
 
 .bd-xp-goal {
-  right: 7px;
+  right: calc(7 * var(--u));
   color: rgba(54, 40, 34, 0.61);
 }
 
@@ -190,17 +207,17 @@
 /* The black bar, with the bump around the active item cut out of it. */
 .bd-nav-bar {
   position: absolute;
-  inset: 21px 0 0;
+  inset: calc(21 * var(--u)) 0 0;
   background: var(--bd-black);
-  border-radius: 10px 10px 20px 20px;
+  border-radius: calc(10 * var(--u)) calc(10 * var(--u)) calc(20 * var(--u)) calc(20 * var(--u));
   -webkit-mask-image: var(--bd-bump), linear-gradient(#000, #000);
   mask-image: var(--bd-bump), linear-gradient(#000, #000);
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
-  -webkit-mask-position: calc(var(--bd-active-x) - 68px) -14px, 0 0;
-  mask-position: calc(var(--bd-active-x) - 68px) -14px, 0 0;
-  -webkit-mask-size: 137px 55.5px, 100% 100%;
-  mask-size: 137px 55.5px, 100% 100%;
+  -webkit-mask-position: calc(var(--bd-active-x) - calc(68 * var(--u))) calc(-14 * var(--u)), 0 0;
+  mask-position: calc(var(--bd-active-x) - calc(68 * var(--u))) calc(-14 * var(--u)), 0 0;
+  -webkit-mask-size: calc(137 * var(--u)) calc(55.5 * var(--u)), 100% 100%;
+  mask-size: calc(137 * var(--u)) calc(55.5 * var(--u)), 100% 100%;
   -webkit-mask-composite: xor;
   mask-composite: exclude;
 }
@@ -219,107 +236,141 @@
 
 /* Inactive items sit on the bar; the active one in the black circle above it. */
 .bd-nav-item {
-  top: 49px;
-  width: 44px;
-  height: 44px;
+  top: calc(49 * var(--u));
+  width: calc(44 * var(--u));
+  height: calc(44 * var(--u));
 }
 
 .bd-nav-active {
-  top: 28px;
-  width: 56px;
-  height: 56px;
+  top: calc(28 * var(--u));
+  width: calc(56 * var(--u));
+  height: calc(56 * var(--u));
   border-radius: 50%;
   background: var(--bd-black);
 }
 
 /* ---------- Home ---------- */
 
+/* The screen's height above the nav; the cards and buttons share what the header leaves. */
+.bd-home {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--bd-nav-height) - calc(12 * var(--u)));
+  min-height: calc(100dvh - var(--bd-nav-height) - calc(12 * var(--u)));
+}
+
+.bd-home-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .bd-home-head {
   position: relative;
-  height: 115px;
-  border-bottom: 2px solid rgba(54, 40, 34, 0.75);
+  height: calc(115 * var(--u));
+  border-bottom: calc(2 * var(--u)) solid rgba(54, 40, 34, 0.75);
 }
 
 .bd-home-head .bd-avatar {
   position: absolute;
-  left: 31px;
-  top: 28px;
+  left: calc(31 * var(--u));
+  top: calc(28 * var(--u));
 }
 
 .bd-home-name {
   position: absolute;
-  left: 102px;
-  top: 34px;
+  left: calc(102 * var(--u));
+  top: calc(34 * var(--u));
   font-weight: var(--bd-semibold);
-  font-size: 18px;
+  font-size: calc(18 * var(--u));
 }
 
+/* The last drawing ends 30.4 px from the edge, as in Figma. */
 .bd-home-head .bd-badges {
   position: absolute;
-  right: 29px;
-  top: 25px;
-  height: 31px;
+  right: calc(30.4 * var(--u));
+  top: calc(25 * var(--u));
+  height: calc(31 * var(--u));
 }
 
 .bd-home-head .bd-xp {
   position: absolute;
-  left: 95.85px;
-  right: 27px;
-  top: 56px;
+  left: calc(95.85 * var(--u));
+  right: calc(27 * var(--u));
+  top: calc(56 * var(--u));
 }
 
 .bd-home-hero {
   position: relative;
-  height: 152px;
+  height: calc(152 * var(--u));
 }
 
 .bd-home-title {
   position: absolute;
-  left: 11px;
-  top: 12px;
+  left: calc(11 * var(--u));
+  top: calc(12 * var(--u));
   font-weight: var(--bd-regular);
-  font-size: 40px;
+  font-size: calc(40 * var(--u));
 }
 
 .bd-home-collection {
   position: absolute;
   right: 0;
-  top: 103px;
-  width: 143px;
-  height: 27px;
-  padding: 5px 0 0 9px;
-  border-radius: 77px 0 0 70px;
+  top: calc(103 * var(--u));
+  width: calc(143 * var(--u));
+  height: calc(27 * var(--u));
+  padding: calc(5 * var(--u)) 0 0 calc(9 * var(--u));
+  border-radius: calc(77 * var(--u)) 0 0 calc(70 * var(--u));
   background: var(--bd-brown);
   color: var(--bd-cream);
   font-family: 'Nexa', sans-serif;
   font-weight: 300;
-  font-size: 17px;
+  font-size: calc(17 * var(--u));
   white-space: nowrap;
 }
 
-/* The game cards: the middle one centered, its neighbours peeking in. */
+/* The game ring: the centered card, its neighbours peeking in (GameCarousel). */
 .bd-games {
-  display: flex;
-  gap: 34px;
-  padding: 0 calc(50% - 101.5px);
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
+  position: relative;
+  height: calc(258 * var(--u));
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y; /* vertical swipes still scroll the page */
+  user-select: none;
+  outline: none;
 }
 
-.bd-games::-webkit-scrollbar {
-  display: none;
+.bd-games-dragging {
+  cursor: grabbing;
 }
 
 .bd-game {
-  position: relative;
-  flex: none;
-  width: 203px;
-  height: 258px;
+  position: absolute;
+  top: 0;
+  left: calc(50% - calc(101.5 * var(--u)));
+  width: calc(203 * var(--u));
+  height: calc(258 * var(--u));
   overflow: hidden;
-  border-radius: 18px;
-  scroll-snap-align: center;
+  border-radius: calc(18 * var(--u));
   background: var(--bd-brown);
+  transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Following the finger: no easing while dragging. */
+.bd-games-dragging .bd-game {
+  transition: none;
+}
+
+.bd-games:focus-visible .bd-game[aria-hidden='false'] {
+  outline: calc(2 * var(--u)) solid var(--bd-gold);
+  outline-offset: calc(2 * var(--u));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bd-game {
+    transition: none;
+  }
 }
 
 /*
@@ -339,41 +390,41 @@
   content: '';
   position: absolute;
   inset: 0;
-  border: 2px solid var(--bd-brown);
-  border-radius: 18px;
+  border: calc(2 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(18 * var(--u));
   background: linear-gradient(180deg, rgba(54, 40, 34, 0) 0%, rgba(54, 40, 34, 0.44) 100%);
 }
 
 /* A game without a picture yet shows its name. */
 .bd-game-name {
   position: absolute;
-  inset: auto 16px 20px;
+  inset: auto calc(16 * var(--u)) calc(20 * var(--u));
   z-index: 1;
   color: var(--bd-cream);
   font-weight: var(--bd-semibold);
-  font-size: 22px;
+  font-size: calc(22 * var(--u));
 }
 
 /* 29 px from the left at 360 px, as drawn; the pair stays in the middle on wider phones. */
 .bd-home-buttons {
   display: flex;
-  gap: 19px;
-  margin-top: 27px;
-  padding-left: calc(50% - 151px);
+  gap: calc(19 * var(--u));
+  margin-top: calc(27 * var(--u));
+  padding-left: calc(50% - calc(151 * var(--u)));
 }
 
 .bd-button-big {
   position: relative;
   display: grid;
   place-items: center;
-  width: 138px;
-  height: 51px;
+  width: calc(138 * var(--u));
+  height: calc(51 * var(--u));
   overflow: hidden;
-  border-radius: 24px;
+  border-radius: calc(24 * var(--u));
   background: linear-gradient(180deg, var(--bd-brown) 0%, rgba(32, 12, 3, 0.98) 97.115%);
   color: var(--bd-on-dark);
   font-weight: var(--bd-semibold);
-  font-size: 18px;
+  font-size: calc(18 * var(--u));
 }
 
 .bd-button-big span {
@@ -385,18 +436,18 @@
   position: absolute;
   display: block;
   max-width: none;
-  opacity: 0.25;
+  opacity: 0.75;
   pointer-events: none;
 }
 
 .bd-doodle-manette {
-  left: -14px;
-  top: -14px;
+  left: calc(-14 * var(--u));
+  top: calc(-14 * var(--u));
 }
 
 .bd-doodle-scribble {
-  left: 85.9px;
-  top: -11.76px;
+  left: calc(93.9 * var(--u));
+  top: calc(-15.76 * var(--u));
   transform: rotate(-16deg);
 }
 
@@ -405,21 +456,21 @@
 .bd-soon {
   display: grid;
   place-items: center;
-  min-height: calc(100dvh - var(--bd-nav-height) - 12px);
-  padding: 24px;
+  min-height: calc(100dvh - var(--bd-nav-height) - calc(12 * var(--u)));
+  padding: calc(24 * var(--u));
   text-align: center;
 }
 
 .bd-soon h1 {
   font-weight: var(--bd-regular);
-  font-size: 40px;
+  font-size: calc(40 * var(--u));
 }
 
 .bd-soon p {
-  margin-top: 12px;
+  margin-top: calc(12 * var(--u));
   font-family: 'Nexa', sans-serif;
   font-weight: 300;
-  font-size: 17px;
+  font-size: calc(17 * var(--u));
 }
 
 /* ---------- Signed out: welcome, login, sign-up ---------- */
@@ -430,6 +481,9 @@
 }
 
 .bd-auth {
+  /* Signed out, the whole 360 × 696 screen must fit: the unit also follows the height. */
+  --u: min(calc(min(100vw, var(--bd-column)) / 360), calc(100vh / 696));
+  --u: min(calc(min(100vw, var(--bd-column)) / 360), calc(100dvh / 696));
   display: flex;
   flex-direction: column;
   padding-bottom: 0;
@@ -456,8 +510,8 @@
 .bd-auth-stage {
   position: relative;
   flex: none;
-  width: 360px;
-  height: 696px;
+  width: calc(360 * var(--u));
+  height: calc(696 * var(--u));
   margin: auto;
 }
 
@@ -470,47 +524,47 @@
   position: absolute;
   display: block;
   /* BIDI's soft shadow in Figma (a layer effect, not part of the file). */
-  filter: drop-shadow(0 4px 12px rgba(54, 40, 34, 0.35));
+  filter: drop-shadow(0 calc(4 * var(--u)) calc(12 * var(--u)) rgba(54, 40, 34, 0.35));
 }
 
 .bd-auth-bidi-welcome {
-  left: 52px;
-  top: 168px;
+  left: calc(52 * var(--u));
+  top: calc(168 * var(--u));
 }
 
 .bd-auth-bidi-form {
-  left: 95px;
+  left: calc(95 * var(--u));
 }
 
 .bd-auth-choice {
   position: absolute;
-  top: 521px;
+  top: calc(521 * var(--u));
   display: grid;
   place-items: center;
-  width: 116px;
-  height: 51px;
-  border-radius: 18px;
+  width: calc(116 * var(--u));
+  height: calc(51 * var(--u));
+  border-radius: calc(18 * var(--u));
   font-weight: var(--bd-medium);
-  font-size: 20px;
+  font-size: calc(20 * var(--u));
 }
 
 .bd-auth-choice-login {
-  left: 52px;
+  left: calc(52 * var(--u));
   background: var(--bd-brown);
   color: var(--bd-cream);
 }
 
 .bd-auth-choice-signup {
-  left: 189px;
-  border: 1.5px solid var(--bd-brown);
+  left: calc(189 * var(--u));
+  border: calc(1.5 * var(--u)) solid var(--bd-brown);
   background: var(--bd-cream);
   color: var(--bd-brown);
 }
 
 .bd-auth-form {
   position: absolute;
-  left: 74px;
-  width: 212px;
+  left: calc(74 * var(--u));
+  width: calc(212 * var(--u));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -524,23 +578,23 @@
 
 /* Sign-up's fields: 8, then 10 px apart, as drawn. */
 .bd-auth-fields-signup > * + * {
-  margin-top: 10px;
+  margin-top: calc(10 * var(--u));
 }
 
 .bd-auth-fields-signup > :nth-child(2) {
-  margin-top: 8px;
+  margin-top: calc(8 * var(--u));
 }
 
 .bd-auth-submit {
-  height: 43px;
+  height: calc(43 * var(--u));
   padding: 0;
   border: 0;
-  border-radius: 18px;
+  border-radius: calc(18 * var(--u));
   background: var(--bd-brown);
   color: var(--bd-cream);
   font-family: inherit;
   font-weight: var(--bd-medium);
-  font-size: 18px;
+  font-size: calc(18 * var(--u));
   cursor: pointer;
 }
 
@@ -550,11 +604,11 @@
 }
 
 .bd-auth-error {
-  width: 260px;
-  margin-top: 12px !important;
+  width: calc(260 * var(--u));
+  margin-top: calc(12 * var(--u)) !important;
   color: var(--bd-red);
   font-weight: var(--bd-medium);
-  font-size: 13px;
+  font-size: calc(13 * var(--u));
   text-align: center;
 }
 
@@ -563,7 +617,7 @@
 .bd-field {
   position: relative;
   width: 100%;
-  height: 40px;
+  height: calc(40 * var(--u));
 }
 
 .bd-field input,
@@ -571,14 +625,14 @@
   width: 100%;
   height: 100%;
   margin: 0;
-  padding: 0 40px 0 16px;
+  padding: 0 calc(40 * var(--u)) 0 calc(16 * var(--u));
   border: 0;
-  border-radius: 18px;
+  border-radius: calc(18 * var(--u));
   background: var(--bd-cream);
   color: var(--bd-brown);
   font-family: 'Neue Kaine', sans-serif;
   font-weight: var(--bd-medium);
-  font-size: 14px;
+  font-size: calc(14 * var(--u));
   outline: none;
   appearance: none;
 }
@@ -594,32 +648,46 @@
 
 .bd-field input:focus-visible,
 .bd-field select:focus-visible {
-  box-shadow: 0 0 0 1.5px var(--bd-brown);
+  box-shadow: 0 0 0 calc(1.5 * var(--u)) var(--bd-brown);
 }
 
 .bd-field-eye {
   position: absolute;
-  right: 12px;
-  top: 9px;
+  right: calc(12 * var(--u));
+  top: calc(9 * var(--u));
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
   padding: 0;
   border: 0;
   background: none;
   cursor: pointer;
 }
 
-/* Typed text shown: the eye darkens. */
-.bd-field-eye[aria-pressed='true'] img {
-  filter: brightness(0.45);
-}
-
 .bd-field-arrow {
   position: absolute;
-  right: 17.4px;
-  top: 16.25px;
+  right: calc(17.4 * var(--u));
+  top: calc(16.25 * var(--u));
   transform: rotate(180deg);
   pointer-events: none;
+}
+
+/*
+ * classic.css styles every button (red, darker on hover). Inside the portal
+ * design, its buttons keep their own look in every state.
+ */
+.bd-app .bd-field-eye,
+.bd-app .bd-field-eye:hover,
+.bd-app .bd-field-eye:active {
+  border: 0;
+  background: none;
+}
+
+.bd-app .bd-auth-submit,
+.bd-app .bd-auth-submit:hover,
+.bd-app .bd-auth-submit:active {
+  border: 0;
+  background: var(--bd-brown);
+  color: var(--bd-cream);
 }

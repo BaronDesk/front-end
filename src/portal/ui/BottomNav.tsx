@@ -6,14 +6,15 @@ import homeIcon from './assets/home-icon.svg';
 import navBump from './assets/nav-bump.svg';
 import settingsIcon from './assets/settings-icon.svg';
 import userIcon from './assets/user-icon.svg';
+import { ART, Art } from './units';
 
 export type NavKey = 'home' | 'book' | 'profile' | 'settings';
 
-const ITEMS: Record<NavKey, { to: string; label: string; icon: string }> = {
-  home: { to: '/', label: 'Home', icon: homeIcon },
-  book: { to: '/book', label: 'Bookings', icon: bookingIcon },
-  profile: { to: '/profile', label: 'Profile', icon: userIcon },
-  settings: { to: '/settings', label: 'Settings', icon: settingsIcon },
+const ITEMS: Record<NavKey, { to: string; label: string; icon: string; size: readonly [number, number] }> = {
+  home: { to: '/', label: 'Home', icon: homeIcon, size: ART.homeIcon },
+  book: { to: '/book', label: 'Bookings', icon: bookingIcon, size: ART.bookingIcon },
+  profile: { to: '/profile', label: 'Profile', icon: userIcon, size: ART.userIcon },
+  settings: { to: '/settings', label: 'Settings', icon: settingsIcon, size: ART.settingsIcon },
 };
 
 const ORDER: NavKey[] = ['home', 'book', 'profile', 'settings'];
@@ -54,7 +55,7 @@ export function BottomNav({ active }: { active: NavKey }) {
             aria-label={item.label}
             aria-current={key === active ? 'page' : undefined}
           >
-            <img src={item.icon} alt="" />
+            <Art src={item.icon} w={item.size[0]} h={item.size[1]} />
           </Link>
         );
       })}
