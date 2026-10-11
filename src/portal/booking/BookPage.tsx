@@ -15,6 +15,7 @@ import { CoinBalance } from '../ui/CoinBalance';
 import { PlayerBadges } from '../ui/PlayerBadges';
 import { Screen } from '../ui/Screen';
 import { ART, Art, u } from '../ui/units';
+import { DayPicker, dayValue } from './DayPicker';
 import { requestPin } from './Pin';
 import { isTaken, panelHeight, SEAT, seatLayout } from './seats';
 
@@ -34,7 +35,6 @@ const DURATIONS = [30, 60, 90, 120, 180];
 const DAYS_AHEAD = 6;
 
 const pad = (n: number) => String(n).padStart(2, '0');
-const dayValue = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 /** 14/10/2026 */
 const dayText = (value: string) => value.split('-').reverse().join('/');
 /** 14/10/2026 14:00 */
@@ -87,8 +87,6 @@ export function BookPage() {
   const list = stations.data ?? [];
   const seat = list.find((s) => s.id === seatId) ?? null;
   const upcoming = (bookings.data ?? []).filter((r) => r.status === 'CONFIRMED' || r.status === 'PENDING' || r.status === 'ACTIVE');
-  const today = new Date();
-  const lastDay = new Date(today.getTime() + DAYS_AHEAD * 86_400_000);
 
   async function reserve() {
     if (!seat) return;
@@ -181,25 +179,15 @@ export function BookPage() {
         <h2 className="bd-book-title bd-book-reserve-title">Reserve :</h2>
         {homeBranchId ? (
           <section className="bd-reserve" style={{ height: u(Math.max(panelHeight(list.length), 120)) }}>
-            <label className="bd-pill bd-pill-date">
-              <span className="bd-pill-calendar">
-                <Art src={calendar} w={ART.calendar[0]} h={ART.calendar[1]} />
-              </span>
-              <span>{dayText(day)}</span>
-              <input
-                type="date"
-                aria-label="Day"
-                value={day}
-                min={dayValue(today)}
-                max={dayValue(lastDay)}
-                onChange={(e) => {
-                  if (!e.target.value) return;
-                  setDay(e.target.value);
-                  setTime(e.target.value === dayValue(new Date()) ? 'now' : '18:00');
-                  setSeatId(null);
-                }}
-              />
-            </label>
+            <DayPicker
+              value={day}
+              daysAhead={DAYS_AHEAD}
+              onChange={(v) => {
+                setDay(v);
+                setTime(v === dayValue(new Date()) ? 'now' : '18:00');
+                setSeatId(null);
+              }}
+            />
             <label className="bd-pill bd-pill-time">
               <Art className="bd-pill-alarm" src={alarm} w={ART.alarm[0]} h={ART.alarm[1]} />
               <span>{isNow ? 'Now' : time}</span>

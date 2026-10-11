@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 
 import { imageSrc } from '../../api/images';
-import type { Membership, MembershipPlan, Rank, Wallet } from '../../api/types';
+import type { Membership, MembershipPlan, Rank, Subscription, SubscriptionPlan, Wallet } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import { groupThousands } from '../../shared/lib/format';
@@ -25,13 +25,18 @@ const COINS = [
   { x: 180.48, y: 326.03, size: 119.975, turn: -15.75 },
 ];
 
-/** Figma "Profile": the gamer, their XP, their coins, the ranks reached and the membership tiers. */
+/**
+ * Figma "Profile": the gamer, their XP, their coins, the ranks reached and the
+ * membership tiers; then the passes (Plans, not in Figma: drawn like the tiers).
+ */
 export function ProfileScreen() {
   const { user } = useAuth();
   const wallet = useApiQuery<Wallet>('/wallets/me');
   const ranks = useApiQuery<Rank[]>('/ranks');
   const tiers = useApiQuery<MembershipPlan[]>('/membership-plans');
   const memberships = useApiQuery<Membership[]>('/memberships/me');
+  const passes = useApiQuery<SubscriptionPlan[]>('/subscription-plans');
+  const subscriptions = useApiQuery<Subscription[]>('/subscriptions/me');
   if (!user) return null;
 
   const xp = user.xp ?? 0;
@@ -39,6 +44,8 @@ export function ProfileScreen() {
   const tierList = [...(tiers.data ?? [])].sort((a, b) => a.price - b.price);
   const activeTierId = memberships.data?.find((m) => m.status === 'ACTIVE')?.membershipPlanId ?? tierList.find((t) => t.price === 0)?.id;
   const fill = Math.max(82, xpProgress(user) * 285);
+  const passList = [...(passes.data ?? [])].sort((a, b) => a.price - b.price);
+  const ownedPasses = new Set((subscriptions.data ?? []).filter((s) => s.status === 'ACTIVE').map((s) => s.subscriptionPlanId));
 
   return (
     <Screen nav="profile">
@@ -84,6 +91,19 @@ export function ProfileScreen() {
             return src ? (
               <Link key={t.id} to="/plans" aria-label={`${t.name}${t.id === activeTierId ? ' (yours)' : ''}`}>
                 <BadgeImage src={src} name={t.name} box={119} dim={t.id !== activeTierId} />
+              </Link>
+            ) : null;
+          })}
+        </div>
+
+        <h2 className="bd-profile-section bd-profile-plans-title">Plans</h2>
+        <div className="bd-profile-row bd-profile-plans">
+          {passList.map((p) => {
+            const src = imageSrc(p.badgeUrl);
+            const owned = ownedPasses.has(p.id);
+            return src ? (
+              <Link key={p.id} to="/plans" aria-label={`${p.name}${owned ? ' (yours)' : ''}`}>
+                <BadgeImage src={src} name={p.name} box={119} dim={!owned} />
               </Link>
             ) : null;
           })}
