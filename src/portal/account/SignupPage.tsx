@@ -1,34 +1,42 @@
 import { useState, type FormEvent } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router';
+import { Navigate, useNavigate } from 'react-router';
 
 import { api } from '../../api/http';
 import type { Branch, PublicUser } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
-import { ErrorBox } from '../../shared/components/ErrorBox';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
-import { BranchSelect } from './BranchSelect';
+import bidi from '../ui/assets/bidi-form.svg';
+import { AuthError, AuthLogo, AuthScreen } from '../ui/AuthScreen';
+import { PasswordField, SelectField, TextField } from '../ui/Fields';
 
 /**
- * Create a gamer account. Every gamer picks the branch they play at: the
- * booking page then lists that branch's stations (changeable in Settings).
+ * Figma "Sign Up": create a gamer account. Every gamer picks the branch they
+ * play at: the booking page then lists that branch's stations (changeable in Settings).
  */
 export function SignupPage() {
   const { state, login } = useAuth();
   const navigate = useNavigate();
   const branches = useApiQuery<Branch[]>('/branches');
-  const [form, setForm] = useState({ username: '', password: '', branchId: '' });
+  const [form, setForm] = useState({ username: '', password: '', confirm: '', branchId: '' });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<unknown>(null);
+  const [mismatch, setMismatch] = useState(false);
 
   if (state.status === 'authenticated') return <Navigate to="/" replace />;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    setPending(true);
     setError(null);
+    if (form.password !== form.confirm) {
+      setMismatch(true);
+      return;
+    }
+    setMismatch(false);
+    setPending(true);
     try {
-      await api<PublicUser>('POST', '/users', { ...form, username: form.username.trim() });
-      await login(form.username.trim(), form.password);
+      const username = form.username.trim();
+      await api<PublicUser>('POST', '/users', { username, password: form.password, branchId: form.branchId });
+      await login(username, form.password);
       navigate('/book', { replace: true });
     } catch (err) {
       setError(err);
@@ -37,52 +45,52 @@ export function SignupPage() {
   }
 
   return (
-    <>
-      <h1>Create your account</h1>
-      <ErrorBox error={error ?? branches.error} />
-      <form onSubmit={submit}>
-        <fieldset>
-          <legend>New gamer</legend>
-          <div className="form-row">
-            <label htmlFor="su-username">Username</label>
-            <input
-              id="su-username"
-              autoComplete="username"
-              autoFocus
-              required
-              minLength={3}
-              maxLength={64}
-              value={form.username}
-              onChange={(e) => setForm({ ...form, username: e.target.value })}
-            />
-          </div>
-          <div className="form-row">
-            <label htmlFor="su-password">Password</label>
-            <input
-              id="su-password"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={8}
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-            />
-          </div>
-          <div className="form-row">
-            <label htmlFor="su-branch">Where you play</label>
-            <BranchSelect id="su-branch" branches={branches.data} value={form.branchId} onChange={(branchId) => setForm({ ...form, branchId })} />
-          </div>
-          <div className="form-row">
-            <label />
-            <button type="submit" disabled={pending || !form.branchId}>
-              {pending ? 'Creating…' : 'Create account'}
-            </button>
-          </div>
-        </fieldset>
+    <AuthScreen variant="form">
+      <AuthLogo top={44} />
+      <img className="bd-auth-bidi bd-auth-bidi-form" src={bidi} alt="" style={{ top: 98 }} />
+      <form className="bd-auth-form" style={{ top: 367 }} onSubmit={submit}>
+        <div className="bd-auth-fields bd-auth-fields-signup">
+          <TextField
+            placeholder="Username"
+            autoComplete="username"
+            autoFocus
+            required
+            minLength={3}
+            maxLength={64}
+            value={form.username}
+            onChange={(e) => setForm({ ...form, username: e.target.value })}
+          />
+          <SelectField label="Branch" required value={form.branchId} onChange={(e) => setForm({ ...form, branchId: e.target.value })}>
+            <option value="" disabled>
+              {branches.data ? 'Branch' : 'Loading…'}
+            </option>
+            {(branches.data ?? []).map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </SelectField>
+          <PasswordField
+            placeholder="Password"
+            autoComplete="new-password"
+            required
+            minLength={8}
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+          />
+          <PasswordField
+            placeholder="Confirm Password"
+            autoComplete="new-password"
+            required
+            value={form.confirm}
+            onChange={(e) => setForm({ ...form, confirm: e.target.value })}
+          />
+        </div>
+        <button type="submit" className="bd-auth-submit" style={{ width: 112, marginTop: 37 }} disabled={pending}>
+          Sign Up
+        </button>
+        <AuthError error={error ?? branches.error} text={mismatch ? 'The two passwords are not the same.' : undefined} />
       </form>
-      <p>
-        Already have an account? <Link to="/login">Log in</Link>
-      </p>
-    </>
+    </AuthScreen>
   );
 }

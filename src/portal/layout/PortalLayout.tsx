@@ -20,7 +20,7 @@ export function PortalLayout() {
         <TopBar />
       )}
       <main className="content">
-        {pathname !== '/' && pathname !== '/login' && pathname !== '/signup' && (
+        {pathname !== '/' && (
           <p>
             <Link to="/">« Menu</Link>
           </p>

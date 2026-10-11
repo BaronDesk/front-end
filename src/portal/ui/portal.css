@@ -1,0 +1,625 @@
+/*
+ * The gamer portal's design (Figma "BaronDesk", page Mobile). Screens are
+ * drawn at 360 px wide; the app is one phone-width column. Everything is
+ * scoped under .bd-app so the admin's classic.css and the portal pages not
+ * redesigned yet keep their look.
+ */
+
+@font-face {
+  font-family: 'Neue Kaine';
+  src: url('./fonts/NeueKaine-Variable.ttf') format('truetype');
+  /* One variable font: Light is 400 on its axis, Black 900. */
+  font-weight: 400 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nexa';
+  src: url('./fonts/Nexa-Light.otf') format('opentype');
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nexa';
+  src: url('./fonts/Nexa-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nexa';
+  src: url('./fonts/Nexa-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-display: swap;
+}
+
+.bd-app {
+  /* Graphic charter */
+  --bd-red: #710912;
+  --bd-black: #0d0d0d;
+  --bd-gold: #c28d39;
+  --bd-brown: #362822;
+  --bd-cream: #efe5d2;
+  /* Text on the dark brown buttons and the nav bar */
+  --bd-on-dark: #e8decb;
+
+  /* Neue Kaine's named weights sit at these points of its axis. */
+  --bd-light: 400;
+  --bd-regular: 483;
+  --bd-semibold: 650;
+
+  --bd-nav-height: 77px;
+  --bd-column: 430px;
+
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: var(--bd-column);
+  margin: 0 auto;
+  padding-bottom: calc(var(--bd-nav-height) + 12px);
+  overflow-x: hidden;
+  color: var(--bd-brown);
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: var(--bd-regular);
+  font-size: 16px;
+  line-height: normal;
+  background:
+    linear-gradient(180deg, rgba(63, 19, 19, 0.2) 0%, rgba(102, 102, 102, 0) 14.904%),
+    linear-gradient(180deg, rgba(194, 141, 57, 0.32) 0%, rgba(0, 0, 0, 0) 100%),
+    var(--bd-cream);
+}
+
+/* Around the phone-width column on a wide screen. */
+.bd-stage {
+  min-height: 100vh;
+  background: var(--bd-black);
+}
+
+.bd-app :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.bd-app :where(p, h1, h2) {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+}
+
+/* ---------- Avatar (the gamer's picture, or BIDI's head) ---------- */
+
+.bd-avatar {
+  position: relative;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.bd-avatar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--bd-brown);
+  border-radius: 50%;
+}
+
+.bd-avatar img {
+  position: absolute;
+  display: block;
+  max-width: none;
+}
+
+.bd-avatar .bd-avatar-photo {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* BIDI's head as drawn in the 65 px avatar: 80.98 × 64.45 at (-8.77, 0.55). */
+.bd-avatar .bd-avatar-bidi {
+  left: -13.494%;
+  top: 0.845%;
+  width: 124.59%;
+  height: 99.155%;
+}
+
+/* ---------- Badges (rank, membership, pass) ---------- */
+
+.bd-badges {
+  display: flex;
+  align-items: center;
+}
+
+.bd-badges img {
+  display: block;
+  object-fit: cover;
+}
+
+.bd-badges img + img {
+  margin-left: -3.5px;
+}
+
+/* ---------- XP bar ---------- */
+
+.bd-xp {
+  position: relative;
+  height: 28px;
+}
+
+.bd-xp svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.bd-xp-value,
+.bd-xp-goal {
+  position: absolute;
+  top: 9px;
+  font-weight: var(--bd-light);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.bd-xp-value {
+  left: 15px;
+  color: #dbc7a6;
+}
+
+.bd-xp-goal {
+  right: 7px;
+  color: rgba(54, 40, 34, 0.61);
+}
+
+/* ---------- Bottom nav ---------- */
+
+.bd-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  z-index: 10;
+  width: min(100%, var(--bd-column));
+  height: var(--bd-nav-height);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* The black bar, with the bump around the active item cut out of it. */
+.bd-nav-bar {
+  position: absolute;
+  inset: 21px 0 0;
+  background: var(--bd-black);
+  border-radius: 10px 10px 20px 20px;
+  -webkit-mask-image: var(--bd-bump), linear-gradient(#000, #000);
+  mask-image: var(--bd-bump), linear-gradient(#000, #000);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: calc(var(--bd-active-x) - 68px) -14px, 0 0;
+  mask-position: calc(var(--bd-active-x) - 68px) -14px, 0 0;
+  -webkit-mask-size: 137px 55.5px, 100% 100%;
+  mask-size: 137px 55.5px, 100% 100%;
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.bd-nav a {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+}
+
+.bd-nav a img {
+  display: block;
+}
+
+/* Inactive items sit on the bar; the active one in the black circle above it. */
+.bd-nav-item {
+  top: 49px;
+  width: 44px;
+  height: 44px;
+}
+
+.bd-nav-active {
+  top: 28px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--bd-black);
+}
+
+/* ---------- Home ---------- */
+
+.bd-home-head {
+  position: relative;
+  height: 115px;
+  border-bottom: 2px solid rgba(54, 40, 34, 0.75);
+}
+
+.bd-home-head .bd-avatar {
+  position: absolute;
+  left: 31px;
+  top: 28px;
+}
+
+.bd-home-name {
+  position: absolute;
+  left: 102px;
+  top: 34px;
+  font-weight: var(--bd-semibold);
+  font-size: 18px;
+}
+
+.bd-home-head .bd-badges {
+  position: absolute;
+  right: 29px;
+  top: 25px;
+  height: 31px;
+}
+
+.bd-home-head .bd-xp {
+  position: absolute;
+  left: 95.85px;
+  right: 27px;
+  top: 56px;
+}
+
+.bd-home-hero {
+  position: relative;
+  height: 152px;
+}
+
+.bd-home-title {
+  position: absolute;
+  left: 11px;
+  top: 12px;
+  font-weight: var(--bd-regular);
+  font-size: 40px;
+}
+
+.bd-home-collection {
+  position: absolute;
+  right: 0;
+  top: 103px;
+  width: 143px;
+  height: 27px;
+  padding: 5px 0 0 9px;
+  border-radius: 77px 0 0 70px;
+  background: var(--bd-brown);
+  color: var(--bd-cream);
+  font-family: 'Nexa', sans-serif;
+  font-weight: 300;
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+/* The game cards: the middle one centered, its neighbours peeking in. */
+.bd-games {
+  display: flex;
+  gap: 34px;
+  padding: 0 calc(50% - 101.5px);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.bd-games::-webkit-scrollbar {
+  display: none;
+}
+
+.bd-game {
+  position: relative;
+  flex: none;
+  width: 203px;
+  height: 258px;
+  overflow: hidden;
+  border-radius: 18px;
+  scroll-snap-align: center;
+  background: var(--bd-brown);
+}
+
+/*
+ * The poster fills the card. (Figma zooms its LoL poster in, anchored at the
+ * bottom; that crop cuts the title off posters whose logo is at the top.)
+ */
+.bd-game img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bd-game::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--bd-brown);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(54, 40, 34, 0) 0%, rgba(54, 40, 34, 0.44) 100%);
+}
+
+/* A game without a picture yet shows its name. */
+.bd-game-name {
+  position: absolute;
+  inset: auto 16px 20px;
+  z-index: 1;
+  color: var(--bd-cream);
+  font-weight: var(--bd-semibold);
+  font-size: 22px;
+}
+
+/* 29 px from the left at 360 px, as drawn; the pair stays in the middle on wider phones. */
+.bd-home-buttons {
+  display: flex;
+  gap: 19px;
+  margin-top: 27px;
+  padding-left: calc(50% - 151px);
+}
+
+.bd-button-big {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 138px;
+  height: 51px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(180deg, var(--bd-brown) 0%, rgba(32, 12, 3, 0.98) 97.115%);
+  color: var(--bd-on-dark);
+  font-weight: var(--bd-semibold);
+  font-size: 18px;
+}
+
+.bd-button-big span {
+  position: relative;
+}
+
+/* The doodles drawn faintly inside the two buttons. */
+.bd-button-doodle {
+  position: absolute;
+  display: block;
+  max-width: none;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.bd-doodle-manette {
+  left: -14px;
+  top: -14px;
+}
+
+.bd-doodle-scribble {
+  left: 85.9px;
+  top: -11.76px;
+  transform: rotate(-16deg);
+}
+
+/* ---------- Coming soon ---------- */
+
+.bd-soon {
+  display: grid;
+  place-items: center;
+  min-height: calc(100dvh - var(--bd-nav-height) - 12px);
+  padding: 24px;
+  text-align: center;
+}
+
+.bd-soon h1 {
+  font-weight: var(--bd-regular);
+  font-size: 40px;
+}
+
+.bd-soon p {
+  margin-top: 12px;
+  font-family: 'Nexa', sans-serif;
+  font-weight: 300;
+  font-size: 17px;
+}
+
+/* ---------- Signed out: welcome, login, sign-up ---------- */
+
+.bd-app {
+  /* Neue Kaine Medium: the buttons and fields of these screens. */
+  --bd-medium: 567;
+}
+
+.bd-auth {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+  overflow: hidden;
+  /* No red tint at the top here, unlike the signed-in screens. */
+  background:
+    linear-gradient(180deg, rgba(194, 141, 57, 0.32) 0%, rgba(0, 0, 0, 0) 100%),
+    var(--bd-cream);
+}
+
+.bd-auth-shapes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bd-auth-shapes img {
+  position: absolute;
+  display: block;
+  max-width: none;
+}
+
+/* The screen as drawn, centered: on a taller phone the space goes above and below. */
+.bd-auth-stage {
+  position: relative;
+  flex: none;
+  width: 360px;
+  height: 696px;
+  margin: auto;
+}
+
+.bd-auth-logo {
+  position: absolute;
+  display: block;
+}
+
+.bd-auth-bidi {
+  position: absolute;
+  display: block;
+  /* BIDI's soft shadow in Figma (a layer effect, not part of the file). */
+  filter: drop-shadow(0 4px 12px rgba(54, 40, 34, 0.35));
+}
+
+.bd-auth-bidi-welcome {
+  left: 52px;
+  top: 168px;
+}
+
+.bd-auth-bidi-form {
+  left: 95px;
+}
+
+.bd-auth-choice {
+  position: absolute;
+  top: 521px;
+  display: grid;
+  place-items: center;
+  width: 116px;
+  height: 51px;
+  border-radius: 18px;
+  font-weight: var(--bd-medium);
+  font-size: 20px;
+}
+
+.bd-auth-choice-login {
+  left: 52px;
+  background: var(--bd-brown);
+  color: var(--bd-cream);
+}
+
+.bd-auth-choice-signup {
+  left: 189px;
+  border: 1.5px solid var(--bd-brown);
+  background: var(--bd-cream);
+  color: var(--bd-brown);
+}
+
+.bd-auth-form {
+  position: absolute;
+  left: 74px;
+  width: 212px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bd-auth-fields {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Sign-up's fields: 8, then 10 px apart, as drawn. */
+.bd-auth-fields-signup > * + * {
+  margin-top: 10px;
+}
+
+.bd-auth-fields-signup > :nth-child(2) {
+  margin-top: 8px;
+}
+
+.bd-auth-submit {
+  height: 43px;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: var(--bd-brown);
+  color: var(--bd-cream);
+  font-family: inherit;
+  font-weight: var(--bd-medium);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.bd-auth-submit:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.bd-auth-error {
+  width: 260px;
+  margin-top: 12px !important;
+  color: var(--bd-red);
+  font-weight: var(--bd-medium);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ---------- Fields ---------- */
+
+.bd-field {
+  position: relative;
+  width: 100%;
+  height: 40px;
+}
+
+.bd-field input,
+.bd-field select {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0 40px 0 16px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--bd-cream);
+  color: var(--bd-brown);
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: var(--bd-medium);
+  font-size: 14px;
+  outline: none;
+  appearance: none;
+}
+
+.bd-field input::placeholder,
+.bd-field select.bd-field-empty {
+  color: rgba(74, 57, 50, 0.38);
+}
+
+.bd-field select option {
+  color: var(--bd-brown);
+}
+
+.bd-field input:focus-visible,
+.bd-field select:focus-visible {
+  box-shadow: 0 0 0 1.5px var(--bd-brown);
+}
+
+.bd-field-eye {
+  position: absolute;
+  right: 12px;
+  top: 9px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+/* Typed text shown: the eye darkens. */
+.bd-field-eye[aria-pressed='true'] img {
+  filter: brightness(0.45);
+}
+
+.bd-field-arrow {
+  position: absolute;
+  right: 17.4px;
+  top: 16.25px;
+  transform: rotate(180deg);
+  pointer-events: none;
+}

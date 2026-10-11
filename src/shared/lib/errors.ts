@@ -9,3 +9,12 @@ export function explainRefusal(err: unknown, refusals: Record<string, string>): 
   const text = err instanceof ApiError && err.code ? refusals[err.code] : undefined;
   throw text ? new Error(text) : err;
 }
+
+/** What an error says to the user, and the server's code when it sent one: "Access denied: …" (FORBIDDEN_BRANCH). */
+export function describeError(error: unknown): { message: string; code: string | null } {
+  if (error instanceof ApiError) {
+    const message = error.status === 403 && error.code !== 'WRONG_APP' ? `Access denied: ${error.message}` : error.message;
+    return { message, code: error.code };
+  }
+  return { message: error instanceof Error ? error.message : 'Something went wrong.', code: null };
+}

@@ -96,7 +96,9 @@ Every screen reads and writes the real backend. The last column says what each s
 | Ranks | `GET/POST/PATCH/DELETE /ranks`, `POST /uploads/images` | The gamer ranks (Wood → GrandMaster): name, the XP each starts at, badge. Shared by every branch; warns when no rank starts at 0 XP |
 | Images (how pages use them) | `POST /uploads/images`, `PUT/DELETE /users/me/avatar`, `GET /uploads/…` | Forms use `src/shared/components/ImageField.tsx` (picker, preview, Remove; checks type and size before sending) and lists `Thumb.tsx`. The portal profile sets the gamer's picture with it. `src/api/images.ts`: `uploadImage(file)` answers a link to save as the `badgeUrl` of a tier, pass or rank, or the `iconUrl` of a game (any other link is refused); `setMyAvatar(file)` for the gamer; show any of them with `<img src={imageSrc(url)}>`. PNG, JPEG or WebP, at most 2 MB (`IMAGE_MAX_BYTES`, `IMAGE_ACCEPT`). Rank shapes in `src/api/types/ranks.ts` |
 | Audit log (HQ) | `GET /audit-logs?branchId&from&action&q&limit` | Who did which sensitive action, on what, when: role changes, suspensions, password resets, refunds, shutdowns, revoked stations, branch / plan / price changes (HQ: the branch in the top bar). Filter by day, action, name. **Not on the backend yet**: until it is, the page says so (404). Expected answer: `AuditLogEntry[]` in `src/api/types/audit.ts`; action wording in `src/admin/audit/audit.ts` |
-| Portal: sign-up, settings | `GET /branches`, `POST /users`, `PATCH /users/me/branch`, `POST /auth/change-password` | Sign-up picks the **home branch**; Settings changes it and the password. A gamer with no branch (e.g. seeded) is asked to pick one after login |
+| Portal: home (Figma design) | `/auth/me` (`xp`, `rank`, `nextRank`), `/memberships/me`, `/subscriptions/me`, `GET /api/v1/games` | The gamer's picture (BIDI until they upload one), XP bar towards the next rank, badges (rank, tier, pass), the game collection (games with a poster first, opening on the middle card), Bookings and Events (tournaments: *coming soon*). The redesign from Figma goes one screen at a time: redesigned screens use `src/portal/ui/`, the others keep the classic layout |
+| Portal: welcome, login, sign-up (Figma design) | `POST /auth/login`, `GET /branches`, `POST /users` | Signed out, the portal opens on **Welcome** (Login / Sign Up). Sign-up asks the username, the **home branch**, the password twice (they must match), then logs in and opens Bookings. The eye shows or hides a password. Login is the same form as the staff app's (`useLoginForm` in `shared/components/LoginForm.tsx`) |
+| Portal: settings | `GET /branches`, `PATCH /users/me/branch`, `POST /auth/change-password` | Sign-up picks the **home branch**; Settings changes it and the password. A gamer with no branch (e.g. seeded) is asked to pick one after login |
 | Portal: book, play now, my bookings | `GET /branches/:id/stations`, `/reservations`, `/reservations/walk-in`, `/reservations/:id/check-in` | Lists the home branch's stations, free or busy until when; the desk's booking link (QR) preselects a PC. The wallet must cover the whole booking (`INSUFFICIENT_FUNDS`). Every booking and Play now answers with its **PIN**, shown on the booking: it works on that PC from the start for 30 minutes, then the booking is *Missed* (no-show). *New PIN* replaces it. Cancel until someone logs in |
 | Portal: my session | `GET /sessions/me/current`, `/reservations/:id/extend-options`, `POST /reservations/:id/extend`, `session_notice` | Time played, cost so far, balance, end time; re-read every 15 s, the station's notices (low balance, time left) arrive live. **Extend** by 30 / 60 / 90 minutes near the end, if the PC is free and the wallet covers it (walk-in rate) |
 | Portal: wallet | `/wallets/me…` | No self top-up on the backend: shows the username to give the desk |
@@ -192,9 +194,13 @@ src/
                     users, plans, ranks, games, branches (HQ overview + branch scope), audit, account
   portal/           the gamer app
     main.tsx, PortalApp.tsx (routes), menu.ts
-    layout/         PortalLayout
-    <feature>/      home, booking (book, PIN), session, wallet, profile, account (sign-up, settings)
-  styles/classic.css   the whole theme (black / white / gold / red)
+    layout/         PortalLayout (the classic layout, for pages not redesigned yet)
+    ui/             the Figma design: portal.css (scoped under .bd-app), fonts/ (Neue Kaine, Nexa),
+                    assets/ (icons, doodles, mascot, logo, background shapes exported from Figma),
+                    Screen (signed in: column, background, BottomNav), AuthScreen (signed out),
+                    Fields (text, password with its eye, select), Avatar, XpBar, PlayerBadges
+    <feature>/      home, events, booking (book, PIN), session, wallet, profile, account (welcome, login, sign-up, settings)
+  styles/classic.css   the admin's theme (black / white / gold / red), and the portal pages not redesigned yet
 ```
 
 **Where new code goes**

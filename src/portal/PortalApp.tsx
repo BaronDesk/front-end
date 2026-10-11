@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react';
-import { HashRouter, Link, Route, Routes } from 'react-router';
+import { HashRouter, Route, Routes } from 'react-router';
 
 import { AuthProvider } from '../auth/AuthContext';
 import { RequireAuth } from '../auth/guards';
 import { RealtimeProvider } from '../realtime/RealtimeContext';
-import { LoginForm } from '../shared/components/LoginForm';
 import { NotFoundPage } from '../shared/components/NotFoundPage';
+import { LoginPage } from './account/LoginPage';
 import { SettingsPage } from './account/SettingsPage';
 import { SignupPage } from './account/SignupPage';
+import { WelcomePage } from './account/WelcomePage';
 import { BookPage } from './booking/BookPage';
+import { EventsPage } from './events/EventsPage';
 import { PortalHome } from './home/PortalHome';
 import { PortalLayout } from './layout/PortalLayout';
 import { PORTAL_MENU } from './menu';
@@ -31,22 +33,17 @@ export function PortalApp() {
       <RealtimeProvider>
         <HashRouter>
           <Routes>
+            {/* Screens redesigned from Figma: their own full-screen layout. Signed out, the portal opens on Welcome. */}
+            <Route path="/welcome" element={<WelcomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route element={<RequireAuth loginPath="/welcome" />}>
+              <Route index element={<PortalHome />} />
+              <Route path="/events" element={<EventsPage />} />
+            </Route>
+            {/* The pages not redesigned yet keep the classic layout. */}
             <Route element={<PortalLayout />}>
-              <Route
-                path="/login"
-                element={
-                  <>
-                    <h1>Login</h1>
-                    <LoginForm legend="Gamer login" />
-                    <p>
-                      New here? <Link to="/signup">Create an account</Link>
-                    </p>
-                  </>
-                }
-              />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route element={<RequireAuth />}>
-                <Route index element={<PortalHome />} />
+              <Route element={<RequireAuth loginPath="/welcome" />}>
                 {PORTAL_MENU.map((item) => (
                   <Route key={item.path} path={item.path} element={PAGES[item.path]} />
                 ))}

@@ -4,11 +4,11 @@ import { Navigate, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../../auth/AuthContext';
 import { ErrorBox } from './ErrorBox';
 
-interface LoginFormProps {
-  legend: string;
-}
-
-export function LoginForm({ legend }: LoginFormProps) {
+/**
+ * The login form's state and submit, shared by the staff login and the
+ * portal's: after login, back to the page that sent the user here.
+ */
+export function useLoginForm() {
   const { state, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -18,8 +18,6 @@ export function LoginForm({ legend }: LoginFormProps) {
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<unknown>(null);
-
-  if (state.status === 'authenticated') return <Navigate to={from} replace />;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -34,12 +32,32 @@ export function LoginForm({ legend }: LoginFormProps) {
     }
   }
 
+  return {
+    /** Already logged in: where to go instead of showing the form. */
+    redirect: state.status === 'authenticated' ? from : null,
+    expired: state.status === 'anonymous' && state.reason === 'expired',
+    username,
+    setUsername,
+    password,
+    setPassword,
+    pending,
+    error,
+    submit,
+  };
+}
+
+interface LoginFormProps {
+  legend: string;
+}
+
+export function LoginForm({ legend }: LoginFormProps) {
+  const form = useLoginForm();
+  if (form.redirect) return <Navigate to={form.redirect} replace />;
+
   return (
-    <form onSubmit={submit}>
-      {state.status === 'anonymous' && state.reason === 'expired' && (
-        <div className="msg">Your session expired. Please log in again.</div>
-      )}
-      <ErrorBox error={error} />
+    <form onSubmit={form.submit}>
+      {form.expired && <div className="msg">Your session expired. Please log in again.</div>}
+      <ErrorBox error={form.error} />
       <fieldset>
         <legend>{legend}</legend>
         <div className="form-row">
@@ -49,8 +67,8 @@ export function LoginForm({ legend }: LoginFormProps) {
             autoComplete="username"
             autoFocus
             required
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={form.username}
+            onChange={(e) => form.setUsername(e.target.value)}
           />
         </div>
         <div className="form-row">
@@ -60,14 +78,14 @@ export function LoginForm({ legend }: LoginFormProps) {
             type="password"
             autoComplete="current-password"
             required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={form.password}
+            onChange={(e) => form.setPassword(e.target.value)}
           />
         </div>
         <div className="form-row">
           <label />
-          <button type="submit" disabled={pending}>
-            {pending ? 'Logging in…' : 'Log in'}
+          <button type="submit" disabled={form.pending}>
+            {form.pending ? 'Logging in…' : 'Log in'}
           </button>
         </div>
       </fieldset>

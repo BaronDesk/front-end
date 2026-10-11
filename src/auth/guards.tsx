@@ -5,13 +5,16 @@ import type { Role } from '../api/types';
 import { useAuth } from './AuthContext';
 import { hasRole } from './roles';
 
-/** Children render only when logged in; otherwise go to /login and come back after. */
-export function RequireAuth() {
+/**
+ * Children render only when logged in; otherwise go to `loginPath` (the
+ * portal: its welcome screen) and come back after.
+ */
+export function RequireAuth({ loginPath = '/login' }: { loginPath?: string }) {
   const { state } = useAuth();
   const location = useLocation();
 
   if (state.status === 'loading') return <p className="content muted">Loading…</p>;
-  if (state.status === 'anonymous') return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (state.status === 'anonymous') return <Navigate to={loginPath} replace state={{ from: location.pathname }} />;
   return <Outlet />;
 }
 
