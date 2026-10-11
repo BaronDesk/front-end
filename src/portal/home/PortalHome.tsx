@@ -7,7 +7,6 @@ import manette from '../ui/assets/manette.svg';
 import gamerScribble from '../ui/assets/gamer-scribble.svg';
 import { Avatar } from '../ui/Avatar';
 import { PlayerBadges } from '../ui/PlayerBadges';
-import { Screen } from '../ui/Screen';
 import { ART, Art } from '../ui/units';
 import { XpBar } from '../ui/XpBar';
 import { GameCarousel } from './GameCarousel';
@@ -21,7 +20,7 @@ export function PortalHome() {
   const collection = [...(games.data ?? [])].sort((a, b) => Number(!a.iconUrl) - Number(!b.iconUrl) || a.sortOrder - b.sortOrder);
 
   return (
-    <Screen nav="home" fit>
+    <>
       <div className="bd-home">
         {user && (
           <header className="bd-home-head">
@@ -59,6 +58,6 @@ export function PortalHome() {
           </nav>
         </div>
       </div>
-    </Screen>
+    </>
   );
 }

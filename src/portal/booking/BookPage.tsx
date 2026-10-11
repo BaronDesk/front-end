@@ -13,7 +13,6 @@ import calendar from '../ui/assets/calendar.svg';
 import { Avatar } from '../ui/Avatar';
 import { CoinBalance } from '../ui/CoinBalance';
 import { PlayerBadges } from '../ui/PlayerBadges';
-import { Screen } from '../ui/Screen';
 import { ART, Art, u } from '../ui/units';
 import { DayPicker, dayValue } from './DayPicker';
 import { requestPin } from './Pin';
@@ -123,7 +122,7 @@ export function BookPage() {
   const error = action.error ?? bookings.error ?? stations.error;
 
   return (
-    <Screen nav="book">
+    <>
       <div className="bd-book">
         {user && (
           <header className="bd-book-head">
@@ -251,6 +250,6 @@ export function BookPage() {
         )}
         {error ? <p className="bd-auth-error">{describeError(error).message}</p> : notice && <p className="bd-book-notice">{notice}</p>}
       </div>
-    </Screen>
+    </>
   );
 }

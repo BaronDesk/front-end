@@ -57,6 +57,8 @@
    */
   --u: calc(min(100vw, var(--bd-column)) / 360);
   --bd-nav-height: calc(77 * var(--u));
+  /* How the nav moves from page to page. */
+  --bd-nav-move: 380ms cubic-bezier(0.4, 0, 0.2, 1);
 
   position: relative;
   min-height: 100vh;
@@ -226,33 +228,62 @@
   mask-size: calc(137 * var(--u)) calc(55.5 * var(--u)), 100% 100%;
   -webkit-mask-composite: xor;
   mask-composite: exclude;
+  /* The bump slides with the circle. */
+  transition: mask-position var(--bd-nav-move), -webkit-mask-position var(--bd-nav-move);
 }
 
-.bd-nav a {
+/* The raised circle of the current page; it slides to the next one. */
+.bd-nav-circle {
   position: absolute;
-  display: grid;
-  place-items: center;
-  pointer-events: auto;
-  transform: translate(-50%, -50%);
-}
-
-.bd-nav a img {
-  display: block;
-}
-
-/* Inactive items sit on the bar; the active one in the black circle above it. */
-.bd-nav-item {
-  top: calc(49 * var(--u));
-  width: calc(44 * var(--u));
-  height: calc(44 * var(--u));
-}
-
-.bd-nav-active {
-  top: calc(28 * var(--u));
+  top: 0;
   width: calc(56 * var(--u));
   height: calc(56 * var(--u));
   border-radius: 50%;
   background: var(--bd-black);
+  transform: translateX(-50%);
+  transition: left var(--bd-nav-move);
+}
+
+/* Each icon: on the bar, or up in the circle when its page is open. */
+.bd-nav-item {
+  position: absolute;
+  top: calc(49 * var(--u));
+  display: grid;
+  place-items: center;
+  width: calc(44 * var(--u));
+  height: calc(44 * var(--u));
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  transition: left var(--bd-nav-move), top var(--bd-nav-move);
+}
+
+.bd-nav-item-on {
+  top: calc(28 * var(--u));
+}
+
+/* The outlined icon and the filled one, one over the other, cross-fading. */
+.bd-nav-item img {
+  grid-area: 1 / 1;
+  display: block;
+  transition: opacity var(--bd-nav-move);
+}
+
+.bd-nav-icon-on,
+.bd-nav-item-on .bd-nav-icon-idle {
+  opacity: 0;
+}
+
+.bd-nav-item-on .bd-nav-icon-on {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bd-nav-circle,
+  .bd-nav-item,
+  .bd-nav-item img,
+  .bd-nav-bar {
+    transition: none !important;
+  }
 }
 
 /* ---------- Home ---------- */
@@ -1250,19 +1281,20 @@
   white-space: nowrap;
 }
 
+/* Smaller than Figma's 24 / 16 px (the user's call): real names are longer than "BIDI4". */
 .bd-profile-card-name {
   left: calc(73 * var(--u));
-  top: calc(18 * var(--u));
+  top: calc(20 * var(--u));
   font-weight: 817;
-  font-size: calc(24 * var(--u));
+  font-size: calc(20 * var(--u));
 }
 
 .bd-profile-card-branch {
-  left: calc(75 * var(--u));
-  top: calc(40 * var(--u));
+  left: calc(74 * var(--u));
+  top: calc(41 * var(--u));
   color: rgba(54, 40, 34, 0.72);
   font-weight: var(--bd-medium);
-  font-size: calc(16 * var(--u));
+  font-size: calc(13 * var(--u));
 }
 
 .bd-profile-card-chevron {

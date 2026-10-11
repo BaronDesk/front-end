@@ -2,17 +2,16 @@ import type { ReactNode } from 'react';
 
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
 import { formatDuration, groupThousands } from '../../shared/lib/format';
-import { Screen } from '../ui/Screen';
 
 /** A Settings sub-page in the design's language: the big title, then cards (Bookings' card style). */
 function InfoScreen({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Screen nav="settings">
+    <>
       <div className="bd-info">
         <h1 className="bd-book-title">{title}</h1>
         <div className="bd-info-cards">{children}</div>
       </div>
-    </Screen>
+    </>
   );
 }
 
@@ -50,7 +49,7 @@ export function HistoryPage() {
           <p className="bd-history-when">{when(s.settledAt)}</p>
           <p className="bd-history-figures">
             <span>{formatDuration(s.meteredSeconds)} played</span>
-            <span>{s.totalCoins === 0 ? 'Free' : `${groupThousands(s.chargedCoins)} coins`}</span>
+            <span>{s.totalCoins === 0 ? 'Free' : `${groupThousands(s.totalCoins)} coins`}</span>
             {s.xpEarned !== null && <span>+{s.xpEarned} XP</span>}
           </p>
         </article>

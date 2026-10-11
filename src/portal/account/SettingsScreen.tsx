@@ -11,7 +11,6 @@ import history from '../ui/assets/history.svg';
 import info from '../ui/assets/info.svg';
 import logout from '../ui/assets/logout.svg';
 import { Avatar } from '../ui/Avatar';
-import { Screen } from '../ui/Screen';
 import { ART, Art, u } from '../ui/units';
 
 /**
@@ -68,7 +67,7 @@ export function SettingsScreen() {
   const pass = subscriptions.data?.find((s) => s.status === 'ACTIVE');
 
   return (
-    <Screen nav="settings">
+    <>
       <div className="bd-settings">
         <Link to="/account" className="bd-profile-card">
           <span className="bd-profile-card-avatar">
@@ -139,6 +138,6 @@ export function SettingsScreen() {
           Log Out
         </button>
       </div>
-    </Screen>
+    </>
   );
 }

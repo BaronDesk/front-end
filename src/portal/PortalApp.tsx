@@ -15,6 +15,7 @@ import { BookPage } from './booking/BookPage';
 import { EventsPage } from './events/EventsPage';
 import { PortalHome } from './home/PortalHome';
 import { PortalLayout } from './layout/PortalLayout';
+import { DesignShell } from './ui/DesignShell';
 import { PlansPage } from './profile/PlansPage';
 import { ProfileScreen } from './profile/ProfileScreen';
 import { SessionPage } from './session/SessionPage';
@@ -40,14 +41,16 @@ export function PortalApp() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route element={<RequireAuth loginPath="/welcome" />}>
-              <Route index element={<PortalHome />} />
-              <Route path="/events" element={<EventsPage />} />
-              <Route path="/book" element={<BookPage />} />
-              <Route path="/profile" element={<ProfileScreen />} />
-              <Route path="/settings" element={<SettingsScreen />} />
-              <Route path="/history" element={<HistoryPage />} />
-              <Route path="/terms" element={<TermsPage />} />
-              <Route path="/faq" element={<FaqPage />} />
+              <Route element={<DesignShell />}>
+                <Route index element={<PortalHome />} />
+                <Route path="/events" element={<EventsPage />} />
+                <Route path="/book" element={<BookPage />} />
+                <Route path="/profile" element={<ProfileScreen />} />
+                <Route path="/settings" element={<SettingsScreen />} />
+                <Route path="/history" element={<HistoryPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/faq" element={<FaqPage />} />
+              </Route>
             </Route>
             {/* The pages not redesigned yet keep the classic layout. */}
             <Route element={<PortalLayout />}>

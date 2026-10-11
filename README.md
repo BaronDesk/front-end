@@ -199,7 +199,8 @@ src/
     ui/             the Figma design: portal.css (scoped under .bd-app; every size in --u, 1/360 of the
                     column, so the screens scale with the phone), units.tsx (u(), Art), fonts/ (Neue Kaine, Nexa),
                     assets/ (icons, doodles, mascot, logo, background shapes exported from Figma),
-                    Screen (signed in: column, background, BottomNav), AuthScreen (signed out),
+                    DesignShell (signed in: column, background and one BottomNav kept across pages,
+                    so it animates from page to page), AuthScreen (signed out),
                     Fields (text, password with its eye, select), Avatar, XpBar, PlayerBadges
     <feature>/      home, events, booking (bookings, seat map, PIN), session, wallet, profile (profile, memberships & passes),
                     account (welcome, login, sign-up, settings, my account, history / terms / FAQ)

@@ -10,7 +10,6 @@ import profileBg from '../ui/assets/profile-bg.svg';
 import walletFront from '../ui/assets/wallet-front.png';
 import { Avatar } from '../ui/Avatar';
 import { BadgeImage } from '../ui/BadgeImage';
-import { Screen } from '../ui/Screen';
 import { ART, Art, u } from '../ui/units';
 import { xpProgress } from '../ui/XpBar';
 
@@ -48,7 +47,7 @@ export function ProfileScreen() {
   const ownedPasses = new Set((subscriptions.data ?? []).filter((s) => s.status === 'ACTIVE').map((s) => s.subscriptionPlanId));
 
   return (
-    <Screen nav="profile">
+    <>
       <div className="bd-profile">
         <Art className="bd-profile-bg" src={profileBg} w={ART.profileBg[0]} h={ART.profileBg[1]} />
         <span className="bd-profile-avatar">
@@ -109,6 +108,6 @@ export function ProfileScreen() {
           })}
         </div>
       </div>
-    </Screen>
+    </>
   );
 }

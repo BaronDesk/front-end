@@ -38,8 +38,14 @@ const LAYOUT: Record<NavKey, Record<NavKey, number>> = {
 };
 
 const SCREEN = 360;
+const percent = (x: number) => `${(x / SCREEN) * 100}%`;
 
-/** The black bar at the bottom of every screen; the current page's icon rises into a circle. */
+/**
+ * The black bar at the bottom of every redesigned screen. It stays mounted
+ * from page to page (DesignShell), so changing page animates it: the raised
+ * circle and its bump slide to the new page, the icons glide to their places
+ * and the outlined icon turns into the filled one as it rises.
+ */
 export function BottomNav({ active }: { active: NavKey }) {
   const at = LAYOUT[active];
   const style = {
@@ -51,19 +57,21 @@ export function BottomNav({ active }: { active: NavKey }) {
   return (
     <nav className="bd-nav" style={style} aria-label="Main">
       <div className="bd-nav-bar" />
+      <span className="bd-nav-circle" style={{ left: percent(at[active]) }} />
       {ORDER.map((key) => {
         const item = ITEMS[key];
-        const icon = key === active ? item.active : item.idle;
+        const on = key === active;
         return (
           <Link
             key={key}
             to={item.to}
-            className={key === active ? 'bd-nav-active' : 'bd-nav-item'}
-            style={{ left: `${(at[key] / SCREEN) * 100}%` }}
+            className={on ? 'bd-nav-item bd-nav-item-on' : 'bd-nav-item'}
+            style={{ left: percent(at[key]) }}
             aria-label={item.label}
-            aria-current={key === active ? 'page' : undefined}
+            aria-current={on ? 'page' : undefined}
           >
-            <Art src={icon.src} w={icon.size[0]} h={icon.size[1]} />
+            <Art className="bd-nav-icon-idle" src={item.idle.src} w={item.idle.size[0]} h={item.idle.size[1]} />
+            <Art className="bd-nav-icon-on" src={item.active.src} w={item.active.size[0]} h={item.active.size[1]} />
           </Link>
         );
       })}
