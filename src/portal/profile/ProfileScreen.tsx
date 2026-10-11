@@ -4,25 +4,12 @@ import { imageSrc } from '../../api/images';
 import type { Membership, MembershipPlan, Rank, Subscription, SubscriptionPlan, Wallet } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { useApiQuery } from '../../shared/hooks/useApiQuery';
-import { groupThousands } from '../../shared/lib/format';
-import coin from '../ui/assets/coin.png';
 import profileBg from '../ui/assets/profile-bg.svg';
-import walletFront from '../ui/assets/wallet-front.png';
 import { Avatar } from '../ui/Avatar';
 import { BadgeImage } from '../ui/BadgeImage';
 import { ART, Art, u } from '../ui/units';
+import { WalletCard } from '../ui/WalletCard';
 import { xpProgress } from '../ui/XpBar';
-
-/**
- * The three coins tucked in the wallet, as drawn: center (Figma px), size and
- * tilt. Figma places a rotated layer by the corner it turns around; these are
- * the centers that gives.
- */
-const COINS = [
-  { x: 128.97, y: 331.2, size: 86.069, turn: 17.47 },
-  { x: 228.0, y: 332.0, size: 64.908, turn: -111.25 },
-  { x: 180.48, y: 326.03, size: 119.975, turn: -15.75 },
-];
 
 /**
  * Figma "Profile": the gamer, their XP, their coins, the ranks reached and the
@@ -62,17 +49,9 @@ export function ProfileScreen() {
           <span className="bd-profile-xp-goal">{user.nextRank ? `${user.nextRank.minXp - 1}XP` : 'MAX'}</span>
         </div>
 
-        <section className="bd-wallet" aria-label="Wallet">
-          <span className="bd-wallet-back" />
-          {COINS.map((c, i) => (
-            <span key={i} className="bd-wallet-coin" style={{ left: u(c.x - c.size / 2), top: u(c.y - c.size / 2), width: u(c.size), height: u(c.size) }}>
-              <img src={coin} alt="" style={{ width: u(c.size), height: u(c.size), transform: `rotate(${c.turn}deg)` }} />
-            </span>
-          ))}
-          <Art className="bd-wallet-front" src={walletFront} w={ART.walletFront[0]} h={ART.walletFront[1]} />
-          <p className="bd-wallet-label">Total Balance</p>
-          <p className="bd-wallet-balance">{wallet.data ? groupThousands(wallet.data.balance) : '…'}</p>
-        </section>
+        <Link to="/wallet" className="bd-profile-wallet">
+          <WalletCard balance={wallet.data?.balance} />
+        </Link>
 
         <h2 className="bd-profile-section bd-profile-levels-title">Levels &amp; Achievements</h2>
         <div className="bd-profile-row bd-profile-levels">

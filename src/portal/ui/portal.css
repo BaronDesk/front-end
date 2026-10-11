@@ -34,6 +34,30 @@
   font-display: swap;
 }
 
+/*
+ * The portal's base: it no longer loads the admin's classic.css (every portal
+ * page is in this design now), so the few global rules it needs are here.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: #0d0d0d;
+}
+
+/* Before the login is known (RequireAuth): a quiet line on the dark stage. */
+body > #root > p {
+  margin: 0;
+  padding: 24px;
+  color: #efe5d2;
+  font-family: sans-serif;
+}
+
 .bd-app {
   /* Graphic charter */
   --bd-red: #710912;
@@ -1071,13 +1095,24 @@
   overflow: hidden;
 }
 
-.bd-profile > *,
+.bd-profile > * {
+  position: absolute;
+}
+
+/* The wallet card (WalletCard): a 304 × 192 box from the big coin's top; its parts placed inline. */
+.bd-wallet {
+  position: relative;
+  width: calc(304 * var(--u));
+  height: calc(192 * var(--u));
+}
+
 .bd-wallet > * {
   position: absolute;
 }
 
-.bd-wallet {
-  display: contents;
+.bd-profile-wallet {
+  left: calc(28 * var(--u));
+  top: calc(266 * var(--u));
 }
 
 .bd-profile-bg {
@@ -1152,8 +1187,6 @@
 }
 
 .bd-wallet-back {
-  left: calc(28 * var(--u));
-  top: calc(299 * var(--u));
   width: calc(304 * var(--u));
   height: calc(152 * var(--u));
   border-radius: calc(11 * var(--u));
@@ -1172,21 +1205,15 @@
 }
 
 .bd-wallet-front {
-  left: calc(44 * var(--u));
-  top: calc(315.92 * var(--u));
 }
 
 .bd-wallet-label {
-  left: calc(61 * var(--u));
-  top: calc(357 * var(--u));
   color: var(--bd-cream);
   font-weight: var(--bd-regular);
   font-size: calc(12 * var(--u));
 }
 
 .bd-wallet-balance {
-  left: calc(60 * var(--u));
-  top: calc(375 * var(--u));
   color: var(--bd-cream);
   font-weight: var(--bd-medium);
   font-size: calc(50 * var(--u));
@@ -1570,4 +1597,412 @@
 .bd-day-month {
   font-weight: 300;
   font-size: calc(8 * var(--u));
+}
+
+/* ---------- Pages not in Figma, in the same style (account, plans, session, wallet) ---------- */
+
+.bd-page {
+  padding: calc(20 * var(--u)) 0 calc(24 * var(--u));
+}
+
+.bd-section-head {
+  margin: calc(26 * var(--u)) calc(31 * var(--u)) calc(10 * var(--u)) !important;
+  font-weight: 733 !important;
+  font-size: calc(16 * var(--u));
+}
+
+/* A card in Bookings' style (the history, FAQ and terms cards look the same). */
+.bd-card {
+  width: calc(318 * var(--u));
+  margin-left: calc(21 * var(--u)) !important;
+  padding: calc(14 * var(--u)) calc(16 * var(--u));
+  border-radius: calc(18 * var(--u));
+  background: linear-gradient(180deg, rgba(54, 40, 34, 0.22) 0%, rgba(194, 141, 57, 0.13) 100%);
+  font-family: "Nexa", sans-serif;
+  font-weight: 300;
+  font-size: calc(15 * var(--u));
+  line-height: 1.35;
+}
+
+.bd-card b {
+  font-weight: 700;
+}
+
+.bd-card + .bd-card {
+  margin-top: calc(12 * var(--u)) !important;
+}
+
+.bd-card-alert {
+  border: calc(1 * var(--u)) solid var(--bd-red);
+  color: var(--bd-red);
+}
+
+/* What a button did: brown, or the charter's red for a refusal. */
+.bd-note {
+  margin: calc(10 * var(--u)) calc(27 * var(--u)) 0 !important;
+  font-family: "Nexa", sans-serif;
+  font-weight: 400;
+  font-size: calc(13 * var(--u));
+  line-height: 1.35;
+}
+
+.bd-note-error {
+  color: var(--bd-red);
+}
+
+.bd-page-link {
+  margin: calc(20 * var(--u)) calc(27 * var(--u)) 0 !important;
+  font-weight: var(--bd-medium);
+  font-size: calc(14 * var(--u));
+}
+
+.bd-row-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(8 * var(--u));
+}
+
+/* Buttons: the brown pill (.bd-auth-submit), an outlined pill, a small one. classic.css is gone, so they set everything. */
+.bd-app .bd-btn-outline,
+.bd-app .bd-btn-outline:hover,
+.bd-app .bd-btn-small,
+.bd-app .bd-btn-small:hover {
+  display: inline-grid;
+  place-items: center;
+  padding: 0 calc(14 * var(--u));
+  border: calc(1 * var(--u)) solid var(--bd-brown);
+  background: transparent;
+  color: var(--bd-brown);
+  font-family: "Nexa", sans-serif;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.bd-app .bd-btn-outline {
+  height: calc(34 * var(--u));
+  border-radius: calc(17 * var(--u));
+  font-size: calc(13 * var(--u));
+}
+
+.bd-app .bd-btn-small {
+  height: calc(28 * var(--u));
+  border-radius: calc(14 * var(--u));
+  background: var(--bd-brown);
+  color: var(--bd-cream);
+  font-size: calc(12 * var(--u));
+}
+
+.bd-app .bd-btn-danger,
+.bd-app .bd-btn-danger:hover {
+  border-color: var(--bd-red);
+  background: var(--bd-red);
+  color: var(--bd-cream);
+}
+
+.bd-app .bd-btn-outline:disabled,
+.bd-app .bd-btn-small:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.bd-btn-wide {
+  width: calc(150 * var(--u));
+  margin-top: calc(14 * var(--u));
+}
+
+.bd-btn-link {
+  display: inline-grid !important;
+  place-items: center;
+  width: calc(130 * var(--u));
+  margin-top: calc(14 * var(--u));
+}
+
+/* My account */
+.bd-account-picture {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(10 * var(--u));
+  margin-top: calc(18 * var(--u));
+}
+
+.bd-account-picture .bd-note {
+  margin: 0 calc(27 * var(--u)) !important;
+  text-align: center;
+}
+
+.bd-account-name {
+  font-weight: 817;
+  font-size: calc(24 * var(--u));
+}
+
+.bd-account-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(10 * var(--u));
+  width: calc(300 * var(--u));
+  margin-left: calc(30 * var(--u));
+}
+
+.bd-account-section .bd-section-head {
+  align-self: flex-start;
+  margin: calc(26 * var(--u)) 0 0 calc(1 * var(--u)) !important;
+}
+
+.bd-account-section .bd-field {
+  width: 100%;
+}
+
+.bd-account-section .bd-note {
+  align-self: stretch;
+  margin: 0 !important;
+  text-align: center;
+}
+
+/* Memberships & passes */
+.bd-plans-balance {
+  margin: calc(6 * var(--u)) calc(27 * var(--u)) 0 !important;
+  font-family: "Nexa", sans-serif;
+  font-weight: 300;
+  font-size: calc(14 * var(--u));
+}
+
+.bd-plans-balance b {
+  font-weight: 700;
+}
+
+.bd-plans-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(10 * var(--u));
+  margin-top: calc(16 * var(--u)) !important;
+}
+
+.bd-plans-head {
+  margin-top: calc(30 * var(--u)) !important;
+}
+
+/* The cards' badges stick out above and to the left: room between them. */
+.bd-plans-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(40 * var(--u));
+  padding-top: calc(16 * var(--u));
+}
+
+.bd-plan-card-tall {
+  height: calc(165 * var(--u));
+}
+
+.bd-plan-footer {
+  left: calc(153 * var(--u));
+  right: calc(12 * var(--u));
+  bottom: calc(12 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(6 * var(--u));
+}
+
+.bd-plan-price {
+  font-family: "Nexa", sans-serif;
+  font-weight: 700;
+  font-size: calc(13 * var(--u));
+  line-height: 1.2;
+}
+
+.bd-plan-price small {
+  display: block;
+  font-weight: 300;
+  font-size: calc(10 * var(--u));
+}
+
+.bd-plan-yours {
+  padding: calc(5 * var(--u)) calc(10 * var(--u));
+  border: calc(1 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(14 * var(--u));
+  font-family: "Nexa", sans-serif;
+  font-weight: 700;
+  font-size: calc(11 * var(--u));
+}
+
+/* My session: the wallet's dark card, with the numbers in cream. */
+.bd-session {
+  width: calc(304 * var(--u));
+  margin: calc(18 * var(--u)) 0 0 calc(28 * var(--u));
+  padding: calc(18 * var(--u)) calc(20 * var(--u));
+  border-radius: calc(11 * var(--u));
+  background: linear-gradient(180deg, rgba(194, 141, 57, 0.8) 0%, rgba(54, 40, 34, 0.9) 100%);
+  box-shadow: 0 0 calc(17.9 * var(--u)) calc(7 * var(--u)) rgba(0, 0, 0, 0.13);
+  color: var(--bd-cream);
+}
+
+.bd-session-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bd-session-station {
+  font-family: "Nexa", sans-serif;
+  font-weight: 300;
+  font-size: calc(20 * var(--u));
+}
+
+.bd-session-chip {
+  padding: calc(4 * var(--u)) calc(10 * var(--u));
+  border: calc(1 * var(--u)) solid var(--bd-cream);
+  border-radius: calc(12 * var(--u));
+  font-family: "Nexa", sans-serif;
+  font-weight: 700;
+  font-size: calc(11 * var(--u));
+}
+
+.bd-session-chip-off {
+  border-color: #ffb3ad;
+  color: #ffb3ad;
+}
+
+.bd-session-label {
+  margin-top: calc(16 * var(--u)) !important;
+  font-weight: var(--bd-regular);
+  font-size: calc(12 * var(--u));
+}
+
+.bd-session-played {
+  font-weight: var(--bd-medium);
+  font-size: calc(40 * var(--u));
+}
+
+.bd-session-figures {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: calc(8 * var(--u));
+  margin: calc(14 * var(--u)) 0 0;
+  padding-top: calc(12 * var(--u));
+  border-top: calc(1 * var(--u)) solid rgba(239, 229, 210, 0.4);
+}
+
+.bd-session-figures dt {
+  font-weight: var(--bd-regular);
+  font-size: calc(11 * var(--u));
+  opacity: 0.8;
+}
+
+.bd-session-figures dd {
+  margin: calc(3 * var(--u)) 0 0;
+  font-weight: var(--bd-medium);
+  font-size: calc(14 * var(--u));
+}
+
+.bd-session-figures small {
+  display: block;
+  font-weight: var(--bd-regular);
+  font-size: calc(10 * var(--u));
+  opacity: 0.8;
+}
+
+.bd-extend .bd-row-buttons {
+  margin: calc(12 * var(--u)) calc(27 * var(--u)) 0;
+}
+
+.bd-session-booking,
+.bd-session-none {
+  margin-top: calc(18 * var(--u)) !important;
+}
+
+.bd-session-booking .bd-note {
+  margin: calc(6 * var(--u)) 0 calc(10 * var(--u)) !important;
+}
+
+.bd-session-booking-station {
+  font-size: calc(20 * var(--u));
+}
+
+.bd-session-pin {
+  margin-top: calc(10 * var(--u)) !important;
+  font-weight: 400 !important;
+  font-size: calc(34 * var(--u));
+  letter-spacing: 0.08em;
+}
+
+/* My wallet */
+.bd-wallet-page-card {
+  margin: calc(4 * var(--u)) 0 0 calc(28 * var(--u));
+}
+
+.bd-wallet-topup {
+  margin-top: calc(22 * var(--u)) !important;
+}
+
+.bd-entries {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10 * var(--u));
+}
+
+.bd-entries .bd-card + .bd-card {
+  margin-top: 0 !important;
+}
+
+.bd-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: calc(10 * var(--u));
+  padding-bottom: calc(10 * var(--u));
+}
+
+.bd-entry-right {
+  text-align: right;
+}
+
+.bd-entry-what {
+  font-size: calc(15 * var(--u));
+}
+
+.bd-entry-when {
+  font-size: calc(11 * var(--u));
+  opacity: 0.8;
+}
+
+.bd-entry-amount {
+  font-weight: 700;
+  font-size: calc(16 * var(--u));
+}
+
+.bd-entry-out {
+  color: var(--bd-red);
+}
+
+/* A page's error box (PageErrorBoundary) inside the design. */
+.bd-app .msg-error {
+  margin: calc(20 * var(--u)) calc(27 * var(--u));
+  color: var(--bd-red);
+  font-family: "Nexa", sans-serif;
+  font-size: calc(14 * var(--u));
+}
+
+/* Buying cards: the price on its own line, the button under it (the text column is narrow). */
+.bd-plan-card-tall {
+  height: calc(190 * var(--u)) !important;
+}
+
+.bd-plan-footer {
+  left: calc(168 * var(--u)) !important;
+  flex-direction: column;
+  align-items: flex-start !important;
+  gap: calc(6 * var(--u)) !important;
+}
+
+.bd-plan-price,
+.bd-plan-price small {
+  white-space: nowrap;
+}
+
+.bd-btn-wide {
+  width: calc(180 * var(--u)) !important;
+  white-space: nowrap;
 }

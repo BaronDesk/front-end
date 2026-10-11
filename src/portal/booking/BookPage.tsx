@@ -140,7 +140,8 @@ export function BookPage() {
         <div className="bd-book-cards">
           {upcoming.map((r) => {
             const open = openCard === r.id;
-            const actions = canCheckIn(r) || isCancellable(r);
+            const playing = r.status === 'ACTIVE';
+            const actions = playing || canCheckIn(r) || isCancellable(r);
             return (
               <article key={r.id} className="bd-booking">
                 <button type="button" className="bd-booking-main" onClick={() => actions && setOpenCard(open ? null : r.id)} aria-expanded={actions ? open : undefined}>
@@ -157,6 +158,11 @@ export function BookPage() {
                 </button>
                 {open && (
                   <div className="bd-booking-actions">
+                    {playing && (
+                      <Link to="/session" className="bd-btn-small">
+                        My session
+                      </Link>
+                    )}
                     {canCheckIn(r) && (
                       <button type="button" disabled={action.busy === r.id} onClick={() => newPin(r)}>
                         New PIN

@@ -11,43 +11,8 @@ import history from '../ui/assets/history.svg';
 import info from '../ui/assets/info.svg';
 import logout from '../ui/assets/logout.svg';
 import { Avatar } from '../ui/Avatar';
+import { PlanCard } from '../ui/PlanCard';
 import { ART, Art, u } from '../ui/units';
-
-/**
- * One plan card (Figma "Membership Card"): the badge overflowing its left
- * side, a line, the name and two lines. As drawn, the tier card's line and
- * text sit 1–2 px right of the pass card's (`tier`).
- */
-function PlanCard({ badge, size, at, corner, title, lines, empty = false, tier = false }: {
-  badge: string | null | undefined;
-  size: number;
-  at: [number, number];
-  corner: number;
-  title: string;
-  lines: [string, string];
-  empty?: boolean;
-  tier?: boolean;
-}) {
-  return (
-    <div className="bd-plan-card" style={{ borderTopLeftRadius: u(corner) }}>
-      {badge && <img className="bd-plan-badge" src={badge} alt="" style={{ left: u(at[0]), top: u(at[1]), width: u(size), height: u(size) }} />}
-      {empty && <span className="bd-plan-none" aria-hidden="true" />}
-      <span className="bd-plan-divider" style={{ left: u(tier ? 155 : 153) }} />
-      <p className="bd-plan-title" style={{ left: u(tier ? 169 : 168) }}>
-        {title}
-      </p>
-      <p className={tier ? 'bd-plan-lines bd-plan-lines-tier' : 'bd-plan-lines'}>
-        {lines[0]}
-        {lines[1] && (
-          <>
-            <br />
-            {lines[1]}
-          </>
-        )}
-      </p>
-    </div>
-  );
-}
 
 /** Figma "Settings": the profile, the gamer's membership and pass, the other pages, and logging out. */
 export function SettingsScreen() {

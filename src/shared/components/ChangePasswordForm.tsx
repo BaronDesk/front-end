@@ -7,11 +7,12 @@ import { ActionMessages } from './ActionMessages';
 import { useAction } from '../hooks/useAction';
 
 /**
- * Change your own password (POST /auth/change-password). The server ends
+ * Changing your own password (POST /auth/change-password). The server ends
  * every other login of the account and answers with a new token pair, so this
- * tab stays logged in. Used by the portal's Settings and the admin's My account.
+ * tab stays logged in. Shared by this form (the admin's My account) and the
+ * portal's My account.
  */
-export function ChangePasswordForm() {
+export function useChangePassword() {
   const action = useAction();
   const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '' });
 
@@ -27,6 +28,12 @@ export function ChangePasswordForm() {
       setPasswords({ currentPassword: '', newPassword: '' });
     }
   }
+
+  return { action, passwords, setPasswords, changePassword };
+}
+
+export function ChangePasswordForm() {
+  const { action, passwords, setPasswords, changePassword } = useChangePassword();
 
   return (
     <form onSubmit={changePassword}>

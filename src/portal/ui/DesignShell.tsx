@@ -14,6 +14,10 @@ const NAV: Record<string, NavKey> = {
   '/history': 'settings',
   '/terms': 'settings',
   '/faq': 'settings',
+  '/account': 'settings',
+  '/plans': 'settings',
+  '/session': 'book',
+  '/wallet': 'profile',
 };
 
 /** One-screen designs: they also shrink to the phone's height, so nothing hides behind the nav. */
