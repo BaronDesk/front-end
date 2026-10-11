@@ -15,6 +15,9 @@ export interface Rank {
   updatedAt: string;
 }
 
+/** What a user carries of a rank (PublicUser.rank / nextRank). */
+export type RankRef = Pick<Rank, 'id' | 'name' | 'minXp' | 'badgeUrl'>;
+
 export interface RankInput {
   name: string;
   minXp: number;

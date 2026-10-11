@@ -12,6 +12,9 @@ const user = (id: string, role: Role, branchId: string | null, homeBranchId: str
   gamerProfileId: role === 'GAMER' ? `gp-${id}` : null,
   homeBranchId,
   avatarUrl: null,
+  xp: null,
+  rank: null,
+  nextRank: null,
   createdAt: '2026-10-01T00:00:00Z',
 });
 

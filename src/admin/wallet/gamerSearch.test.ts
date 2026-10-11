@@ -12,6 +12,9 @@ const gamer = (username: string, gamerProfileId: string | null): PublicUser => (
   gamerProfileId,
   homeBranchId: null,
   avatarUrl: null,
+  xp: null,
+  rank: null,
+  nextRank: null,
   createdAt: '2026-10-01T00:00:00Z',
 });
 

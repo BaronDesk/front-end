@@ -1,5 +1,7 @@
 /** Accounts and login (identity module). */
 
+import type { RankRef } from './ranks';
+
 export type Role = 'GAMER' | 'EMPLOYEE' | 'MANAGER' | 'ADMIN';
 
 export type AccountStatus = 'ACTIVE' | 'SUSPENDED' | 'INACTIVE' | 'DELETED';
@@ -18,6 +20,12 @@ export interface PublicUser {
   homeBranchId: string | null;
   /** A gamer's profile picture (/uploads/avatars/<id>.webp), or null. Set with setMyAvatar(). */
   avatarUrl: string | null;
+  /** A gamer's XP; null for staff. */
+  xp: number | null;
+  /** The highest rank the gamer's XP has reached; null for staff, or below the lowest rank. */
+  rank: RankRef | null;
+  /** The rank the XP bar fills towards; null at the top rank and for staff. */
+  nextRank: RankRef | null;
   createdAt: string;
 }
 
