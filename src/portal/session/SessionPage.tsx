@@ -26,7 +26,6 @@ const EXTEND_REFUSALS: Record<string, string> = {
 };
 
 const explainExtend = (err: unknown) => explainRefusal(err, EXTEND_REFUSALS);
-const coins = (n: number) => `${groupThousands(n)} coins`;
 
 function lockText(s: CurrentSession): string | null {
   if (s.status !== 'PAUSED') return null;
@@ -132,15 +131,15 @@ export function SessionPage() {
               <div>
                 <dt>Cost so far</dt>
                 <dd>
-                  {coins(session.costSoFarCoins)}
-                  <small>{coins(session.rateCoinsPerHour)} / hour</small>
+                  {groupThousands(session.costSoFarCoins)}
+                  <small>coins · {groupThousands(session.rateCoinsPerHour)} / h</small>
                 </dd>
               </div>
               <div>
                 <dt>Balance after</dt>
                 <dd>
-                  {coins(session.balanceAfterCoins)}
-                  <small>paid at the end</small>
+                  {groupThousands(session.balanceAfterCoins)}
+                  <small>coins · paid at the end</small>
                 </dd>
               </div>
             </dl>

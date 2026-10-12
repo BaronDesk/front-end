@@ -102,8 +102,8 @@ Every screen reads and writes the real backend. The last column says what each s
 | Portal: profile (Figma design) | `/auth/me`, `/wallets/me`, `/ranks`, `/membership-plans`, `/memberships/me` | Picture, rank, XP bar, the wallet card ("30.000"), the ranks reached (the others faded), the membership tiers and the passes (Plans, not in Figma: the gamer's in full, a tap opens Memberships & passes) |
 | Portal: settings (Figma design) | `/branches`, `/memberships/me`, `/membership-plans`, `/subscriptions/me`, `/pricing` | The profile card (opens My account), the gamer's tier (its discount and rate per hour) and pass, or "None: buy a plan", Sessions History, Terms Of Service, FAQ, Log Out |
 | Portal: sessions history, terms, FAQ | `GET /sessions/me/history` | The gamer's settled sessions (time played, coins, XP); the rules of play; short answers. In the design's style, not in Figma |
-| Portal: my account, memberships & passes (classic layout) | `PATCH /users/me/branch`, `POST /auth/change-password`, `PUT/DELETE /users/me/avatar`, `…/purchase`, `POST /memberships/me/cancel` | My account: picture, home branch, password. Memberships & passes: buy, **Upgrade** (pay the difference, prorated), **Cancel** (no refund). Not in Figma yet |
-| Portal: my session, wallet (classic layout) | `GET /sessions/me/current`, `/reservations/:id/extend-options`, `POST /reservations/:id/extend`, `session_notice`, `/wallets/me…` | Time played, cost so far, **Extend** by 30 / 60 / 90 minutes; the wallet shows the username to give the desk. Not in Figma (user's choice: left as they are) |
+| Portal: my account, memberships & passes (same style, not in Figma) | `PATCH /users/me/branch`, `POST /auth/change-password`, `PUT/DELETE /users/me/avatar`, `…/purchase`, `POST /memberships/me/cancel` | My account: picture, home branch, password (twice). Memberships & passes: every tier and pass as a plan card with its price and **Buy** / **Upgrade** (pay the difference, prorated) / **Cancel** (no refund) |
+| Portal: my session, wallet (same style, not in Figma) | `GET /sessions/me/current`, `/reservations/:id/extend-options`, `POST /reservations/:id/extend`, `session_notice`, `/wallets/me…` | My session: a dark card (PC, time played, end, cost so far, balance after), **Extend** by 30 / 60 / 90 minutes near the end, the PIN before the start. Wallet: the Profile wallet card, how to top up (the username to give the desk), the history. Every portal page is in this design: the portal no longer loads classic.css |
 
 **Money:** the platform counts in **coins**, whole numbers, everywhere (wallets, prices, bills); screens show them with `formatCoins` in `src/shared/lib/format.ts` and never compute money. What a coin is worth is set there too (`COINS_PER_CURRENCY = 1000`, `CURRENCY = 'DT'`): only the desk top-up uses it, taking cash in DT and crediting the coins. Rates are coins per hour, billed by the second.
 
@@ -195,7 +195,6 @@ src/
                     users, plans, ranks, games, branches (HQ overview + branch scope), audit, account
   portal/           the gamer app
     main.tsx, PortalApp.tsx (routes)
-    layout/         PortalLayout (the classic layout, for pages not redesigned yet)
     ui/             the Figma design: portal.css (scoped under .bd-app; every size in --u, 1/360 of the
                     column, so the screens scale with the phone), units.tsx (u(), Art), fonts/ (Neue Kaine, Nexa),
                     assets/ (icons, doodles, mascot, logo, background shapes exported from Figma),
@@ -204,7 +203,7 @@ src/
                     Fields (text, password with its eye, select), Avatar, XpBar, PlayerBadges
     <feature>/      home, events, booking (bookings, seat map, PIN), session, wallet, profile (profile, memberships & passes),
                     account (welcome, login, sign-up, settings, my account, history / terms / FAQ)
-  styles/classic.css   the admin's theme (black / white / gold / red), and the portal pages not redesigned yet
+  styles/classic.css   the admin's theme (black / white / gold / red); the portal does not load it
 ```
 
 **Where new code goes**
