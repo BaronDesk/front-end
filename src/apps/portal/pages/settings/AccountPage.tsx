@@ -108,16 +108,14 @@ export function AccountPage() {
 
       <form className={styles.section} onSubmit={saveBranch}>
         <SectionTitle className={styles.head}>Where you play</SectionTitle>
-        <SelectField label="Branch" required value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-          <option value="" disabled>
-            {branches.data ? 'Branch' : 'Loading…'}
-          </option>
-          {(branches.data ?? []).map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </SelectField>
+        <SelectField
+          label="Branch"
+          placeholder={branches.data ? 'Branch' : 'Loading…'}
+          required
+          value={branchId}
+          options={(branches.data ?? []).map((b) => ({ value: b.id, label: b.name }))}
+          onChange={setBranchId}
+        />
         <Button type="submit" className={styles.submit} disabled={!branchId || branchId === user.homeBranchId || place.busy === 'branch'}>
           Save
         </Button>

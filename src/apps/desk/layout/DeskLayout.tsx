@@ -83,7 +83,7 @@ function DeskShell() {
         <header className={styles.header}>
           <LiveTag />
           <div className={styles.branch}>
-            <BranchSwitcher />
+            <BranchSwitcher className={styles.branchSelect} />
           </div>
         </header>
         <ConnectionBanner />

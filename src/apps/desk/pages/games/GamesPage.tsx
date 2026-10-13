@@ -18,6 +18,7 @@ import { applyCatalogStatus, installText, LAUNCH_TYPE_LABEL, LAUNCH_TYPES, TARGE
 import { EmptyRow } from '../../components/EmptyRow';
 import { gamesService } from '../../../../services/games.service';
 import { stationsService } from '../../../../services/stations.service';
+import { Select } from '../../../../components/primitives/Select';
 
 interface GameForm {
   id: string | null;
@@ -277,13 +278,12 @@ export function GamesPage() {
             </div>
             <div className="form-row">
               <label htmlFor="g-type">Launch with</label>
-              <select id="g-type" value={form.launchType} onChange={(e) => setForm({ ...form, launchType: e.target.value as GameLaunchType })}>
-                {LAUNCH_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {LAUNCH_TYPE_LABEL[t]}
-                  </option>
-                ))}
-              </select>
+              <Select
+                id="g-type"
+                value={form.launchType}
+                onChange={(v) => setForm({ ...form, launchType: v as GameLaunchType })}
+                options={LAUNCH_TYPES.map((t) => ({ value: t, label: LAUNCH_TYPE_LABEL[t] }))}
+              />
             </div>
             <div className="form-row">
               <label htmlFor="g-target">{hint.label}</label>
@@ -509,15 +509,7 @@ function suggestGameId(name: string): string {
 
 function GameSelect({ id, games, value, onChange }: { id: string; games: Game[]; value: string; onChange(v: string): void }) {
   return (
-    <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
-      <option value="">— choose a game —</option>
-      {games.map((g) => (
-        <option key={g.id} value={g.id}>
-          {g.name}
-          {g.enabled ? '' : ' (disabled)'}
-        </option>
-      ))}
-    </select>
+    <Select id={id} value={value} onChange={onChange} placeholder="— choose a game —" options={games.map((g) => ({ value: g.id, label: `${g.name}${g.enabled ? '' : ' (disabled)'}` }))} />
   );
 }
 

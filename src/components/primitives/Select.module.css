@@ -1,0 +1,162 @@
+/* Select: a dropdown in the design's style (a field-like button, a list under it). */
+
+@layer components {
+  .root {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  /* The button sets its whole look: pages style plain buttons differently (the desk theme). */
+  .button {
+    display: flex;
+    align-items: center;
+    gap: calc(10 * var(--u));
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border: calc(1 * var(--u)) solid rgba(54, 40, 34, 0.4);
+    color: var(--bd-brown);
+    line-height: normal;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 calc(2 * var(--u)) rgba(194, 141, 57, 0.45);
+  }
+
+  .button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .empty .label {
+    color: rgba(74, 57, 50, 0.45);
+  }
+
+  .arrow {
+    flex: none;
+    transform: rotate(180deg);
+    pointer-events: none;
+  }
+
+  /* Compact: an inline control, 34 high (the desk's filters and forms). */
+  .compact {
+    min-width: calc(140 * var(--u));
+    height: calc(34 * var(--u));
+  }
+
+  .compact .button,
+  .compact .button:hover {
+    padding: 0 calc(12 * var(--u)) 0 calc(12 * var(--u));
+    border-radius: calc(10 * var(--u));
+    background: rgba(255, 255, 255, 0.55);
+    color: var(--bd-brown);
+    font-family: 'Nexa', sans-serif;
+    font-weight: 400;
+    font-size: calc(13 * var(--u));
+  }
+
+  /* Field: the phone's rounded cream field (212 × 40), like TextField. */
+  .field {
+    display: block;
+    width: 100%;
+    height: calc(40 * var(--u));
+  }
+
+  .field .button,
+  .field .button:hover {
+    padding: 0 calc(17 * var(--u)) 0 calc(16 * var(--u));
+    border: 0;
+    border-radius: calc(18 * var(--u));
+    background: var(--bd-cream);
+    color: var(--bd-brown);
+    font-family: 'Neue Kaine', sans-serif;
+    font-weight: var(--bd-medium);
+    font-size: calc(14 * var(--u));
+  }
+
+  /* The placeholder as faint as TextField's. */
+  .field .empty .label {
+    color: rgba(74, 57, 50, 0.38);
+  }
+
+  .field .button:focus-visible {
+    box-shadow: 0 0 0 calc(1.5 * var(--u)) var(--bd-brown);
+  }
+
+  /* The list: under (or above) the button, at least as wide, placed against the window (Select sets where); a long one scrolls. */
+  .panel {
+    position: fixed;
+    z-index: 40;
+    max-width: calc(360 * var(--u));
+    max-height: calc(264 * var(--u));
+    margin: 0;
+    padding: calc(4 * var(--u));
+    overflow-y: auto;
+    border: calc(1 * var(--u)) solid var(--bd-brown);
+    border-radius: calc(12 * var(--u));
+    background: var(--bd-cream);
+    box-shadow: 0 calc(6 * var(--u)) calc(16 * var(--u)) rgba(54, 40, 34, 0.18);
+    list-style: none;
+    outline: none;
+  }
+
+  .option {
+    padding: calc(8 * var(--u)) calc(12 * var(--u));
+    border-radius: calc(8 * var(--u));
+    color: var(--bd-brown);
+    font-family: 'Nexa', sans-serif;
+    font-weight: 400;
+    font-size: calc(13 * var(--u));
+    line-height: normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+
+  .field .option {
+    font-family: 'Neue Kaine', sans-serif;
+    font-weight: var(--bd-medium);
+    font-size: calc(14 * var(--u));
+  }
+
+  .active {
+    background: rgba(54, 40, 34, 0.08);
+  }
+
+  /* The chosen option: filled, like a chosen chip. */
+  .chosen {
+    background: var(--bd-brown);
+    color: var(--bd-cream);
+  }
+
+  .disabled {
+    color: rgba(54, 40, 34, 0.35);
+    cursor: default;
+  }
+
+  /* The hidden required input: just under the button, where the browser points its message. */
+  .native {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+}

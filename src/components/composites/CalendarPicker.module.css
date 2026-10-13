@@ -1,11 +1,9 @@
-/* CalendarPicker: a month of days in a panel under the pills (ChipPicker's look). */
+/* CalendarPanel: a month of days in a panel (ChipPicker's look), under the pills or under a DateField. */
 
 @layer components {
   .panel {
     position: absolute;
-    left: calc(10 * var(--u));
-    top: calc(50 * var(--u));
-    z-index: 5;
+    z-index: 40;
     width: calc(284 * var(--u));
     padding: calc(10 * var(--u));
     border: calc(1 * var(--u)) solid var(--bd-brown);
@@ -106,5 +104,17 @@
     font-family: 'Neue Kaine', sans-serif;
     font-weight: 733;
     font-size: calc(11 * var(--u));
+  }
+
+  /* Under the pills, across the Reserve panel (CalendarPicker). */
+  .underPills {
+    left: calc(10 * var(--u));
+    top: calc(50 * var(--u));
+  }
+
+  /* Under its field (DateField). */
+  .underField {
+    top: calc(100% + 4 * var(--u));
+    left: 0;
   }
 }

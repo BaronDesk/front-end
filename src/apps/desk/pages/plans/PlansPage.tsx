@@ -23,6 +23,7 @@ import {
 import { useApiQuery } from '../../../../hooks/useApiQuery';
 import { catalogService } from '../../../../services/catalog.service';
 import { plansService } from '../../../../services/plans.service';
+import { TimeField } from '../../../../components/composites/TimeField';
 
 /** Membership tiers: a discount on every hour of play, and how far ahead a member may book. */
 function TierSection({ action }: { action: Action }) {
@@ -378,10 +379,10 @@ function PassSection({ action }: { action: Action }) {
                       {w.days.length === 0 && <span className="status-bad">pick a day</span>}
                     </td>
                     <td>
-                      <input aria-label={`Window ${i + 1} from`} type="time" required value={w.startTime} onChange={(e) => setWindow(i, { startTime: e.target.value })} />
+                      <TimeField aria-label={`Window ${i + 1} from`} value={w.startTime} onChange={(startTime) => setWindow(i, { startTime })} />
                     </td>
                     <td>
-                      <input aria-label={`Window ${i + 1} to`} type="time" required value={w.endTime} onChange={(e) => setWindow(i, { endTime: e.target.value })} />
+                      <TimeField aria-label={`Window ${i + 1} to`} value={w.endTime} onChange={(endTime) => setWindow(i, { endTime })} />
                     </td>
                     <td>
                       <input

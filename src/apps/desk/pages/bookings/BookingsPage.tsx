@@ -24,6 +24,8 @@ import { SlotPicker } from '../../../../components/composites/SlotPicker';
 import { reservationsService } from '../../../../services/reservations.service';
 import { sessionsService } from '../../../../services/sessions.service';
 import styles from './BookingsPage.module.css';
+import { Select } from '../../../../components/primitives/Select';
+import { DateField } from '../../../../components/composites/DateField';
 
 const LIST_LIMIT = 100;
 const LIST_STATUSES: SessionStatus[] = ['ACTIVE', 'PAUSED', 'PENDING', 'COMPLETED', 'CANCELLED'];
@@ -145,17 +147,15 @@ export function BookingsPage() {
       <h2 className={styles.history}>Sessions</h2>
       <div className="toolbar">
         <label htmlFor="se-date">Since</label>{' '}
-        <input id="se-date" type="date" required value={since} onChange={(e) => e.target.value && setSince(e.target.value)} />
+        <DateField id="se-date" value={since} onChange={setSince} />
         <span className="sep-v" />
         <label htmlFor="se-status">Status</label>{' '}
-        <select id="se-status" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">All but cancelled</option>
-          {LIST_STATUSES.map((st) => (
-            <option key={st} value={st}>
-              {SESSION_STATUS_TEXT[st]}
-            </option>
-          ))}
-        </select>
+        <Select
+          id="se-status"
+          value={status}
+          onChange={setStatus}
+          options={[{ value: '', label: 'All but cancelled' }, ...LIST_STATUSES.map((st) => ({ value: st, label: SESSION_STATUS_TEXT[st] }))]}
+        />
         <span className="sep-v" />
         <button type="button" className="secondary" onClick={sessions.reload}>
           Reload

@@ -44,6 +44,7 @@ import { EmptyRow } from '../../components/EmptyRow';
 import { alertsService } from '../../../../services/alerts.service';
 import { sessionsService } from '../../../../services/sessions.service';
 import { stationsService } from '../../../../services/stations.service';
+import { Select } from '../../../../components/primitives/Select';
 
 /** Telemetry history spans the desk can pick (the server keeps up to 48 hours). */
 const HISTORY_HOURS = [1, 6, 24, 48];
@@ -318,15 +319,17 @@ export function StationDetailPage() {
           End session
         </button>
         <span className="sep-v" />
-        <select value={gameId} onChange={(e) => setGameId(e.target.value)} aria-label="Game to launch">
-          <option value="">— choose a game —</option>
-          {(games.data ?? []).map((g) => (
-            <option key={g.id} value={g.gameId} disabled={g.installed !== true}>
-              {g.name}
-              {g.installed === null ? ' (not reported yet)' : g.installed ? '' : ' (not installed)'}
-            </option>
-          ))}
-        </select>{' '}
+        <Select
+          aria-label="Game to launch"
+          value={gameId}
+          onChange={setGameId}
+          placeholder="— choose a game —"
+          options={(games.data ?? []).map((g) => ({
+            value: g.gameId,
+            label: `${g.name}${g.installed === null ? ' (not reported yet)' : g.installed ? '' : ' (not installed)'}`,
+            disabled: g.installed !== true,
+          }))}
+        />{' '}
         <button type="button" disabled={busy || !gameId} onClick={() => run({ type: 'LAUNCH_GAME', gameId })}>
           Launch game
         </button>
@@ -336,13 +339,7 @@ export function StationDetailPage() {
       <h2>Telemetry</h2>
       <div className="toolbar">
         <label htmlFor="t-hours">Min / avg / max over the last</label>{' '}
-        <select id="t-hours" value={hours} onChange={(e) => setHours(Number(e.target.value))}>
-          {HISTORY_HOURS.map((h) => (
-            <option key={h} value={h}>
-              {h} {h === 1 ? 'hour' : 'hours'}
-            </option>
-          ))}
-        </select>
+        <Select id="t-hours" value={String(hours)} onChange={(v) => setHours(Number(v))} options={HISTORY_HOURS.map((h) => ({ value: String(h), label: `${h} ${h === 1 ? 'hour' : 'hours'}` }))} />
         {history.loading && <span className="muted"> loading…</span>}
         <span className="muted">
           {' '}

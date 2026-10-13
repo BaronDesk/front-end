@@ -20,6 +20,7 @@ import { usersService } from '../../../../services/users.service';
 import { walletService } from '../../../../services/wallet.service';
 import { WalletCard } from '../../../../components/composites/WalletCard';
 import styles from './WalletPage.module.css';
+import { Select } from '../../../../components/primitives/Select';
 
 /** Common cash amounts at the desk. */
 const QUICK_CASH = ['5', '10', '20', '50'];
@@ -122,21 +123,16 @@ export function WalletPage() {
           <>
             <span className="sep-v" />
             <label htmlFor="w-recent">Recent</label>{' '}
-            <select
+            <Select
               id="w-recent"
               value=""
-              onChange={(e) => {
-                const g = recent.gamers.find((x) => x.gamerProfileId === e.target.value);
+              placeholder="— opened before —"
+              options={recent.gamers.map((g) => ({ value: g.gamerProfileId, label: g.username }))}
+              onChange={(id) => {
+                const g = recent.gamers.find((x) => x.gamerProfileId === id);
                 if (g) open(g);
               }}
-            >
-              <option value="">— opened before —</option>
-              {recent.gamers.map((g) => (
-                <option key={g.gamerProfileId} value={g.gamerProfileId}>
-                  {g.username}
-                </option>
-              ))}
-            </select>
+            />
           </>
         )}
       </form>

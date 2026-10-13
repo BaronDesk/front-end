@@ -162,7 +162,8 @@
   min-width: 0;
 }
 
-.branch select {
+/* Long branch names end in … rather than widening the header. */
+.branchSelect {
   max-width: 260px;
 }
 

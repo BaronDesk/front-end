@@ -198,10 +198,12 @@ src/
   components/    the design system (CSS Modules, every size in --u, 1/360 of the phone column)
     tokens/      tokens.css (colors, weights, the unit (--u: 1/360 of the phone column, 1px on the desk), base rules;
                  layers: desk < base < components), fonts/
-    primitives/  Button (+ ButtonLink, ButtonRow), Field, Notice (+ ActionNote), Card, SectionTitle, PageTitle,
+    primitives/  Button (+ ButtonLink, ButtonRow), Field (+ SelectField), Select (every dropdown: keyboard,
+                 screen readers, required), Notice (+ ActionNote), Card, SectionTitle, PageTitle,
                  Pill, Avatar, BadgeImage, Art (+ u())
     composites/  XpBar, PlayerBadges, PlanCard, WalletCard, CoinBalance, ChipPicker (a pill opening chips),
-                 DayPicker (ChipPicker of days), CalendarPicker (any day, a month), SlotPicker (day, time,
+                 DayPicker (ChipPicker of days), CalendarPicker / CalendarPanel (any day, a month), DateField,
+                 TimeField, SlotPicker (day, time,
                  length: the app's booking slot; anyDay for the desk), usePopover, GameCarousel, EmptyScreen
     layout/      MobileShell, AuthLayout (AuthScreen (`wide` for a desktop window), AuthLogo, AuthMascot, AuthForm,
                  AuthFields, AuthError), LoginScreen (the login of both apps),

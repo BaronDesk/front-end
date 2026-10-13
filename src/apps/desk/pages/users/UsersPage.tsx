@@ -13,6 +13,7 @@ import { useBranchScope } from '../../providers/BranchContext';
 import { accountBranchId, canChangeRole, canResetPassword, canSetStatus } from '../../../../domain/permissions';
 import { EmptyRow } from '../../components/EmptyRow';
 import { usersService } from '../../../../services/users.service';
+import { Select } from '../../../../components/primitives/Select';
 
 const STAFF_ROLES: Role[] = ['EMPLOYEE', 'MANAGER'];
 const ALL_ROLES: Role[] = ['GAMER', 'EMPLOYEE', 'MANAGER', 'ADMIN'];
@@ -134,14 +135,14 @@ export function UsersPage() {
             </div>
             <div className="form-row">
               <label htmlFor="g-branch">Home branch</label>
-              <select id="g-branch" required value={gamer.branchId} onChange={(e) => setGamer({ ...gamer, branchId: e.target.value })}>
-                <option value="">Pick a branch…</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
+              <Select
+                id="g-branch"
+                required
+                value={gamer.branchId}
+                onChange={(branchId) => setGamer({ ...gamer, branchId })}
+                placeholder="Pick a branch…"
+                options={branches.map((b) => ({ value: b.id, label: b.name }))}
+              />
             </div>
             <div className="form-row">
               <label />
@@ -171,13 +172,12 @@ export function UsersPage() {
                 </div>
                 <div className="form-row">
                   <label htmlFor="s-role">Role</label>
-                  <select id="s-role" value={staff.role} onChange={(e) => setStaff({ ...staff, role: e.target.value as Role })}>
-                    {STAFF_ROLES.filter((r) => isHq || r === 'EMPLOYEE').map((r) => (
-                      <option key={r} value={r}>
-                        {ROLE_LABEL[r]}
-                      </option>
-                    ))}
-                  </select>
+                  <Select
+                    id="s-role"
+                    value={staff.role}
+                    onChange={(v) => setStaff({ ...staff, role: v as Role })}
+                    options={STAFF_ROLES.filter((r) => isHq || r === 'EMPLOYEE').map((r) => ({ value: r, label: ROLE_LABEL[r] }))}
+                  />
                 </div>
                 <div className="form-row">
                   <label />
@@ -204,14 +204,12 @@ export function UsersPage() {
         <label htmlFor="u-q">Username</label>{' '}
         <input id="u-q" size={24} value={search.q} onChange={(e) => setSearch({ ...search, q: e.target.value })} />{' '}
         <label htmlFor="u-role">Role</label>{' '}
-        <select id="u-role" value={search.role} onChange={(e) => setSearch({ ...search, role: e.target.value })}>
-          <option value="">All</option>
-          {ALL_ROLES.map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABEL[r]}
-            </option>
-          ))}
-        </select>{' '}
+        <Select
+          id="u-role"
+          value={search.role}
+          onChange={(role) => setSearch({ ...search, role })}
+          options={[{ value: '', label: 'All' }, ...ALL_ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r] }))]}
+        />{' '}
         <button type="submit" className="secondary">
           Search
         </button>
@@ -248,19 +246,13 @@ export function UsersPage() {
                 <td className={u.accountStatus === 'ACTIVE' ? '' : 'status-bad'}>{STATUS_LABEL[u.accountStatus]}</td>
                 <td>{formatDateTime(u.createdAt)}</td>
                 <td>
-                  <select
+                  <Select
                     aria-label={`Role of ${u.username}`}
                     value={u.role}
                     disabled={action.busy === u.id || !user || !canChangeRole(user, u)}
-                    onChange={(e) => changeRole(u, e.target.value as Role)}
-                  >
-                    {roleChoices.map((r) => (
-                      <option key={r} value={r}>
-                        {ROLE_LABEL[r]}
-                      </option>
-                    ))}
-                    {!roleChoices.includes(u.role) && <option value={u.role}>{ROLE_LABEL[u.role]}</option>}
-                  </select>
+                    onChange={(v) => changeRole(u, v as Role)}
+                    options={[...roleChoices, ...(roleChoices.includes(u.role) ? [] : [u.role])].map((r) => ({ value: r, label: ROLE_LABEL[r] }))}
+                  />
                 </td>
                 <td className="nowrap">
                   {user && canSetStatus(user, u) && (u.accountStatus === 'ACTIVE' || u.accountStatus === 'SUSPENDED') && (

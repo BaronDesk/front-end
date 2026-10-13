@@ -13,6 +13,7 @@ import { useAlertFeed } from '../../providers/AlertFeedContext';
 import { alertDetail, CATEGORY_LABEL, isSevere, repeatText, SEVERITIES, typeLabel } from '../../../../domain/alerts';
 import { EmptyRow } from '../../components/EmptyRow';
 import { alertsService } from '../../../../services/alerts.service';
+import { Select } from '../../../../components/primitives/Select';
 
 type StatusFilter = AlertStatus | 'all';
 
@@ -105,33 +106,18 @@ export function AlertsPage() {
 
       <div className="toolbar">
         <label htmlFor="f-status">Status</label>
-        <select id="f-status" value={status} onChange={(e) => setStatus(e.target.value as StatusFilter)}>
-          {STATUS_FILTERS.map((f) => (
-            <option key={f.value} value={f.value}>
-              {f.label}
-            </option>
-          ))}
-        </select>
+        <Select id="f-status" value={status} onChange={(v) => setStatus(v as StatusFilter)} options={STATUS_FILTERS} />
         <span className="sep-v" />
         <label htmlFor="f-category">Category</label>
-        <select id="f-category" value={category} onChange={(e) => setCategory(e.target.value)}>
-          <option value="">All</option>
-          {(Object.keys(CATEGORY_LABEL) as AlertCategory[]).map((c) => (
-            <option key={c} value={c}>
-              {CATEGORY_LABEL[c]}
-            </option>
-          ))}
-        </select>
+        <Select
+          id="f-category"
+          value={category}
+          onChange={setCategory}
+          options={[{ value: '', label: 'All' }, ...(Object.keys(CATEGORY_LABEL) as AlertCategory[]).map((c) => ({ value: c, label: CATEGORY_LABEL[c] }))]}
+        />
         <span className="sep-v" />
         <label htmlFor="f-severity">Severity</label>
-        <select id="f-severity" value={severity} onChange={(e) => setSeverity(e.target.value)}>
-          <option value="">All</option>
-          {SEVERITIES.map((s: AlertSeverity) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>{' '}
+        <Select id="f-severity" value={severity} onChange={setSeverity} options={[{ value: '', label: 'All' }, ...SEVERITIES.map((s: AlertSeverity) => ({ value: s, label: s }))]} />{' '}
         <button type="button" className="secondary" onClick={alerts.reload}>
           Refresh
         </button>

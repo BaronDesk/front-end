@@ -7,6 +7,7 @@ import { useApiQuery } from '../../../hooks/useApiQuery';
 import { deriveBranches, shortId } from '../../../domain/branches';
 import { catalogService } from '../../../services/catalog.service';
 import { machinesService } from '../../../services/machines.service';
+import { Select } from '../../../components/primitives/Select';
 
 /**
  * Which branch the desk works on.
@@ -129,8 +130,8 @@ export function useBranchScope(): BranchScope {
   return ctx;
 }
 
-/** Top-bar branch: a dropdown for HQ, plain text for everyone else. */
-export function BranchSwitcher() {
+/** The header's branch: a dropdown for HQ, plain text for everyone else. `className` places the dropdown. */
+export function BranchSwitcher({ className }: { className?: string }) {
   const { isHq, branches, branchId, setBranchId, branchName } = useBranchScope();
   if (!isHq) {
     return (
@@ -142,14 +143,13 @@ export function BranchSwitcher() {
   return (
     <>
       <label htmlFor="branch-switch">Branch:</label>{' '}
-      <select id="branch-switch" value={branchId ?? ''} onChange={(e) => setBranchId(e.target.value || null)}>
-        <option value="">All branches</option>
-        {branches.map((b) => (
-          <option key={b.id} value={b.id}>
-            {b.name}
-          </option>
-        ))}
-      </select>
+      <Select
+        className={className}
+        id="branch-switch"
+        value={branchId ?? ''}
+        onChange={(v) => setBranchId(v || null)}
+        options={[{ value: '', label: 'All branches' }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+      />
     </>
   );
 }
