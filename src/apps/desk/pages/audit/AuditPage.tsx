@@ -17,7 +17,7 @@ const LIST_LIMIT = 100;
 
 /**
  * Audit log (HQ): who did which sensitive action, to what, and when: role
- * changes, suspensions, password resets, refunds, shutdowns, revoked stations,
+ * changes, suspensions, refunds, shutdowns, revoked stations,
  * branch, plan and price changes. Reads GET /audit-logs (HQ: the branch in the
  * header); no live event, so it reloads on demand.
  */
@@ -46,7 +46,7 @@ export function AuditPage() {
     <>
       <h1>Audit log</h1>
       <p className="muted">
-        Who did what: role changes, suspended accounts, password resets, wallet refunds, shut down or revoked stations, and changes to
+        Who did what: role changes, suspended accounts, wallet refunds, shut down or revoked stations, and changes to
         branches, plans and prices.
       </p>
 

@@ -16,6 +16,4 @@ export const usersService = {
   createEmployee: (body: { username: string; password: string; role: Role; branchId: string }) => api<PublicUser>('POST', '/employees', body),
   setRole: (id: string, role: Role, branchId: string | null) => api<PublicUser>('PATCH', `/users/${id}/role`, { role, branchId }),
   setSuspended: (id: string, suspended: boolean) => api<PublicUser>('PATCH', `/users/${id}/status`, { status: suspended ? 'SUSPENDED' : 'ACTIVE' }),
-  /** Logs the user out everywhere: they must use the new password. */
-  resetPassword: (id: string, newPassword: string) => api('POST', `/users/${id}/password`, { newPassword }),
 };

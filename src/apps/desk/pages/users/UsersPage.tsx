@@ -10,7 +10,7 @@ import { ActionMessages } from '../../components/ActionMessages';
 import { useAction } from '../../../../hooks/useAction';
 import { useApiQuery } from '../../../../hooks/useApiQuery';
 import { useBranchScope } from '../../providers/BranchContext';
-import { accountBranchId, canChangeRole, canResetPassword, canSetStatus } from '../../../../domain/permissions';
+import { accountBranchId, canChangeRole, canSetStatus } from '../../../../domain/permissions';
 import { EmptyRow } from '../../components/EmptyRow';
 import { usersService } from '../../../../services/users.service';
 import { Select } from '../../../../components/primitives/Select';
@@ -23,7 +23,8 @@ const LIST_LIMIT = 100;
 /**
  * Accounts and roles: list and search accounts (GET /users),
  * create gamer and staff accounts, change a role, suspend / reactivate an
- * account and reset a lost password. HQ sees everyone; a branch admin sees
+ * account. Nobody sets another person's password: each user changes their own
+ * on My account. HQ sees everyone; a branch admin sees
  * the gamers and their own branch's staff. The buttons follow the server's
  * rules (domain/permissions.ts); its 403 FORBIDDEN_ROLE_ESCALATION is the real check.
  */
@@ -36,8 +37,6 @@ export function UsersPage() {
   const [staff, setStaff] = useState({ username: '', password: '', branchId: branchId ?? '', role: 'EMPLOYEE' as Role });
   const [search, setSearch] = useState({ q: '', role: '' });
   const [filter, setFilter] = useState(search);
-  const [resetFor, setResetFor] = useState<PublicUser | null>(null);
-  const [newPassword, setNewPassword] = useState('');
 
   const params = new URLSearchParams({ limit: String(LIST_LIMIT) });
   if (filter.q.trim()) params.set('q', filter.q.trim());
@@ -92,21 +91,6 @@ export function UsersPage() {
       (x) => `${x.username} is ${suspend ? 'suspended' : 'active again'}.`,
     );
     if (updated) replace(updated);
-  }
-
-  async function resetPassword(e: FormEvent) {
-    e.preventDefault();
-    if (!resetFor) return;
-    const target = resetFor;
-    const done = await action.run(
-      'reset',
-      () => usersService.resetPassword(target.id, newPassword),
-      `Password of ${target.username} reset. They are logged out and must use the new one.`,
-    );
-    if (done) {
-      setResetFor(null);
-      setNewPassword('');
-    }
   }
 
   const roleChoices: Role[] = isHq ? ALL_ROLES : ['GAMER', 'EMPLOYEE'];
@@ -255,18 +239,6 @@ export function UsersPage() {
                     <button type="button" className={u.accountStatus === 'ACTIVE' ? 'danger' : 'secondary'} disabled={action.busy === u.id} onClick={() => toggleStatus(u)}>
                       {u.accountStatus === 'ACTIVE' ? 'Suspend' : 'Reactivate'}
                     </button>
-                  )}{' '}
-                  {user && canResetPassword(user, u) && (
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => {
-                        setResetFor(u);
-                        setNewPassword('');
-                      }}
-                    >
-                      Reset password
-                    </button>
                   )}
                 </td>
               </tr>
@@ -279,36 +251,6 @@ export function UsersPage() {
       </table>
       {rows.length === LIST_LIMIT && <p className="muted">Showing the first {LIST_LIMIT}: search by username to narrow the list.</p>}
 
-      {resetFor && (
-        <form onSubmit={resetPassword} style={{ marginTop: 8 }}>
-          <fieldset>
-            <legend>New password for {resetFor.username}</legend>
-            <div className="form-row">
-              <label htmlFor="r-pass">New password</label>
-              <input
-                id="r-pass"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={8}
-                maxLength={128}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
-            </div>
-            <div className="form-row">
-              <label />
-              <button type="submit" disabled={action.busy === 'reset'}>
-                Reset password
-              </button>{' '}
-              <button type="button" className="secondary" onClick={() => setResetFor(null)}>
-                Cancel
-              </button>
-            </div>
-            <p className="muted">Give it to them in person. Every login they have ends; they can change it in their settings.</p>
-          </fieldset>
-        </form>
-      )}
     </>
   );
 }
