@@ -33,7 +33,7 @@ export function UsersPage() {
   const { branches, branchId, branchName, scoped } = useBranchScope();
   const action = useAction();
   const [gamer, setGamer] = useState({ username: '', password: '', branchId: branchId ?? '' });
-  const [staff, setStaff] = useState({ username: '', password: '', role: 'EMPLOYEE' as Role });
+  const [staff, setStaff] = useState({ username: '', password: '', branchId: branchId ?? '', role: 'EMPLOYEE' as Role });
   const [search, setSearch] = useState({ q: '', role: '' });
   const [filter, setFilter] = useState(search);
   const [resetFor, setResetFor] = useState<PublicUser | null>(null);
@@ -60,15 +60,10 @@ export function UsersPage() {
 
   async function createStaff(e: FormEvent) {
     e.preventDefault();
-    if (!branchId) return;
-    const created = await action.run(
-      'staff',
-      () => usersService.createEmployee({ ...staff, branchId }),
-      (u) => `${ROLE_LABEL[u.role]} ${u.username} created in ${branchName(branchId)}.`,
-    );
+    const created = await action.run('staff', () => usersService.createEmployee(staff), (u) => `${ROLE_LABEL[u.role]} ${u.username} created in ${branchName(staff.branchId)}.`);
     if (created) {
       list.reload();
-      setStaff({ username: '', password: '', role: 'EMPLOYEE' });
+      setStaff({ ...staff, username: '', password: '', role: 'EMPLOYEE' });
     }
   }
 
@@ -156,39 +151,40 @@ export function UsersPage() {
         <form onSubmit={createStaff}>
           <fieldset>
             <legend>New staff account</legend>
-            {branchId ? (
-              <>
-                <div className="form-row">
-                  <label>Branch</label>
-                  <b>{branchName(branchId)}</b>
-                </div>
-                <div className="form-row">
-                  <label htmlFor="s-user">Username</label>
-                  <input id="s-user" required minLength={3} maxLength={64} value={staff.username} onChange={(e) => setStaff({ ...staff, username: e.target.value })} />
-                </div>
-                <div className="form-row">
-                  <label htmlFor="s-pass">Password</label>
-                  <input id="s-pass" type="password" required minLength={8} value={staff.password} onChange={(e) => setStaff({ ...staff, password: e.target.value })} />
-                </div>
-                <div className="form-row">
-                  <label htmlFor="s-role">Role</label>
-                  <Select
-                    id="s-role"
-                    value={staff.role}
-                    onChange={(v) => setStaff({ ...staff, role: v as Role })}
-                    options={STAFF_ROLES.filter((r) => isHq || r === 'EMPLOYEE').map((r) => ({ value: r, label: ROLE_LABEL[r] }))}
-                  />
-                </div>
-                <div className="form-row">
-                  <label />
-                  <button type="submit" disabled={action.busy === 'staff'}>
-                    Create staff account
-                  </button>
-                </div>
-              </>
-            ) : (
-              <p className="muted">Pick a branch in the header: staff belong to one branch.</p>
-            )}
+            <div className="form-row">
+              <label htmlFor="s-user">Username</label>
+              <input id="s-user" required minLength={3} maxLength={64} value={staff.username} onChange={(e) => setStaff({ ...staff, username: e.target.value })} />
+            </div>
+            <div className="form-row">
+              <label htmlFor="s-pass">Password</label>
+              <input id="s-pass" type="password" required minLength={8} value={staff.password} onChange={(e) => setStaff({ ...staff, password: e.target.value })} />
+            </div>
+            <div className="form-row">
+              <label htmlFor="s-branch">Branch</label>
+              <Select
+                id="s-branch"
+                required
+                value={staff.branchId}
+                onChange={(branchId) => setStaff({ ...staff, branchId })}
+                placeholder="Pick a branch…"
+                options={branches.map((b) => ({ value: b.id, label: b.name }))}
+              />
+            </div>
+            <div className="form-row">
+              <label htmlFor="s-role">Role</label>
+              <Select
+                id="s-role"
+                value={staff.role}
+                onChange={(v) => setStaff({ ...staff, role: v as Role })}
+                options={STAFF_ROLES.filter((r) => isHq || r === 'EMPLOYEE').map((r) => ({ value: r, label: ROLE_LABEL[r] }))}
+              />
+            </div>
+            <div className="form-row">
+              <label />
+              <button type="submit" disabled={action.busy === 'staff'}>
+                Create staff account
+              </button>
+            </div>
           </fieldset>
         </form>
       </div>

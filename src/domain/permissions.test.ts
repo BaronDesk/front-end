@@ -44,6 +44,12 @@ describe('Users page permissions', () => {
     expect(canResetPassword(hq, hq)).toBe(false);
   });
 
+  it('nobody resets the password of an HQ account from the list (HQ changes it on My account)', () => {
+    const otherHq = user('hq2', 'ADMIN', null);
+    expect(canResetPassword(hq, otherHq)).toBe(false);
+    expect(canResetPassword(manager, otherHq)).toBe(false);
+  });
+
   it('a branch admin never changes a branch admin, HQ or themselves', () => {
     for (const target of [manager, otherManager, hq]) {
       expect(canChangeRole(manager, target)).toBe(false);
