@@ -218,7 +218,7 @@ src/
       layout/    DeskLayout (sidebar card: logo, menu, who is logged in; header: live status, HQ's branch), AccessDenied
       providers/ BranchContext (HQ's branch scope), AlertFeedContext
       hooks/     useCommands, useStationList, useStationNames, useRecentGamers
-      components/  the desk's classic pieces: TopBar, ErrorBox, ActionMessages, EmptyRow, LoginForm,
+      components/  the desk's pieces: RoomMap (a branch's room as in the app), BranchSection, ErrorBox, ActionMessages, EmptyRow,
                  ChangePasswordForm, ConnectionBanner, CopyButton, ImageField, Thumb, CommandError…
       pages/     login, and one folder per menu entry, in the portal's design:
                  stations, sessions, bookings, wallet, alerts, users, plans, ranks, games, hq, audit, account

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 
-import type { Alert, CommandType, Game, Station } from '../../../../core/api-types';
+import type { Alert, CommandType, Game } from '../../../../core/api-types';
 import { useAuth } from '../../../../providers/AuthProvider';
 import { hasRole } from '../../../../core/auth/roles';
 import { useOnReconnect, useRealtimeEvent } from '../../../../providers/RealtimeProvider';
@@ -14,7 +14,9 @@ import { applyStatus, isOnline, screenText, shutdownConfirmText, stationLabel } 
 import { formatMetric, isHot } from '../../../../domain/telemetry';
 import { COMMAND_LABEL, useCommands } from '../../hooks/useCommands';
 import { useStationList } from '../../hooks/useStationList';
-import { EmptyRow } from '../../components/EmptyRow';
+import { RoomMap } from '../../components/RoomMap';
+import { BranchSection } from '../../components/BranchSection';
+import { roomsOf } from '../../../../domain/seats';
 import { alertsService } from '../../../../services/alerts.service';
 import { gamesService } from '../../../../services/games.service';
 
@@ -26,9 +28,7 @@ function Temp({ metrics, metric }: { metrics: Record<string, number> | undefined
 
 export function StationsPage() {
   const { user } = useAuth();
-  const { isHq, branchId, branchName, scoped, inScope, reloadMachines } = useBranchScope();
-  // One branch picked: the column would say the same thing on every row.
-  const showBranch = isHq && branchId === null;
+  const { branchName, scoped, inScope, reloadMachines } = useBranchScope();
   const canBulk = hasRole(user, 'MANAGER');
 
   const stations = useStationList();
@@ -70,10 +70,9 @@ export function StationsPage() {
     alerts.reload();
   });
 
-  const branchOf = (s: Station) => (s.branchId ? branchName(s.branchId) : '—');
-  const list = [...(stations.data ?? [])].sort(
-    (a, b) => branchOf(a).localeCompare(branchOf(b)) || stationLabel(a).localeCompare(stationLabel(b)),
-  );
+  // One room per branch (by name), its stations in the app's seat order.
+  const rooms = roomsOf(stations.data ?? [], branchName);
+  const list = rooms.flatMap((r) => r.stations);
   const openAlerts = (machineId: string) =>
     (alerts.data ?? []).filter((a) => a.machineId === machineId && !a.acknowledged).length;
   const stationName = (id: string) => {
@@ -115,7 +114,7 @@ export function StationsPage() {
       <CommandNotices notices={commands.notices} stationName={stationName} />
 
       <p>
-        {list.length} stations &middot; <b>{online}</b> online &middot; <b>{inSession}</b> in session
+        {list.length} stations in {rooms.length} {rooms.length === 1 ? 'branch' : 'branches'} &middot; <b>{online}</b> online &middot; <b>{inSession}</b> in session
         {stations.loading && <span className="muted"> &middot; loading…</span>}
       </p>
 
@@ -143,86 +142,110 @@ export function StationsPage() {
         </div>
       )}
 
-      <table className="grid">
-        <thead>
-          <tr>
-            {canBulk && (
-              <th>
-                <input
-                  type="checkbox"
-                  aria-label="Select all"
-                  checked={list.length > 0 && selectedIds.length === list.length}
-                  onChange={(e) => setSelected(e.target.checked ? new Set(list.map((s) => s.id)) : new Set())}
-                />
-              </th>
-            )}
-            <th>Station</th>
-            {showBranch && <th>Branch</th>}
-            <th>Status</th>
-            <th>Screen</th>
-            <th>Session</th>
-            <th>CPU</th>
-            <th>GPU</th>
-            <th>Alerts</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {list.map((s) => {
-            const waiting = commands.pendingFor(s.id);
-            const alertCount = openAlerts(s.id);
-            return (
-              <tr key={s.id}>
-                {canBulk && (
-                  <td>
-                    <input type="checkbox" aria-label={`Select ${stationLabel(s)}`} checked={selected.has(s.id)} onChange={() => toggle(s.id)} />
-                  </td>
-                )}
-                <td>
-                  <Link to={`/stations/${s.id}`}>
-                    <b>{stationLabel(s)}</b>
-                  </Link>
-                </td>
-                {showBranch && <td>{branchOf(s)}</td>}
-                <td className={isOnline(s) ? 'status-ok' : 'status-bad'}>{s.status}</td>
-                <td>
-                  {screenText(s.locked)}
-                  {s.runningGameId && <div className="muted">{gameTitle(s.runningGameId)}</div>}
-                </td>
-                <td>
-                  {s.sessionId ? (
-                    <Link to={`/sessions/${s.sessionId}`}>in session »</Link>
-                  ) : (
-                    <span className="muted">—</span>
+      {rooms.map((room) => {
+        const ids = room.stations.map((x) => x.id);
+        const allPicked = ids.length > 0 && ids.every((id) => selected.has(id));
+        return (
+          <BranchSection
+            key={room.branchId}
+            name={room.name}
+            figures={`${room.stations.length} stations · ${room.stations.filter(isOnline).length} online · ${room.stations.filter((x) => x.sessionId).length} in session`}
+          >
+            <RoomMap stations={room.stations} alertsOf={openAlerts} />
+            <table className="grid">
+              <thead>
+                <tr>
+                  {canBulk && (
+                    <th>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select every station of ${room.name}`}
+                        checked={allPicked}
+                        onChange={(e) =>
+                          setSelected((current) => {
+                            const next = new Set(current);
+                            for (const id of ids) {
+                              if (e.target.checked) next.add(id);
+                              else next.delete(id);
+                            }
+                            return next;
+                          })
+                        }
+                      />
+                    </th>
                   )}
-                </td>
-                <td>
-                  <Temp metrics={isOnline(s) ? telemetry[s.id] : undefined} metric="cpu.temperature_c" />
-                </td>
-                <td>
-                  <Temp metrics={isOnline(s) ? telemetry[s.id] : undefined} metric="gpu.0.temperature_c" />
-                </td>
-                <td className={alertCount ? 'status-bad' : 'muted'}>{alertCount || '—'}</td>
-                <td className="nowrap">
-                  {waiting ? (
-                    <i>{COMMAND_LABEL[waiting.type]}… waiting</i>
-                  ) : (
-                    <>
-                      <button type="button" onClick={() => run([s.id], s.locked ? 'UNLOCK' : 'LOCK')}>
-                        {s.locked ? 'Unlock' : 'Lock'}
-                      </button>{' '}
-                      <Link to={`/stations/${s.id}`}>Details »</Link>
-                    </>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-          {!stations.loading && list.length === 0 && (
-            <EmptyRow colSpan={10}>No stations yet. Approve new stations under <Link to="/enrollment">New stations</Link>.</EmptyRow>
-          )}
-        </tbody>
-      </table>
+                  <th>Seat</th>
+                  <th>Station</th>
+                  <th>Status</th>
+                  <th>Screen</th>
+                  <th>Session</th>
+                  <th>CPU</th>
+                  <th>GPU</th>
+                  <th>Alerts</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {room.stations.map((s) => {
+                  const waiting = commands.pendingFor(s.id);
+                  const alertCount = openAlerts(s.id);
+                  return (
+                    <tr key={s.id}>
+                      {canBulk && (
+                        <td>
+                          <input type="checkbox" aria-label={`Select ${stationLabel(s)}`} checked={selected.has(s.id)} onChange={() => toggle(s.id)} />
+                        </td>
+                      )}
+                      <td className="muted">{room.stations.indexOf(s) + 1}</td>
+                      <td>
+                        <Link to={`/stations/${s.id}`}>
+                          <b>{stationLabel(s)}</b>
+                        </Link>
+                      </td>
+                      <td className={isOnline(s) ? 'status-ok' : 'status-bad'}>{s.status}</td>
+                      <td>
+                        {screenText(s.locked)}
+                        {s.runningGameId && <div className="muted">{gameTitle(s.runningGameId)}</div>}
+                      </td>
+                      <td>
+                        {s.sessionId ? (
+                          <Link to={`/sessions/${s.sessionId}`}>in session »</Link>
+                        ) : (
+                          <span className="muted">—</span>
+                        )}
+                      </td>
+                      <td>
+                        <Temp metrics={isOnline(s) ? telemetry[s.id] : undefined} metric="cpu.temperature_c" />
+                      </td>
+                      <td>
+                        <Temp metrics={isOnline(s) ? telemetry[s.id] : undefined} metric="gpu.0.temperature_c" />
+                      </td>
+                      <td className={alertCount ? 'status-bad' : 'muted'}>{alertCount || '—'}</td>
+                      <td className="nowrap">
+                        {waiting ? (
+                          <i>{COMMAND_LABEL[waiting.type]}… waiting</i>
+                        ) : (
+                          <>
+                            <button type="button" onClick={() => run([s.id], s.locked ? 'UNLOCK' : 'LOCK')}>
+                              {s.locked ? 'Unlock' : 'Lock'}
+                            </button>{' '}
+                            <Link to={`/stations/${s.id}`}>Details »</Link>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </BranchSection>
+        );
+      })}
+      {!stations.loading && list.length === 0 && (
+        <p className="msg">
+          No stations yet. Approve new stations under <Link to="/enrollment">New stations</Link>.
+        </p>
+      )}
     </>
   );
 }

@@ -1,0 +1,17 @@
+/* BranchSection: a branch's part of a page. */
+
+/* Each branch well apart from the next. */
+.branch + .branch {
+  margin-top: 80px;
+}
+
+.title {
+  margin: 22px 0 14px;
+  font-size: 22px;
+}
+
+.title span {
+  font-family: 'Nexa', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+}

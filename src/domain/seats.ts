@@ -39,6 +39,34 @@ export function panelHeight(count: number): number {
   return lastTop + SEAT + 14;
 }
 
+/**
+ * The room's seat order: by name, then serial number, a station without a name
+ * last (the backend's order for booking, so seat 3 on the desk is seat 3 in the app).
+ */
+export function seatOrder<T extends { name: string | null; serialNumber: string }>(stations: T[]): T[] {
+  const key = (s: T) => s.name ?? '';
+  return [...stations].sort((a, b) => {
+    if (a.name === null || b.name === null) return a.name === b.name ? a.serialNumber.localeCompare(b.serialNumber) : a.name === null ? 1 : -1;
+    return key(a).localeCompare(key(b)) || a.serialNumber.localeCompare(b.serialNumber);
+  });
+}
+
+/** A branch's room: its stations in seat order. */
+export interface Room<T> {
+  branchId: string;
+  name: string;
+  stations: T[];
+}
+
+/** The stations grouped by branch, one room each (branches by name, stations in seat order). */
+export function roomsOf<T extends { branchId?: string; name: string | null; serialNumber: string }>(stations: T[], branchName: (id: string) => string): Room<T>[] {
+  const byBranch = new Map<string, T[]>();
+  for (const s of stations) byBranch.set(s.branchId ?? '', [...(byBranch.get(s.branchId ?? '') ?? []), s]);
+  return [...byBranch.entries()]
+    .map(([branchId, members]) => ({ branchId, name: branchId ? branchName(branchId) : '—', stations: seatOrder(members) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 /** Whether the station is taken for [start, end): a booking overlaps it, or (playing now) it is off or busy. */
 export function isTaken(station: BranchStation, start: Date, end: Date, now: boolean): boolean {
   if (now && (!station.online || station.busyNow)) return true;

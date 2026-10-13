@@ -16,6 +16,10 @@ import { useStationList } from '../../hooks/useStationList';
 import { useStationNames } from '../../hooks/useStationNames';
 import { isOpenSession, SESSION_STATUS_TEXT } from '../../../../domain/sessions';
 import { EmptyRow } from '../../components/EmptyRow';
+import { BranchSection } from '../../components/BranchSection';
+import { RoomMap } from '../../components/RoomMap';
+import { roomsOf } from '../../../../domain/seats';
+import styles from './SessionsPage.module.css';
 import { sessionsService } from '../../../../services/sessions.service';
 
 const LIST_LIMIT = 100;
@@ -61,6 +65,8 @@ export function SessionsPage() {
   });
 
   const running = (stations.data ?? []).filter((s) => s.sessionId);
+  // One room per branch: every station on the map, the running ones in its table.
+  const rooms = roomsOf(stations.data ?? [], branchName);
   const rows = sessions.data ?? [];
   const showBranch = isHq && !branchId;
 
@@ -82,27 +88,39 @@ export function SessionsPage() {
 
       <h2>Running now ({running.length})</h2>
       <ErrorBox error={stations.error} />
-      <table className="grid">
-        <thead>
-          <tr>
-            <th>Station</th>
-            <th>Status</th>
-            <th>Started</th>
-            <th>Rate</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {running.map((s) => (
-            <RunningRow key={s.id} station={s} action={action} />
-          ))}
-          {!stations.loading && running.length === 0 && (
-            <EmptyRow colSpan={5}>No station reports a session.</EmptyRow>
-          )}
-        </tbody>
-      </table>
+      {rooms.map((room) => {
+        const here = room.stations.filter((s) => s.sessionId);
+        return (
+          <BranchSection key={room.branchId} name={room.name} figures={`${here.length} of ${room.stations.length} stations in session`}>
+            {/* A seat in session opens its session, any other its station. */}
+            <RoomMap
+              stations={room.stations}
+              linkOf={(s) => (s.sessionId ? `/sessions/${s.sessionId}` : `/stations/${s.id}`)}
+            />
+            <table className="grid">
+              <thead>
+                <tr>
+                  <th>Seat</th>
+                  <th>Station</th>
+                  <th>Status</th>
+                  <th>Started</th>
+                  <th>Rate</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {here.map((s) => (
+                  <RunningRow key={s.id} seat={room.stations.indexOf(s) + 1} station={s} action={action} />
+                ))}
+                {!stations.loading && here.length === 0 && <EmptyRow colSpan={6}>No station of this branch reports a session.</EmptyRow>}
+              </tbody>
+            </table>
+          </BranchSection>
+        );
+      })}
+      {!stations.loading && rooms.length === 0 && <p className="msg">No stations yet.</p>}
 
-      <h2>Sessions</h2>
+      <h2 className={styles.history}>Sessions</h2>
       <div className="toolbar">
         <label htmlFor="se-date">Since</label>{' '}
         <input id="se-date" type="date" required value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
@@ -151,7 +169,7 @@ export function SessionsPage() {
   );
 }
 
-function RunningRow({ station, action }: { station: Station; action: ReturnType<typeof useAction> }) {
+function RunningRow({ seat, station, action }: { seat: number; station: Station; action: ReturnType<typeof useAction> }) {
   const now = useNow(1_000);
   const session = useApiQuery<Session>(station.sessionId ? sessionsService.paths.one(station.sessionId) : null);
   const s = session.data;
@@ -168,6 +186,7 @@ function RunningRow({ station, action }: { station: Station; action: ReturnType<
 
   return (
     <tr>
+      <td className="muted">{seat}</td>
       <td>
         <Link to={`/stations/${station.id}`}>
           <b>{stationLabel(station)}</b>
