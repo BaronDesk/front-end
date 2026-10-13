@@ -47,7 +47,7 @@ export function SessionBillPage() {
       <>
         <h1>Session</h1>
         <ErrorBox error={session.error} />
-        <Link to="/sessions">« Back to sessions</Link>
+        <Link to="/bookings">« Back to bookings</Link>
       </>
     );
   }
@@ -58,7 +58,7 @@ export function SessionBillPage() {
   return (
     <>
       <p>
-        <Link to="/sessions">« Back to sessions</Link>
+        <Link to="/bookings">« Back to bookings</Link>
       </p>
       <h1>Session {s.id.slice(0, 8)}</h1>
       <ActionMessages action={action} />

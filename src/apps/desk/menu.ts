@@ -14,7 +14,6 @@ export interface MenuItem {
 export const DESK_MENU: MenuItem[] = [
   { path: '/stations', label: 'Stations', step: 5 },
   { path: '/enrollment', label: 'New stations', step: 5, minRole: 'MANAGER' },
-  { path: '/sessions', label: 'Sessions', step: 7 },
   { path: '/bookings', label: 'Bookings', step: 7 },
   { path: '/wallet', label: 'Wallet', step: 7 },
   { path: '/alerts', label: 'Alerts', step: 6 },

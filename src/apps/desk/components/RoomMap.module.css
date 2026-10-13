@@ -42,7 +42,7 @@
   outline-offset: 2px;
 }
 
-/* States: free (outlined), in session (filled, like a chosen seat), offline (faded, dashed). */
+/* States: free (outlined), in session (filled, like a chosen seat), booked (red), offline (faded, dashed). */
 .free {
   background: rgba(255, 255, 255, 0.55);
 }
@@ -50,6 +50,14 @@
 .session,
 .session:hover {
   background: var(--bd-brown);
+  color: var(--bd-cream);
+}
+
+/* Booked for the slot: red, as a taken seat in the app. */
+.booked,
+.booked:hover {
+  border-color: var(--bd-red);
+  background: var(--bd-red);
   color: var(--bd-cream);
 }
 

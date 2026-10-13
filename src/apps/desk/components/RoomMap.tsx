@@ -14,33 +14,63 @@ const WIDTH = 304;
 
 const px = (figma: number) => `${figma * SCALE}px`;
 
-/** A seat's state, in the colors of the legend. */
-function stateOf(s: Station): 'offline' | 'session' | 'free' {
-  if (!isOnline(s)) return 'offline';
-  return s.sessionId ? 'session' : 'free';
+type State = 'free' | 'session' | 'booked' | 'offline';
+
+const STATE_TEXT: Record<State, string> = { free: 'Free', session: 'In session', booked: 'Booked', offline: 'Offline' };
+
+/**
+ * A time slot to show the room at (the Sessions page's pickers): `now` the
+ * slot starts now; `booked` the stations a booking holds in it.
+ */
+export interface RoomSlot {
+  now: boolean;
+  booked: ReadonlySet<string>;
 }
 
-const STATE_TEXT = { offline: 'Offline', session: 'In session', free: 'Online, free' } as const;
+/**
+ * A seat's state. Without a slot: what the station does now. With a slot, as
+ * in the app: a booking makes it red; now, a running session comes first and
+ * an offline station shows so; later, only free or booked.
+ */
+function stateOf(s: Station, slot: RoomSlot | undefined): State {
+  if (slot && !slot.now) return slot.booked.has(s.id) ? 'booked' : 'free';
+  if (s.sessionId) return 'session';
+  if (slot?.booked.has(s.id)) return 'booked';
+  if (!isOnline(s)) return 'offline';
+  return 'free';
+}
 
 /**
  * A branch's room as the gamers see it in the app: the stations at the
  * phone's seat positions (rows of 2 and 3, numbered in the same order), each
- * colored by its state; a red dot for open alerts.
- * `stations` must already be in seat order (seatOrder).
+ * colored by its state. `stations` must already be in seat order (roomsOf).
+ * `alertsOf`: open alerts per station (a red dot; no dots nor legend line
+ * without it). `linkOf`: where a seat leads (its station by default).
  */
-/** `alertsOf`: open alerts per station (no dots nor legend line without it); `linkOf`: where a seat leads (its station by default). */
-export function RoomMap({ stations, alertsOf, linkOf = (s) => `/stations/${s.id}` }: { stations: Station[]; alertsOf?(machineId: string): number; linkOf?(s: Station): string }) {
+export function RoomMap({
+  stations,
+  slot,
+  alertsOf,
+  linkOf = (s) => `/stations/${s.id}`,
+}: {
+  stations: Station[];
+  slot?: RoomSlot;
+  alertsOf?(machineId: string): number;
+  linkOf?(s: Station): string;
+}) {
   const seats = seatLayout(stations.length);
   const offset = (seats[0]?.y ?? 0) - TOP;
-  const counts = { free: 0, session: 0, offline: 0 };
-  for (const s of stations) counts[stateOf(s)]++;
+  const counts: Record<State, number> = { free: 0, session: 0, booked: 0, offline: 0 };
+  for (const s of stations) counts[stateOf(s, slot)]++;
+  // The legend lists what can happen in this view.
+  const shown: State[] = !slot ? ['free', 'session', 'offline'] : slot.now ? ['free', 'session', 'booked', 'offline'] : ['free', 'booked'];
 
   return (
     <div className={styles.room}>
       <div className={styles.map} style={{ width: px(WIDTH), height: px(panelHeight(stations.length) - offset) }}>
         {stations.map((s, i) => {
           const at = seats[i];
-          const state = stateOf(s);
+          const state = stateOf(s, slot);
           const alerts = alertsOf?.(s.id) ?? 0;
           return (
             <Link
@@ -48,7 +78,7 @@ export function RoomMap({ stations, alertsOf, linkOf = (s) => `/stations/${s.id}
               to={linkOf(s)}
               className={cx(styles.seat, styles[state])}
               style={{ left: px(at.x), top: px(at.y - offset), width: px(SEAT), height: px(SEAT) }}
-              title={`${stationLabel(s)} · ${STATE_TEXT[state]} · ${screenText(s.locked)}${alerts ? ` · ${alerts} open alert${alerts > 1 ? 's' : ''}` : ''}`}
+              title={`${stationLabel(s)} · ${STATE_TEXT[state]}${slot && !slot.now ? '' : ` · ${screenText(s.locked)}`}${alerts ? ` · ${alerts} open alert${alerts > 1 ? 's' : ''}` : ''}`}
               aria-label={`Seat ${i + 1}: ${stationLabel(s)}, ${STATE_TEXT[state]}`}
             >
               {i + 1}
@@ -59,15 +89,11 @@ export function RoomMap({ stations, alertsOf, linkOf = (s) => `/stations/${s.id}
       </div>
 
       <ul className={styles.legend}>
-        <li>
-          <span className={cx(styles.key, styles.free)} /> Online, free <b>{counts.free}</b>
-        </li>
-        <li>
-          <span className={cx(styles.key, styles.session)} /> In session <b>{counts.session}</b>
-        </li>
-        <li>
-          <span className={cx(styles.key, styles.offline)} /> Offline <b>{counts.offline}</b>
-        </li>
+        {shown.map((state) => (
+          <li key={state}>
+            <span className={cx(styles.key, styles[state])} /> {STATE_TEXT[state]} <b>{counts[state]}</b>
+          </li>
+        ))}
         {alertsOf && (
           <li>
             <span className={cx(styles.key, styles.free)}>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Reservation } from '../core/api-types';
-import { currentBooking, isCancellable, knownStations } from './bookings';
+import { currentBooking, isCancellable, knownStations, lengthShortText, slotRange } from './bookings';
 
 const booking = (over: Partial<Reservation>): Reservation => ({
   id: 'r1',
@@ -55,5 +55,20 @@ describe('booking times', () => {
     const now = new Date(2026, 9, 14, 22, 10);
     expect(bookableTimes('2026-10-14', now)).toEqual(['22:30', '23:00', '23:30']);
     expect(bookableTimes('2026-10-15', now)).toHaveLength(48);
+    // The desk also offers the hours already gone today.
+    expect(bookableTimes('2026-10-14', now, true)).toHaveLength(48);
+  });
+});
+
+describe('slotRange', () => {
+  it('starts now for "now", else at the day and time, and lasts the length', () => {
+    const now = new Date(2026, 9, 14, 15, 7);
+    expect(slotRange({ day: '2026-10-14', time: 'now', minutes: 60 }, now)).toEqual({ start: now, end: new Date(2026, 9, 14, 16, 7), isNow: true });
+    const later = slotRange({ day: '2026-10-15', time: '18:30', minutes: 90 }, now);
+    expect([later.start, later.end, later.isNow]).toEqual([new Date(2026, 9, 15, 18, 30), new Date(2026, 9, 15, 20, 0), false]);
+  });
+
+  it('writes lengths as the pills show them', () => {
+    expect([30, 60, 90].map(lengthShortText)).toEqual(['30 min', '1 h', '1.5 h']);
   });
 });

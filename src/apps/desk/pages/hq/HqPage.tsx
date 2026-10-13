@@ -123,8 +123,8 @@ export function HqPage() {
                   <button type="button" onClick={() => open(r.branchId, '/alerts')}>
                     Alerts
                   </button>{' '}
-                  <button type="button" onClick={() => open(r.branchId, '/sessions')}>
-                    Sessions
+                  <button type="button" onClick={() => open(r.branchId, '/bookings')}>
+                    Bookings
                   </button>{' '}
                   <button type="button" className="secondary" onClick={() => setEdit(editing(r.branchId) ?? null)}>
                     Edit

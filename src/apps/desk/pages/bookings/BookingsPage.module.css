@@ -1,0 +1,34 @@
+/* Bookings: the slot pickers on top, the branches' rooms, then the sessions history. */
+
+/* The app's pickers, a little larger on the desk (the unit scales them). Their chips open under them. */
+.when {
+  --u: 1.35px;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(9 * var(--u));
+  margin: 0 0 18px;
+}
+
+.pillDate {
+  width: calc(98 * var(--u));
+  gap: calc(10 * var(--u));
+  padding-left: calc(9 * var(--u));
+}
+
+.pillTime {
+  width: calc(69 * var(--u));
+  gap: calc(11 * var(--u));
+  padding-left: calc(6 * var(--u));
+}
+
+.pillLength {
+  width: calc(69 * var(--u));
+  justify-content: center;
+}
+
+/* The history, well apart from the last branch's room. */
+.history {
+  margin-top: 80px;
+}

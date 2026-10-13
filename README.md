@@ -201,7 +201,8 @@ src/
     primitives/  Button (+ ButtonLink, ButtonRow), Field, Notice (+ ActionNote), Card, SectionTitle, PageTitle,
                  Pill, Avatar, BadgeImage, Art (+ u())
     composites/  XpBar, PlayerBadges, PlanCard, WalletCard, CoinBalance, ChipPicker (a pill opening chips),
-                 DayPicker (ChipPicker of days), GameCarousel, EmptyScreen
+                 DayPicker (ChipPicker of days), CalendarPicker (any day, a month), SlotPicker (day, time,
+                 length: the app's booking slot; anyDay for the desk), usePopover, GameCarousel, EmptyScreen
     layout/      MobileShell, AuthLayout (AuthScreen (`wide` for a desktop window), AuthLogo, AuthMascot, AuthForm,
                  AuthFields, AuthError), LoginScreen (the login of both apps),
                  Page, PageErrorBoundary
@@ -221,7 +222,8 @@ src/
       components/  the desk's pieces: RoomMap (a branch's room as in the app), BranchSection, ErrorBox, ActionMessages, EmptyRow,
                  ChangePasswordForm, ConnectionBanner, CopyButton, ImageField, Thumb, CommandError…
       pages/     login, and one folder per menu entry, in the portal's design:
-                 stations, sessions, bookings, wallet, alerts, users, plans, ranks, games, hq, audit, account
+                 stations, bookings (with the sessions; sessions/ keeps a session's bill), wallet, alerts, users,
+                 plans, ranks, games, hq, audit, account
 ```
 
 **The dependency rule** (`npm run check:layers`): `apps → providers / hooks → services → domain → lib → core`;

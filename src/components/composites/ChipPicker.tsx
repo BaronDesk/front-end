@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 
 import { Pill } from '../primitives/Pill';
 import { cx } from '../../lib/cx';
 import styles from './ChipPicker.module.css';
+import { usePopover } from './usePopover';
 
 export interface Choice<T> {
   value: T;
@@ -36,24 +37,12 @@ export function ChipPicker<T extends string | number>({
   className?: string;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
+  const { open, setOpen, box } = usePopover(() => {
     // A long list scrolls: the chosen chip is in view when it opens.
     const chosen = panel.current?.querySelector<HTMLElement>('[aria-pressed="true"]');
     if (panel.current && chosen) panel.current.scrollTop = chosen.offsetTop - panel.current.clientHeight / 2 + chosen.offsetHeight / 2;
-    const outside = (e: PointerEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
-    const escape = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    document.addEventListener('pointerdown', outside);
-    document.addEventListener('keydown', escape);
-    return () => {
-      document.removeEventListener('pointerdown', outside);
-      document.removeEventListener('keydown', escape);
-    };
-  }, [open]);
+  });
 
   return (
     <div ref={box}>

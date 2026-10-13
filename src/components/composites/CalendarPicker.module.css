@@ -1,0 +1,110 @@
+/* CalendarPicker: a month of days in a panel under the pills (ChipPicker's look). */
+
+@layer components {
+  .panel {
+    position: absolute;
+    left: calc(10 * var(--u));
+    top: calc(50 * var(--u));
+    z-index: 5;
+    width: calc(284 * var(--u));
+    padding: calc(10 * var(--u));
+    border: calc(1 * var(--u)) solid var(--bd-brown);
+    border-radius: calc(12 * var(--u));
+    background: var(--bd-cream);
+    box-shadow: 0 calc(6 * var(--u)) calc(16 * var(--u)) rgba(54, 40, 34, 0.18);
+  }
+
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: calc(8 * var(--u));
+  }
+
+  .month {
+    font-family: 'Neue Kaine', sans-serif;
+    font-weight: 733;
+    font-size: calc(14 * var(--u));
+  }
+
+  /* Every button here sets its own look: the desk theme styles plain buttons. */
+  .nav,
+  .day,
+  .todayButton {
+    display: grid;
+    place-items: center;
+    height: auto;
+    margin: 0;
+    border: calc(1 * var(--u)) solid transparent;
+    background: transparent;
+    color: var(--bd-brown);
+    font-family: 'Nexa', sans-serif;
+    font-weight: 400;
+    line-height: normal;
+    cursor: pointer;
+  }
+
+  .nav {
+    width: calc(28 * var(--u));
+    height: calc(28 * var(--u));
+    padding: 0;
+    border-color: var(--bd-brown);
+    border-radius: 50%;
+    font-size: calc(16 * var(--u));
+  }
+
+  .nav:hover,
+  .day:hover {
+    background: rgba(54, 40, 34, 0.08);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: calc(3 * var(--u));
+  }
+
+  .weekday {
+    padding-bottom: calc(3 * var(--u));
+    color: rgba(54, 40, 34, 0.6);
+    font-family: 'Nexa', sans-serif;
+    font-size: calc(9 * var(--u));
+    text-align: center;
+  }
+
+  .day {
+    height: calc(30 * var(--u));
+    padding: 0;
+    border-radius: calc(8 * var(--u));
+    font-size: calc(12 * var(--u));
+  }
+
+  /* The neighbouring months' days, faded. */
+  .other {
+    color: rgba(54, 40, 34, 0.35);
+  }
+
+  .today {
+    border-color: var(--bd-brown);
+    font-weight: 700;
+  }
+
+  .chosen,
+  .chosen:hover {
+    border-color: var(--bd-brown);
+    background: var(--bd-brown);
+    color: var(--bd-cream);
+  }
+
+  .todayButton {
+    width: 100%;
+    height: calc(28 * var(--u));
+    margin-top: calc(8 * var(--u));
+    padding: 0;
+    border-color: var(--bd-brown);
+    border-radius: calc(14 * var(--u));
+    font-family: 'Neue Kaine', sans-serif;
+    font-weight: 733;
+    font-size: calc(11 * var(--u));
+  }
+}
