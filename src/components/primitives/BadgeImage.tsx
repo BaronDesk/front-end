@@ -13,6 +13,8 @@ interface Shape {
 
 const FULL: Shape = { left: 0, top: 0, right: 1, bottom: 1 };
 const shapes = new Map<string, Promise<Shape>>();
+/** The shapes already measured: a badge seen before is drawn at once, without a hidden frame. */
+const measured = new Map<string, Shape>();
 
 /**
  * Finds the visible part of a badge (its non-transparent pixels). Badges are
@@ -53,6 +55,7 @@ function measureShape(src: string): Promise<Shape> {
       img.onerror = () => resolve(FULL);
       img.src = src;
     });
+    void shape.then((s) => measured.set(src, s));
     shapes.set(src, shape);
   }
   return shape;
@@ -65,9 +68,14 @@ function measureShape(src: string): Promise<Shape> {
  * `dim`: a badge not reached or not owned yet, faded as in Figma (30%).
  */
 export function BadgeImage({ src, name, height, box, dim = false }: { src: string; name: string; height?: number; box?: number; dim?: boolean }) {
-  const [shape, setShape] = useState<Shape | null>(null);
+  const [shape, setShape] = useState<Shape | null>(() => measured.get(src) ?? null);
   useEffect(() => {
     let live = true;
+    const known = measured.get(src);
+    if (known) {
+      setShape(known);
+      return;
+    }
     measureShape(src).then((s) => live && setShape(s));
     return () => {
       live = false;

@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { ApiError } from '../core/http/client';
 import { authService } from '../services/auth.service';
 import type { PublicUser, Role } from '../core/api-types';
+import { clearQueryCache } from '../hooks/useApiQuery';
 import { clearTokens, configureTokens, getRefreshToken, refreshTokens, saveTokens, type AppName } from '../core/auth/tokens';
 
 export type AuthState =
@@ -36,7 +37,10 @@ export function AuthProvider({ app, children }: { app: AppName; children: ReactN
   const [state, setState] = useState<AuthState>({ status: 'loading' });
 
   useEffect(() => {
-    configureTokens(app, () => setState({ status: 'anonymous', reason: 'expired' }));
+    configureTokens(app, () => {
+      clearQueryCache();
+      setState({ status: 'anonymous', reason: 'expired' });
+    });
 
     // A refresh token in sessionStorage means this tab was logged in before a reload.
     if (!getRefreshToken()) {
@@ -67,12 +71,15 @@ export function AuthProvider({ app, children }: { app: AppName; children: ReactN
       await authService.logout(refreshToken).catch(() => undefined);
     }
     clearTokens();
+    clearQueryCache();
     setState({ status: 'anonymous' });
   }, []);
 
   const login = useCallback(
     async (username: string, password: string) => {
       saveTokens(await authService.login(username, password));
+      // A new account: nothing read before belongs to it.
+      clearQueryCache();
       const user = await authService.me();
       if (!APP_ROLES[app].includes(user.role)) {
         await logout();

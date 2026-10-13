@@ -191,7 +191,8 @@ src/
                  reservations, wallet, users, plans, games, ranks, branches, machines, alerts, audit, catalog,
                  auth, images). Each has `paths` for reads and a method per action; server refusals come back
                  as sentences (an adapter over the error codes)
-  hooks/         useApiQuery (GET + reload), useAction (busy / message / error of a button), useNow,
+  hooks/         useApiQuery (GET + reload; a tab-wide cache: a page seen before shows its last data at once and
+                 refreshes it in the background, one request per path at a time, cleared on logout/login), useAction (busy / message / error of a button), useNow,
                  useLoginForm, useChangePassword, queries.ts (named reads: useMyWallet(), useBranches()…)
   providers/     AuthProvider (who is logged in), guards (RequireAuth…), RealtimeProvider
   components/    the design system (CSS Modules, every size in --u, 1/360 of the phone column)
