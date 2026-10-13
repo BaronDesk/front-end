@@ -2,13 +2,13 @@
 
 /**
  * GET /audit-logs (HQ only), newest first. Filters: `branchId`, `from` (ISO),
- * `action`, `q` (who or what, by name), `limit`. Not on the backend yet
- * (to-do "Audit log", §S4): the Audit page shows a notice while it answers 404.
+ * `action`, `q` (who or what, by name), `limit`. Not on the backend yet: the
+ * Audit page shows a notice while it answers 404.
  */
 export interface AuditLogEntry {
   id: string;
   timestamp: string;
-  /** e.g. ROLE_CHANGED, WALLET_REFUND (src/admin/audit/audit.ts); any string is shown. */
+  /** e.g. ROLE_CHANGED, WALLET_REFUND (domain/audit.ts); any string is shown. */
   action: string;
   /** `<kind>:<id>`, e.g. `user:3f2…`, `machine:…`, `branch:…`. */
   target: string;

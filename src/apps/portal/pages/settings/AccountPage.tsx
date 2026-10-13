@@ -19,7 +19,7 @@ import { Page } from '../../../../components/layout/Page';
 import styles from './AccountPage.module.css';
 
 /**
- * My account (Settings → the profile card), in the design's style: the
+ * My account (Settings → the profile card): the
  * gamer's picture, the branch they play at (their booking page follows it)
  * and their password.
  */

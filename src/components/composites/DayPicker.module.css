@@ -1,7 +1,7 @@
 /* DayPicker: the calendar icon in its pill and the lines of a day chip. */
 
 @layer components {
-  /* The calendar icon as drawn: 10 × 10, its stroke reaching just past the box. */
+  /* The calendar icon: 10 × 10, its stroke reaching just past the box. */
   .calendar {
     width: calc(10 * var(--u));
     height: calc(10 * var(--u));

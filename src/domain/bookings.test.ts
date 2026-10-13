@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Reservation } from '../core/api-types';
-import { currentBooking, isCancellable, knownStations, lengthShortText, slotRange } from './bookings';
+import { currentBooking, isCancellable, lengthShortText, slotRange } from './bookings';
 
 const booking = (over: Partial<Reservation>): Reservation => ({
   id: 'r1',
@@ -31,14 +31,6 @@ describe('portal bookings', () => {
     expect(isCancellable(booking({}), at('2026-09-30T10:15:00Z'))).toBe(true); // started, nobody logged in yet
     expect(isCancellable(booking({}), at('2026-09-30T10:30:00Z'))).toBe(false); // no-show deadline
     expect(isCancellable(booking({ status: 'CANCELLED' }), at('2026-09-30T09:00:00Z'))).toBe(false);
-  });
-
-  it('bookable stations: the one from the desk link, then the ones booked before', () => {
-    const list = [booking({ machineId: 'm2', machine: { id: 'm2', name: 'PC-02', serialNumber: 'MNR-PC-02', branchId: 'b' } })];
-    expect(knownStations(list, { id: 'm1', label: 'PC-01' })).toEqual([
-      { id: 'm1', label: 'PC-01' },
-      { id: 'm2', label: 'PC-02 (MNR-PC-02)' },
-    ]);
   });
 });
 

@@ -27,7 +27,7 @@ class Boundary extends Component<{ children: ReactNode }, State> {
 }
 
 /**
- * Keeps one broken page from blanking the whole app (menu, top bar, live
+ * Keeps one broken page from blanking the whole app (menu, header, live
  * updates). Resets when the user opens another page.
  */
 export function PageErrorBoundary({ children }: { children: ReactNode }) {

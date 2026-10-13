@@ -43,8 +43,8 @@ function toNotice(c: Command): CommandNotice {
 
 /**
  * Sends remote commands (POST /api/v1/stations/:id/commands, 202) and follows
- * each one through its command_update events until a final status
- * (brief §12, rule 3). `onUpdate` sees every update, e.g. to patch a command log.
+ * each one through its command_update events until a final status.
+ * `onUpdate` sees every update, e.g. to patch a command log.
  */
 export function useCommands(onUpdate?: (command: Command) => void) {
   const [pending, setPending] = useState<Record<string, Command>>({});

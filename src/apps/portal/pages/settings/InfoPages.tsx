@@ -8,7 +8,7 @@ import { Notice } from '../../../../components/primitives/Notice';
 import { PageTitle } from '../../../../components/primitives/PageTitle';
 import styles from './InfoPages.module.css';
 
-/** A Settings sub-page in the design's language: the big title, then cards (Bookings' card style). */
+/** A Settings sub-page: the big title, then cards. */
 function InfoScreen({ title, children }: { title: string; children: ReactNode }) {
   return (
     <>

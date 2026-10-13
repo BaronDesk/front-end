@@ -23,7 +23,7 @@ import { walletService } from '../../../../services/wallet.service';
 const QUICK_CASH = ['5', '10', '20', '50'];
 
 /**
- * Electronic Wallet at the desk (brief §6.7). The desk finds the gamer by
+ * The gamer's wallet at the desk. The desk finds the gamer by
  * username (GET /gamers?q=, the name shown in their app); every wallet route
  * is then keyed by the gamer's profile id. Top-ups and refunds are
  * idempotent: a double click never credits twice.

@@ -17,7 +17,7 @@ const LIST_LIMIT = 100;
  * Audit log (HQ): who did which sensitive action, to what, and when: role
  * changes, suspensions, password resets, refunds, shutdowns, revoked stations,
  * branch, plan and price changes. Reads GET /audit-logs (HQ: the branch in the
- * top bar); no live event, so it reloads on demand.
+ * header); no live event, so it reloads on demand.
  */
 export function AuditPage() {
   const { isHq, branchId, branchName, scoped } = useBranchScope();

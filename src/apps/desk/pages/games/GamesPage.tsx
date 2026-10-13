@@ -78,7 +78,7 @@ function toInput(f: GameForm): GameInput {
 }
 
 /**
- * Game catalog (brief §6.11). A game reaches a station when it is offered at
+ * The game catalog. A game reaches a station when it is offered at
  * the station's branch or assigned to the station itself; the agent then
  * syncs its catalog and reports what it can actually launch (catalog_status).
  * Launching is on the station page.
@@ -367,7 +367,7 @@ export function GamesPage() {
           )}
         </div>
       ) : (
-        <p className="muted">Pick a branch in the top bar to offer games at it.</p>
+        <p className="muted">Pick a branch in the header to offer games at it.</p>
       )}
 
       <h2>Games on a station</h2>

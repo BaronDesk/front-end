@@ -3,7 +3,7 @@ import { Navigate } from 'react-router';
 import { useLoginForm } from '../../../../hooks/useLoginForm';
 import { LoginScreen } from '../../../../components/layout/LoginScreen';
 
-/** Figma "Login". */
+/** The gamer login (LoginScreen, shared with the desk). */
 export function LoginPage() {
   const form = useLoginForm();
   if (form.redirect) return <Navigate to={form.redirect} replace />;

@@ -24,7 +24,7 @@ import { cx } from '../../../../lib/cx';
 import styles from './BookPage.module.css';
 
 
-/** Figma "Bookings": the gamer's bookings with their PIN, and booking a seat on the room's map. */
+/** Bookings: the gamer's bookings with their PIN, and booking a seat on the room's map. */
 export function BookPage() {
   const { user } = useAuth();
   const plans = useActivePlans();

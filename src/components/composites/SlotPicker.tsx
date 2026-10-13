@@ -7,7 +7,7 @@ import { ChipPicker } from './ChipPicker';
 import { DayPicker } from './DayPicker';
 
 /**
- * The app's time slot pickers (Figma "Reserve"): the day, the start ("Now"
+ * The app's time slot pickers: the day, the start ("Now"
  * today, then every half hour) and the length, each a pill opening its chips.
  * Picking another day starts it at "Now" (today) or 18:00. `anyDay`: a month
  * calendar instead of the next 7 days; `anyTime`: today's past hours too (the

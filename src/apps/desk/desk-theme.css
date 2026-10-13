@@ -412,7 +412,7 @@ body {
   justify-content: center;
   gap: 6px;
   height: 32px;
-  /* 2 on top: Neue Kaine sits high, the label is then centred (as on the portal's Log Out). */
+  /* 2 px on top: Neue Kaine's glyphs sit high, this centres the label. */
   padding: 2px 16px 0;
   border: 1px solid var(--bd-brown);
   border-radius: 54px;

@@ -44,8 +44,8 @@
   }
 
   /*
-   * The poster fills the card. (Figma zooms its LoL poster in, anchored at the
-   * bottom; that crop cuts the title off posters whose logo is at the top.)
+   * The poster fills the card, centred: a crop anchored at the bottom would cut
+   * off the title of posters whose logo is at the top.
    */
   .card img {
     position: absolute;

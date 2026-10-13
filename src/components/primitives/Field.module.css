@@ -63,8 +63,8 @@
   }
 
   /*
-   * classic.css styles every button (red, darker on hover). Inside the portal
-   * design, its buttons keep their own look in every state.
+   * The eye keeps its look in every state, whatever a page styles plain
+   * buttons with (the desk theme).
    */
   .eye,
   .eye:hover,

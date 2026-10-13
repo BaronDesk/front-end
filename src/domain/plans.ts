@@ -14,8 +14,8 @@ function days(list: number[]): string {
 
 /**
  * A pass's benefits in words. The create schema stores time windows; the
- * seed also has other shapes (free_hours, unlimited_free_play), shown as best
- * we can, and anything unknown as its raw JSON.
+ * seed also has other shapes (free_hours, unlimited_free_play), described too,
+ * and anything unknown is shown as its raw JSON.
  */
 export function benefitsText(b: SubscriptionBenefits | null | undefined): string {
   if (!b) return '—';
@@ -79,7 +79,7 @@ export function discountText(percent: string | number): string {
 }
 
 /**
- * A pass in the two short lines of its card (Figma Settings → Plans):
+ * A pass in the two short lines of its card (Settings → Plans):
  * "Free Play From" / "00:00 to 06:00", or "50% Off" / "Weekends, all day".
  * Its first time window only: the card has room for one.
  */

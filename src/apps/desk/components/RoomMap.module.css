@@ -1,4 +1,4 @@
-/* RoomMap: a branch's room as drawn in the app (the phone's seat map, larger), with its legend. */
+/* RoomMap: a branch's room as gamers see it in the app (the phone's seat map, larger), with its legend. */
 
 .room {
   display: flex;

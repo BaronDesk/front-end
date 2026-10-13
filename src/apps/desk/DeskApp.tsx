@@ -70,7 +70,7 @@ export function DeskApp() {
                   );
                 })}
                 <Route path="/stations/:id" element={<StationDetailPage />} />
-                {/* Sessions are on Bookings now; a session's bill keeps its address. */}
+                {/* The sessions list is part of Bookings; each session's bill has its own page. */}
                 <Route path="/sessions" element={<Navigate to="/bookings" replace />} />
                 <Route path="/sessions/:id" element={<SessionBillPage />} />
                 <Route path="/account" element={<AccountPage />} />

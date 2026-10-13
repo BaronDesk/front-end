@@ -20,7 +20,7 @@ export function RequireAuth({ loginPath = '/login' }: { loginPath?: string }) {
 
 /**
  * Hides a page from roles below `min`. This is UX only: the server's 403
- * is the real rule (brief §12, rule 1).
+ * is the real rule.
  */
 export function RequireRole({ min, children }: { min: Role; children: ReactNode }) {
   const { user } = useAuth();

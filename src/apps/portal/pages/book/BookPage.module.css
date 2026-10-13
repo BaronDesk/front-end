@@ -11,7 +11,7 @@
   height: calc(80 * var(--u));
 }
 
-/* The coins, top right of the header, as drawn. */
+/* The coins, top right of the header. */
 .coins {
   position: absolute;
   right: calc(18 * var(--u));
@@ -102,7 +102,7 @@
   font-size: calc(16 * var(--u));
 }
 
-/* The calendar icon as drawn: 10 × 10, its stroke reaching just past the box. */
+/* The calendar icon: 10 × 10, its stroke reaching just past the box. */
 .bookingCalendar {
   width: calc(10 * var(--u));
   height: calc(10 * var(--u));

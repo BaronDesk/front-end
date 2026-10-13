@@ -10,7 +10,7 @@ import { stationsService } from '../../../services/stations.service';
  * branch and also returns PCs that are still waiting for approval or were
  * rejected, and it ignores ?branchId=; the machines list has both. Returns
  * enrolled PCs only, each with its branchId, limited to the branch picked in
- * the top bar. `setData` patches the raw list (live station_status).
+ * the header. `setData patches the raw list (live station_status).
  */
 export function useStationList(): ApiQuery<Station[]> {
   const { machines, branchId } = useBranchScope();

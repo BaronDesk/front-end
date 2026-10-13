@@ -9,10 +9,10 @@ import { catalogService } from '../../../services/catalog.service';
 import { machinesService } from '../../../services/machines.service';
 
 /**
- * Which branch the admin app works on (Multi-Agency, brief §6.12).
+ * Which branch the desk works on.
  * Staff and branch admins are fixed to their own branch; the server scopes
  * their calls from the JWT. HQ (branchId = null) picks "All branches" or one
- * branch in the top bar; lists then ask for ?branchId= and live events from
+ * branch in the header; lists then ask for ?branchId= and live events from
  * other branches are ignored, so actions run on the selected branch.
  */
 interface BranchScope {

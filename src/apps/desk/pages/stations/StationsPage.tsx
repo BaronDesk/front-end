@@ -55,7 +55,7 @@ export function StationsPage() {
     if (!inScope(e.branchId)) return; // HQ looking at another branch
     const current = stations.data?.find((s) => s.serialNumber === e.serialNumber);
     if (!current) {
-      reloadSoon(); // a station we don't list yet (just approved, or another branch for HQ)
+      reloadSoon(); // a station not listed yet (just approved, or another branch for HQ)
       return;
     }
     stations.setData((list) => list?.map((s) => (s.serialNumber === e.serialNumber ? applyStatus(s, e) : s)));
@@ -103,8 +103,6 @@ export function StationsPage() {
   }
 
   const selectedIds = list.filter((s) => selected.has(s.id)).map((s) => s.id);
-  const online = list.filter(isOnline).length;
-  const inSession = list.filter((s) => s.sessionId).length;
 
   return (
     <>
@@ -112,11 +110,6 @@ export function StationsPage() {
       <ErrorBox error={stations.error} />
       {actionError && <CommandError error={actionError.error} stationName={stationName(actionError.machineId)} />}
       <CommandNotices notices={commands.notices} stationName={stationName} />
-
-      <p>
-        {list.length} stations in {rooms.length} {rooms.length === 1 ? 'branch' : 'branches'} &middot; <b>{online}</b> online &middot; <b>{inSession}</b> in session
-        {stations.loading && <span className="muted"> &middot; loading…</span>}
-      </p>
 
       {canBulk && (
         <div className="toolbar">
@@ -146,11 +139,7 @@ export function StationsPage() {
         const ids = room.stations.map((x) => x.id);
         const allPicked = ids.length > 0 && ids.every((id) => selected.has(id));
         return (
-          <BranchSection
-            key={room.branchId}
-            name={room.name}
-            figures={`${room.stations.length} stations · ${room.stations.filter(isOnline).length} online · ${room.stations.filter((x) => x.sessionId).length} in session`}
-          >
+          <BranchSection key={room.branchId} name={room.name}>
             <RoomMap stations={room.stations} alertsOf={openAlerts} />
             <table className="grid">
               <thead>

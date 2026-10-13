@@ -1,11 +1,6 @@
 /* Avatar: the gamer's picture in a ringed circle, or BIDI's head. */
 
 @layer components {
-  /*
-   * The portal pages' own styles (layout and page-only pieces). Shared pieces
-   * live in components/ as CSS Modules; Phase 4 splits this file per page.
-   */
-
   /* ---------- Avatar (the gamer's picture, or BIDI's head) ---------- */
 
   .root {
@@ -37,7 +32,7 @@
     object-fit: cover;
   }
 
-  /* BIDI's head as drawn in the 65 px avatar: 80.98 × 64.45 at (-8.77, 0.55). */
+  /* BIDI's head in the 65 px avatar: 80.98 × 64.45 at (-8.77, 0.55). */
   .root .bidi {
     left: -13.494%;
     top: 0.845%;

@@ -3,7 +3,7 @@
 /**
  * A branch (GET /branches; HQ creates and edits them with POST / PATCH
  * /branches). Until the list loads, ids come from GET /machines and the label
- * is built from the PC serial numbers (admin/branches/branches.ts).
+ * is built from the PC serial numbers (domain/branches.ts).
  */
 export interface Branch {
   id: string;

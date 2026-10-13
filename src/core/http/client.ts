@@ -16,7 +16,7 @@ export class ApiError extends Error {
 type TokenProvider = () => string | null;
 let tokenProvider: TokenProvider = () => null;
 
-/** src/auth/tokens.ts plugs the in-memory access token in here. */
+/** core/auth/tokens.ts plugs the in-memory access token in here. */
 export function setTokenProvider(provider: TokenProvider): void {
   tokenProvider = provider;
 }
@@ -37,7 +37,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 /**
  * One call to the backend. Throws ApiError with the backend's `{ error, code }`
  * on a non-2xx answer. On a 401 the access token is refreshed once and the
- * call retried. A FormData body goes as multipart (uploads, src/api/images.ts);
+ * call retried. A FormData body goes as multipart (uploads, services/images.service.ts);
  * anything else as JSON.
  */
 export async function api<T>(method: HttpMethod, path: string, body?: unknown): Promise<T> {

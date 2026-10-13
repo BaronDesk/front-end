@@ -1,6 +1,6 @@
 /* SessionPage's own styles (not layered: they win over the components', so the page can place them). */
 
-/* ---------- Pages not in Figma, in the same style (account, plans, session, wallet) ---------- */
+/* ---------- My session ---------- */
 
 .pageLink {
   margin: calc(20 * var(--u)) calc(27 * var(--u)) 0 !important;

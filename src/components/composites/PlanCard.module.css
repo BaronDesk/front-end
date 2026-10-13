@@ -41,7 +41,7 @@
   }
 
   /* "No Plans": an empty circle crossed out where the badge would be. */
-  /* The tier card's two lines are 18 px apart, as drawn (the pass card's are tighter). */
+  /* The tier card's two lines are 18 px apart (the pass card's are tighter). */
   .linesTier {
     top: calc(66 * var(--u)) !important;
     line-height: calc(18 * var(--u));

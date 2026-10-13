@@ -518,7 +518,7 @@ function PricingForm({ action }: { action: Action }) {
   );
 }
 
-/** Prices, membership tiers and passes (brief §6.9). Gamers buy tiers and passes in the BaronDesk app. */
+/** Prices, membership tiers and passes. Gamers buy tiers and passes in the BaronDesk app. */
 export function PlansPage() {
   const action = useAction();
   return (

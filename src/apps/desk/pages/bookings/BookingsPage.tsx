@@ -36,11 +36,11 @@ type Range = { start: Date; end: Date; isNow: boolean };
 const overlaps = (r: StaffReservation, range: Range) => Date.parse(r.startTime) < range.end.getTime() && Date.parse(r.endTime) > range.start.getTime();
 
 /**
- * Bookings and sessions at the desk (brief §6.6). The app's slot pickers on
+ * Bookings and sessions at the desk. The app's slot pickers on
  * top (any day): each branch's room shows that slot as in the app (red =
  * booked), the sessions running in it (today), and its bookings of that day,
  * which the desk can cancel until someone plays. Below, the sessions played
- * since a day, with their gamer and bill. HQ: the branch in the top bar.
+ * since a day, with their gamer and bill. HQ: the branch picked in the header.
  */
 export function BookingsPage() {
   const action = useAction();

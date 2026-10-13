@@ -26,7 +26,7 @@ export function PortalApp() {
       <RealtimeProvider>
         <HashRouter>
           <Routes>
-            {/* Screens redesigned from Figma: their own full-screen layout. Signed out, the portal opens on Welcome. */}
+            {/* The signed-out screens have their own full-screen layout; signed out, the portal opens on Welcome. */}
             <Route path="/welcome" element={<WelcomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />

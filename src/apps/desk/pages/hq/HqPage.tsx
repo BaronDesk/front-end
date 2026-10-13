@@ -23,10 +23,10 @@ interface BranchRow {
 }
 
 /**
- * Multi-Agency (brief §6.12): every branch at a glance, then work inside one.
+ * HQ overview: every branch at a glance, then work inside one.
  * The backend has no summary endpoint, so the counts are built here from the
  * machines (branch, enrollment), the stations (live status, session) and the
- * open alerts, always across every branch whatever the top bar shows.
+ * open alerts, always across every branch whatever the header shows.
  * HQ also creates and edits branches here (name, location).
  */
 export function HqPage() {
@@ -85,7 +85,7 @@ export function HqPage() {
       <ErrorBox error={stations.error ?? alerts.error} />
       <p>
         Pick a branch to work in it: lists and actions (lock, sessions, prices, games) then cover only that branch. The same choice is in the
-        top bar.
+        header.
         {loading && <span className="muted"> &middot; loading…</span>}
       </p>
 

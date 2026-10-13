@@ -34,7 +34,7 @@ function lockText(s: CurrentSession): string | null {
 }
 
 /**
- * My session (brief §6.6), in the design's style: the PC, time played, what it
+ * My session: the PC, time played, what it
  * has cost so far and what the wallet holds after it, when it ends; near the
  * end, Extend (the PC must be free and the wallet cover it). The station's
  * warnings (low balance, time left) show here too. Before the session starts,

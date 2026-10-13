@@ -22,9 +22,8 @@ import styles from './PlansPage.module.css';
 const priceText = (coins: number) => (coins === 0 ? 'Free' : `${groupThousands(coins)} coins`);
 
 /**
- * Memberships & passes (Settings → See All, Profile's badges), in the design's
- * style: every tier and pass as a Settings plan card with its price and a
- * button. Paid from the wallet; a purchase is idempotent (a double tap never
+ * Memberships & passes (Settings → See All, Profile's badges): every tier and
+ * pass as a Settings plan card with its price and a button. Paid from the wallet; a purchase is idempotent (a double tap never
  * buys twice). A dearer tier is an Upgrade (its price minus what is left of
  * the current one); Cancel ends the tier at once, without a refund.
  */

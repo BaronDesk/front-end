@@ -1,4 +1,4 @@
-/** Live events of the /dashboard-io socket (brief §7). */
+/** Live events of the /dashboard-io socket. */
 
 import type { Alert } from './alerts';
 import type { Command } from './commands';
@@ -31,7 +31,7 @@ export interface CatalogStatusEvent {
   games: { gameId: string; installed: boolean; reason: string | null }[];
 }
 
-// ---------- /dashboard-io events (brief §7) ----------
+// ---------- /dashboard-io events ----------
 
 /** station/services/presence.service.ts StationStatusEvent. Keyed by serialNumber, not id. */
 export interface StationStatusEvent {

@@ -20,11 +20,11 @@ const STATUS_LABEL: Record<AccountStatus, string> = { ACTIVE: 'Active', SUSPENDE
 const LIST_LIMIT = 100;
 
 /**
- * Secure Access & Roles (brief §6.3): list and search accounts (GET /users),
+ * Accounts and roles: list and search accounts (GET /users),
  * create gamer and staff accounts, change a role, suspend / reactivate an
  * account and reset a lost password. HQ sees everyone; a branch admin sees
  * the gamers and their own branch's staff. The buttons follow the server's
- * rules (./permissions.ts); its 403 FORBIDDEN_ROLE_ESCALATION is the real check.
+ * rules (domain/permissions.ts); its 403 FORBIDDEN_ROLE_ESCALATION is the real check.
  */
 export function UsersPage() {
   const { user } = useAuth();
@@ -76,7 +76,7 @@ export function UsersPage() {
     const newBranch = staffRole ? (u.branchId ?? branchId) : null;
     if (staffRole && !newBranch) {
       action.clear();
-      window.alert('Pick a branch in the top bar first: staff belong to one branch.');
+      window.alert('Pick a branch in the header first: staff belong to one branch.');
       return;
     }
     const updated = await action.run(
@@ -187,7 +187,7 @@ export function UsersPage() {
                 </div>
               </>
             ) : (
-              <p className="muted">Pick a branch in the top bar: staff belong to one branch.</p>
+              <p className="muted">Pick a branch in the header: staff belong to one branch.</p>
             )}
           </fieldset>
         </form>

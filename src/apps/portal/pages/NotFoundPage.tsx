@@ -2,7 +2,7 @@ import { EmptyScreen } from '../../../components/composites/EmptyScreen';
 import { ButtonLink } from '../../../components/primitives/Button';
 import styles from './NotFoundPage.module.css';
 
-/** Any portal address without a page, in the design's style. */
+/** Any portal address without a page. */
 export function NotFoundPage() {
   return (
     <EmptyScreen title="Lost ?" text="There is no page at this address.">

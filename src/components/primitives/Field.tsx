@@ -6,7 +6,7 @@ import selectArrow from '../assets/select-arrow.svg';
 import { ART, Art } from './Art';
 import styles from './Field.module.css';
 
-/** A rounded cream field (Figma inputs: 212 × 40). The placeholder is its label. */
+/** A rounded cream field (212 × 40). The placeholder is its label. */
 export function TextField(props: InputHTMLAttributes<HTMLInputElement> & { placeholder: string }) {
   return (
     <div className={styles.root}>

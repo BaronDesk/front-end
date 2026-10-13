@@ -37,7 +37,7 @@
   font-size: calc(18 * var(--u));
 }
 
-/* The last drawing ends 30.4 px from the edge, as in Figma. */
+/* The last drawing ends 30.4 px from the edge. */
 .badges {
   position: absolute;
   right: calc(30.4 * var(--u));
@@ -81,7 +81,7 @@
   white-space: nowrap;
 }
 
-/* 29 px from the left at 360 px, as drawn; the pair stays in the middle on wider phones. */
+/* 29 px from the left at 360 px; the pair stays in the middle on wider phones. */
 .buttons {
   display: flex;
   gap: calc(19 * var(--u));

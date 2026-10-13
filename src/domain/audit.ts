@@ -1,7 +1,7 @@
 import type { AuditLogEntry } from '../core/api-types';
 
 /**
- * The sensitive actions the backend records (to-do §S4), in the order of the
+ * The sensitive actions the backend records, in the order of the
  * Action filter. The page shows any other action too (e.g. the schema's
  * generic CREATE / UPDATE), worded by `actionText`.
  */

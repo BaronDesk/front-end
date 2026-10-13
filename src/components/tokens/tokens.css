@@ -42,7 +42,7 @@
 }
 
 @layer base {
-  /* Every rule below is scoped to the design (.bd-app), so a classic desk page is untouched. */
+  /* Every rule below is scoped to the design (.bd-app), so a desk page (styled by the desk theme) is untouched. */
   *,
   *::before,
   *::after {
@@ -101,12 +101,12 @@
       var(--bd-cream);
   }
 
-  /* The desk, on a computer screen: the components' sizes are their Figma pixels. */
+  /* The desk, on a computer screen: the components' sizes are their design pixels. */
   .bd-desk {
     --u: 1px;
   }
 
-  /* A one-screen design: the unit also follows the height (696 drawn), so it all fits. */
+  /* A one-screen design: the unit also follows the height (696 design px), so it all fits. */
   .bd-fit {
     --u: min(calc(min(100vw, var(--bd-column)) / 360), calc(100vh / 696));
     --u: min(calc(min(100vw, var(--bd-column)) / 360), calc(100dvh / 696));

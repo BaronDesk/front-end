@@ -10,7 +10,7 @@ type Badge = { name: string; badgeUrl?: string | null };
 
 /**
  * The gamer's badges, left to right: their rank, their membership tier and
- * their pass (missing ones left out). As in Figma, the drawings are about
+ * their pass (missing ones left out). The drawings are about
  * 20 px tall and 4 px apart on Home; `height` and `gap` change that.
  */
 export function PlayerBadges({

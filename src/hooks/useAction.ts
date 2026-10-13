@@ -14,7 +14,7 @@ export interface Action {
   clear(): void;
 }
 
-/** Pending / success / error state for the buttons of one page (brief §12, rule 3). */
+/** Pending / success / error state for the buttons of one page. */
 export function useAction(): Action {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);

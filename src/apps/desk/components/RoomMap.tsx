@@ -6,7 +6,7 @@ import { isOnline, screenText, stationLabel } from '../../../domain/stations';
 import { cx } from '../../../lib/cx';
 import styles from './RoomMap.module.css';
 
-/** The phone's room drawing (Figma px) at this size on the desk. */
+/** The phone's seat map (positions in design px), scaled up for the desk. */
 const SCALE = 1.6;
 /** Room above the first row: the phone's panel keeps its pills there, the desk only a margin. */
 const TOP = 16;
@@ -19,7 +19,7 @@ type State = 'free' | 'session' | 'booked' | 'offline';
 const STATE_TEXT: Record<State, string> = { free: 'Free', session: 'In session', booked: 'Booked', offline: 'Offline' };
 
 /**
- * A time slot to show the room at (the Sessions page's pickers): `now` the
+ * A time slot to show the room at (the Bookings page's pickers): `now` the
  * slot starts now; `booked` the stations a booking holds in it.
  */
 export interface RoomSlot {

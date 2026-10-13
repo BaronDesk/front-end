@@ -1,6 +1,6 @@
 /* SignupPage's own styles (not layered: they win over the components', so the page can place them). */
 
-/* Sign-up's fields: 8, then 10 px apart, as drawn. */
+/* Sign-up's fields: 8, then 10 px apart. */
 .fieldsSignup > * + * {
   margin-top: calc(10 * var(--u));
 }

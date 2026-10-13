@@ -11,7 +11,7 @@ import { Button } from '../../../../components/primitives/Button';
 import styles from './SignupPage.module.css';
 
 /**
- * Figma "Sign Up": create a gamer account. Every gamer picks the branch they
+ * Sign-up: create a gamer account. Every gamer picks the branch they
  * play at: the booking page then lists that branch's stations (changeable in Settings).
  */
 export function SignupPage() {

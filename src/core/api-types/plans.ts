@@ -10,7 +10,7 @@ export interface MembershipPlan {
   discountPercent: string;
   /** How many days ahead a member may book. */
   bookingAdvanceDays: number;
-  /** /uploads/images/<id>.webp, or null. Show it with imageSrc() (src/api/images.ts). */
+  /** /uploads/images/<id>.webp, or null. Show it with imageSrc() (lib/images.ts). */
   badgeUrl: string | null;
   createdAt: string;
   updatedAt: string;

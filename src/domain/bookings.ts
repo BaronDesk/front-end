@@ -50,27 +50,6 @@ export function stationOf(r: Reservation): string {
   return r.machine ? (r.machine.name ?? r.machine.serialNumber) : r.machineId.slice(0, 8);
 }
 
-export interface KnownStation {
-  id: string;
-  label: string;
-}
-
-/**
- * Stations the gamer can book: the one from the desk's booking link, plus
- * every station they booked before. The backend doesn't let gamers list
- * stations, so there is no other source.
- */
-export function knownStations(list: Reservation[] | undefined, fromLink: KnownStation | null): KnownStation[] {
-  const byId = new Map<string, KnownStation>();
-  if (fromLink) byId.set(fromLink.id, fromLink);
-  for (const r of list ?? []) {
-    if (!byId.has(r.machineId)) {
-      byId.set(r.machineId, { id: r.machineId, label: r.machine ? `${stationOf(r)} (${r.machine.serialNumber})` : stationOf(r) });
-    }
-  }
-  return [...byId.values()];
-}
-
 /** "2 Hours", "1 Hour 30 Min", "45 Min" */
 export function bookingLengthText(minutes: number): string {
   const h = Math.floor(minutes / 60);

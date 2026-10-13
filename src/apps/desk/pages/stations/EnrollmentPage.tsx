@@ -47,7 +47,7 @@ interface IssuedToken extends EnrollmentToken {
 }
 
 /**
- * Dynamic PC registration, the second half of Node Tracking (brief §6.4).
+ * Dynamic PC registration.
  * A manager issues a one-time enrollment token; the PC's agent uses it to ask
  * to join (it shows here as waiting); approving it lets the PC connect.
  */
@@ -126,7 +126,7 @@ export function EnrollmentPage() {
           </button>
         </div>
       ) : (
-        <p className="muted">Pick a branch in the top bar: a token enrolls a PC into one branch.</p>
+        <p className="muted">Pick a branch in the header: a token enrolls a PC into one branch.</p>
       )}
 
       {issued && (

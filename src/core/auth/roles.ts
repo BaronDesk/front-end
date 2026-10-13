@@ -1,6 +1,6 @@
 import type { PublicUser, Role } from '../api-types';
 
-/** Backend role → brief role (Frontend Implementation Plan §1). */
+/** Backend role → the role's name on screen. */
 export const ROLE_LABEL: Record<Role, string> = {
   GAMER: 'Gamer',
   EMPLOYEE: 'Staff',
