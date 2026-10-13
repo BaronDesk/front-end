@@ -1,6 +1,7 @@
 import type { Station } from '../../../core/api-types';
 import { stationLabel } from '../../../domain/stations';
 import { useStationList } from '../hooks/useStationList';
+import { Select } from '../../../components/primitives/Select';
 
 interface StationSelectProps {
   id?: string;
@@ -12,8 +13,7 @@ interface StationSelectProps {
 }
 
 /**
- * Plain <select> of the enrolled stations in the branch picked in the top
- * bar. The serial number follows the name: two branches can both have a PC-01.
+ * A Select of the enrolled stations in the branch picked in the header. The serial number follows the name: two branches can both have a PC-01.
  */
 export function StationSelect({ id, value, onChange, required, filter }: StationSelectProps) {
   const { data, loading } = useStationList();
@@ -21,14 +21,13 @@ export function StationSelect({ id, value, onChange, required, filter }: Station
     .filter((s) => !filter || filter(s))
     .sort((a, b) => stationLabel(a).localeCompare(stationLabel(b)) || a.serialNumber.localeCompare(b.serialNumber));
   return (
-    <select id={id} value={value} onChange={(e) => onChange(e.target.value)} required={required}>
-      <option value="">{loading ? 'loading…' : '— choose a station —'}</option>
-      {stations.map((s) => (
-        <option key={s.id} value={s.id}>
-          {stationLabel(s)}
-          {s.name && s.name !== s.serialNumber ? ` (${s.serialNumber})` : ''}
-        </option>
-      ))}
-    </select>
+    <Select
+      id={id}
+      value={value}
+      onChange={onChange}
+      required={required}
+      placeholder={loading ? 'loading…' : '— choose a station —'}
+      options={stations.map((s) => ({ value: s.id, label: `${stationLabel(s)}${s.name && s.name !== s.serialNumber ? ` (${s.serialNumber})` : ''}` }))}
+    />
   );
 }

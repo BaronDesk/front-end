@@ -7,8 +7,7 @@ import { useAction } from './useAction';
 /**
  * Changing your own password (POST /auth/change-password). The server ends
  * every other login of the account and answers with a new token pair, so this
- * tab stays logged in. Shared by this form (the admin's My account) and the
- * portal's My account.
+ * tab stays logged in. Shared by the desk's and the portal's My account pages.
  */
 export function useChangePassword() {
   const action = useAction();

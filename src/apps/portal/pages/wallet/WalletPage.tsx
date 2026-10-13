@@ -15,8 +15,7 @@ import styles from './WalletPage.module.css';
 const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${groupThousands(Math.abs(n))}`;
 
 /**
- * My wallet (brief §6.7; Profile's wallet card, Bookings' coins), in the
- * design's style: the balance, how to top up (at the desk, which finds the
+ * My wallet (from Profile's wallet card and the Bookings coins): the balance, how to top up (at the desk, which finds the
  * gamer by username) and the latest movements.
  */
 export function WalletPage() {

@@ -18,6 +18,7 @@ import { applyCatalogStatus, installText, LAUNCH_TYPE_LABEL, LAUNCH_TYPES, TARGE
 import { EmptyRow } from '../../components/EmptyRow';
 import { gamesService } from '../../../../services/games.service';
 import { stationsService } from '../../../../services/stations.service';
+import { Select } from '../../../../components/primitives/Select';
 
 interface GameForm {
   id: string | null;
@@ -78,7 +79,7 @@ function toInput(f: GameForm): GameInput {
 }
 
 /**
- * Game catalog (brief §6.11). A game reaches a station when it is offered at
+ * The game catalog. A game reaches a station when it is offered at
  * the station's branch or assigned to the station itself; the agent then
  * syncs its catalog and reports what it can actually launch (catalog_status).
  * Launching is on the station page.
@@ -86,10 +87,12 @@ function toInput(f: GameForm): GameInput {
 export function GamesPage() {
   const games = useApiQuery<Game[]>(gamesService.paths.list);
   const action = useAction();
-  const { branchId, branchName } = useBranchScope();
+  const { branchId, branchName, branches } = useBranchScope();
   const [form, setForm] = useState<GameForm>(EMPTY);
   const [uploading, setUploading] = useState(false);
   const [branchGame, setBranchGame] = useState('');
+  // The branch to offer at: the header's branch to start with, any other picked here.
+  const [offerBranch, setOfferBranch] = useState(branchId ?? '');
   const [stationId, setStationId] = useState('');
   const [addGame, setAddGame] = useState('');
   const [overrideTarget, setOverrideTarget] = useState('');
@@ -149,11 +152,11 @@ export function GamesPage() {
 
   async function offerAtBranch(offer: boolean) {
     const g = catalog.find((x) => x.id === branchGame);
-    if (!g || !branchId) return;
-    const where = branchName(branchId);
+    if (!g || !offerBranch) return;
+    const where = branchName(offerBranch);
     await action.run(
       'branch',
-      () => gamesService.offerAtBranch(g.id, branchId, offer),
+      () => gamesService.offerAtBranch(g.id, offerBranch, offer),
       offer ? `${g.name} is offered at every station of ${where}.` : `${g.name} is no longer offered at ${where}.`,
     );
     games.reload();
@@ -192,7 +195,7 @@ export function GamesPage() {
   }
 
   const branchGameRow = catalog.find((x) => x.id === branchGame);
-  const offeredHere = !!branchId && !!branchGameRow?.assignments?.branchIds.includes(branchId);
+  const offeredHere = !!offerBranch && !!branchGameRow?.assignments?.branchIds.includes(offerBranch);
 
   return (
     <>
@@ -228,7 +231,7 @@ export function GamesPage() {
                     <code>{g.gameId}</code>
                   </td>
                   <td>
-                    {LAUNCH_TYPE_LABEL[g.launchType]}: <code>{g.target}</code>
+                    {LAUNCH_TYPE_LABEL[g.launchType]}: <code className="path">{g.target}</code>
                     {g.arguments && <div className="muted">args: {g.arguments}</div>}
                   </td>
                   <td>{g.processName ?? <span className="muted">not tracked</span>}</td>
@@ -243,7 +246,7 @@ export function GamesPage() {
                     <button type="button" className="secondary" disabled={action.busy === g.id} onClick={() => setEnabled(g, !g.enabled)}>
                       {g.enabled ? 'Disable' : 'Enable'}
                     </button>{' '}
-                    <button type="button" className="secondary" disabled={action.busy === g.id} onClick={() => remove(g)}>
+                    <button type="button" className="danger" disabled={action.busy === g.id} onClick={() => remove(g)}>
                       Delete
                     </button>
                   </td>
@@ -277,13 +280,12 @@ export function GamesPage() {
             </div>
             <div className="form-row">
               <label htmlFor="g-type">Launch with</label>
-              <select id="g-type" value={form.launchType} onChange={(e) => setForm({ ...form, launchType: e.target.value as GameLaunchType })}>
-                {LAUNCH_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {LAUNCH_TYPE_LABEL[t]}
-                  </option>
-                ))}
-              </select>
+              <Select
+                id="g-type"
+                value={form.launchType}
+                onChange={(v) => setForm({ ...form, launchType: v as GameLaunchType })}
+                options={LAUNCH_TYPES.map((t) => ({ value: t, label: LAUNCH_TYPE_LABEL[t] }))}
+              />
             </div>
             <div className="form-row">
               <label htmlFor="g-target">{hint.label}</label>
@@ -352,23 +354,28 @@ export function GamesPage() {
       </div>
 
       <h2>Offer at a branch</h2>
-      {branchId ? (
-        <div className="toolbar">
-          <label htmlFor="g-branch-game">Game</label>
-          <GameSelect id="g-branch-game" games={catalog} value={branchGame} onChange={setBranchGame} />{' '}
-          <button type="button" disabled={!branchGame || offeredHere || action.busy === 'branch'} onClick={() => offerAtBranch(true)}>
-            Offer at every station of {branchName(branchId)}
-          </button>{' '}
-          <button type="button" className="secondary" disabled={!branchGame || !offeredHere || action.busy === 'branch'} onClick={() => offerAtBranch(false)}>
-            Stop offering
-          </button>
-          {branchGameRow && (
-            <span className="muted"> {offeredHere ? `Offered at ${branchName(branchId)}.` : `Not offered at ${branchName(branchId)}.`}</span>
-          )}
-        </div>
-      ) : (
-        <p className="muted">Pick a branch in the top bar to offer games at it.</p>
-      )}
+      <div className="toolbar">
+        <label htmlFor="g-offer-branch">Branch</label>
+        <Select
+          id="g-offer-branch"
+          value={offerBranch}
+          onChange={setOfferBranch}
+          placeholder="Pick a branch…"
+          options={branches.map((b) => ({ value: b.id, label: b.name }))}
+        />
+        <span className="sep-v" />
+        <label htmlFor="g-branch-game">Game</label>
+        <GameSelect id="g-branch-game" games={catalog} value={branchGame} onChange={setBranchGame} />{' '}
+        <button type="button" disabled={!offerBranch || !branchGame || offeredHere || action.busy === 'branch'} onClick={() => offerAtBranch(true)}>
+          {offerBranch ? `Offer at every station of ${branchName(offerBranch)}` : 'Offer at every station'}
+        </button>{' '}
+        <button type="button" className="secondary" disabled={!offerBranch || !branchGame || !offeredHere || action.busy === 'branch'} onClick={() => offerAtBranch(false)}>
+          Stop offering
+        </button>
+        {offerBranch && branchGameRow && (
+          <span className="muted"> {offeredHere ? `Offered at ${branchName(offerBranch)}.` : `Not offered at ${branchName(offerBranch)}.`}</span>
+        )}
+      </div>
 
       <h2>Games on a station</h2>
       <div className="toolbar">
@@ -393,12 +400,12 @@ export function GamesPage() {
                 <tr key={g.id}>
                   <td>{g.name}</td>
                   <td>
-                    <code>{g.target}</code>
+                    <code className="path">{g.target}</code>
                   </td>
                   <td className={g.installed ? 'status-ok' : g.installed === false ? 'status-bad' : 'muted'}>{installText(g)}</td>
                   <td className="muted">{g.reportedAt ? formatDateTime(g.reportedAt) : '—'}</td>
                   <td>
-                    <button type="button" className="secondary" disabled={action.busy === `station-${g.id}`} onClick={() => removeFromStation(g)}>
+                    <button type="button" className="danger" disabled={action.busy === `station-${g.id}`} onClick={() => removeFromStation(g)}>
                       Remove from station
                     </button>
                   </td>
@@ -447,7 +454,7 @@ export function GamesPage() {
             <tr key={`${x.launchType}:${x.target}`}>
               <td>{x.name}</td>
               <td>
-                {LAUNCH_TYPE_LABEL[x.launchType]}: <code>{x.target}</code>
+                {LAUNCH_TYPE_LABEL[x.launchType]}: <code className="path">{x.target}</code>
               </td>
               <td>{x.stations.length === 1 ? (x.stations[0].name ?? x.stations[0].serialNumber) : `${x.stations.length} stations`}</td>
               <td>
@@ -509,15 +516,7 @@ function suggestGameId(name: string): string {
 
 function GameSelect({ id, games, value, onChange }: { id: string; games: Game[]; value: string; onChange(v: string): void }) {
   return (
-    <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
-      <option value="">— choose a game —</option>
-      {games.map((g) => (
-        <option key={g.id} value={g.id}>
-          {g.name}
-          {g.enabled ? '' : ' (disabled)'}
-        </option>
-      ))}
-    </select>
+    <Select id={id} value={value} onChange={onChange} placeholder="— choose a game —" options={games.map((g) => ({ value: g.id, label: `${g.name}${g.enabled ? '' : ' (disabled)'}` }))} />
   );
 }
 

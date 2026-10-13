@@ -12,6 +12,7 @@ import { useBranchScope } from '../../providers/BranchContext';
 import { stationLabel } from '../../../../domain/stations';
 import { EmptyRow } from '../../components/EmptyRow';
 import { machinesService } from '../../../../services/machines.service';
+import { Select } from '../../../../components/primitives/Select';
 
 
 type Filter = MachineEnrollmentStatus | 'ALL';
@@ -47,7 +48,7 @@ interface IssuedToken extends EnrollmentToken {
 }
 
 /**
- * Dynamic PC registration, the second half of Node Tracking (brief §6.4).
+ * Dynamic PC registration.
  * A manager issues a one-time enrollment token; the PC's agent uses it to ask
  * to join (it shows here as waiting); approving it lets the PC connect.
  */
@@ -114,19 +115,13 @@ export function EnrollmentPage() {
       {branchId ? (
         <div className="toolbar">
           Token for a PC in <b>{branchName(branchId)}</b>, usable for{' '}
-          <select aria-label="Token validity" value={ttl} onChange={(e) => setTtl(Number(e.target.value))}>
-            {TTL_CHOICES.map((c) => (
-              <option key={c.minutes} value={c.minutes}>
-                {c.label}
-              </option>
-            ))}
-          </select>{' '}
+          <Select aria-label="Token validity" value={String(ttl)} onChange={(v) => setTtl(Number(v))} options={TTL_CHOICES.map((c) => ({ value: String(c.minutes), label: c.label }))} />{' '}
           <button type="button" disabled={action.busy === 'token'} onClick={issueToken}>
             Generate enrollment token
           </button>
         </div>
       ) : (
-        <p className="muted">Pick a branch in the top bar: a token enrolls a PC into one branch.</p>
+        <p className="muted">Pick a branch in the header: a token enrolls a PC into one branch.</p>
       )}
 
       {issued && (
@@ -145,13 +140,7 @@ export function EnrollmentPage() {
       <h2>Requests and enrolled PCs</h2>
       <div className="toolbar">
         <label htmlFor="enroll-filter">Show</label>
-        <select id="enroll-filter" value={filter} onChange={(e) => setFilter(e.target.value as Filter)}>
-          {FILTERS.map((f) => (
-            <option key={f.value} value={f.value}>
-              {f.label}
-            </option>
-          ))}
-        </select>{' '}
+        <Select id="enroll-filter" value={filter} onChange={(v) => setFilter(v as Filter)} options={FILTERS} />{' '}
         <button type="button" className="secondary" onClick={reload}>
           Refresh
         </button>
@@ -194,7 +183,7 @@ export function EnrollmentPage() {
                     <button type="button" onClick={() => decide(m, 'approve')}>
                       Approve
                     </button>{' '}
-                    <button type="button" className="secondary" onClick={() => decide(m, 'reject')}>
+                    <button type="button" className="danger" onClick={() => decide(m, 'reject')}>
                       Reject
                     </button>
                   </>
@@ -203,7 +192,7 @@ export function EnrollmentPage() {
                     <button type="button" className="secondary" disabled={action.busy === `rotate-${m.id}`} onClick={() => rotateToken(m)}>
                       New token
                     </button>{' '}
-                    <button type="button" className="secondary" onClick={() => decide(m, 'revoke')}>
+                    <button type="button" className="danger" onClick={() => decide(m, 'revoke')}>
                       Revoke
                     </button>
                   </>

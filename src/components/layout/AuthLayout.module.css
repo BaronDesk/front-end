@@ -34,7 +34,7 @@
     max-width: none;
   }
 
-  /* The screen as drawn, centered: on a taller phone the space goes above and below. */
+  /* The 360 × 696 screen, centered: on a taller phone the space goes above and below. */
   .stage {
     position: relative;
     flex: none;
@@ -57,7 +57,7 @@
   .mascot {
     position: absolute;
     display: block;
-    /* BIDI's soft shadow in Figma (a layer effect, not part of the file). */
+    /* BIDI's soft shadow (not part of the SVG). */
     filter: drop-shadow(0 calc(4 * var(--u)) calc(12 * var(--u)) rgba(54, 40, 34, 0.35));
   }
 

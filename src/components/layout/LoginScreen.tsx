@@ -19,7 +19,7 @@ export interface LoginFormState {
 }
 
 /**
- * Figma "Login": the logo, BIDI, username and password, the brown button.
+ * The login screen: the logo, BIDI, username and password, the brown button.
  * The portal and the desk use it; `wide` fills a desktop window with the
  * design, the form staying in the middle.
  */

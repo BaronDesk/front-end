@@ -1,6 +1,6 @@
 import { useRealtime } from '../../../providers/RealtimeProvider';
 
-/** Red bar while live updates are down (brief §4: reconnect handling). */
+/** Red bar while live updates are down; it goes once the socket reconnects. */
 export function ConnectionBanner() {
   const { state, everConnected } = useRealtime();
 
@@ -15,7 +15,7 @@ export function ConnectionBanner() {
   );
 }
 
-/** "LIVE" / "OFFLINE" tag for the top bar. */
+/** "LIVE" / "OFFLINE" tag for the header. */
 export function LiveTag() {
   const { state } = useRealtime();
   return state === 'connected' ? (

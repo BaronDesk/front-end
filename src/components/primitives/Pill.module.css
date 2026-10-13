@@ -6,6 +6,7 @@
     display: flex;
     align-items: center;
     height: calc(32 * var(--u));
+    line-height: normal;
     margin: 0;
     padding: 0;
     border: calc(1 * var(--u)) solid #000;

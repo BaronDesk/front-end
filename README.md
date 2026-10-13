@@ -91,11 +91,11 @@ Every screen reads and writes the real backend. The last column says what each s
 | Session and bill | `GET /sessions/:id` | Read again every 5 s until the bill is settled |
 | Bookings | `GET /api/v1/reservations`, `DELETE /api/v1/reservations/:id` | Who booked which station, for one day or 7 days, by status (HQ: the branch in the top bar). **Cancel** a booking nobody plays on yet (its PIN stops working). Polled every 30 s (no event for a new booking) |
 | Wallet (desk) | `GET /gamers?q=`, `/wallets/:gamerProfileId…` | Find the gamer by **username** (an exact name opens at once, else pick from the matches; recent gamers are remembered per browser); idempotent top-up and refund (refund: branch admin and HQ) |
-| Users & Staff (gamers with their profile picture) | `GET /users`, `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `PATCH /users/:id/status`, `POST /users/:id/password` | List and search by username and role (HQ: everyone, or the branch picked in the top bar; a branch admin: gamers and their own staff). A new gamer needs a home branch. Suspend / Reactivate and Reset password show only where the server allows them (`src/domain/permissions.ts`) |
+| Users & Staff (gamers with their profile picture) | `GET /users`, `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `PATCH /users/:id/status` | List and search by username and role (HQ: everyone, or the branch picked in the header; a branch admin: gamers and their own staff). A new gamer needs a home branch, a new staff account its branch. Suspend / Reactivate shows only where the server allows it (`src/domain/permissions.ts`). Nobody sets another person's password |
 | Plans & prices | `/pricing`, `/membership-plans`, `/subscription-plans` | The play prices in coins per hour, the same in every branch: HQ edits them, managers see them. Create, edit, delete tiers and passes (prices in coins). A pass has one or more time windows (days, from–to, discount), added, changed and removed in its form; gamers who already bought it keep the windows they paid for. **Badge** on each tier and pass: the picture is uploaded when picked (`POST /uploads/images`) and saved with the form |
 | Ranks | `GET/POST/PATCH/DELETE /ranks`, `POST /uploads/images` | The gamer ranks (Wood → GrandMaster): name, the XP each starts at, badge. Shared by every branch; warns when no rank starts at 0 XP |
 | Images (how pages use them) | `POST /uploads/images`, `PUT/DELETE /users/me/avatar`, `GET /uploads/…` | Desk forms use `src/apps/desk/components/ImageField.tsx` (picker, preview, Remove; checks type and size before sending) and lists `Thumb.tsx`. The portal profile sets the gamer's picture with it. `src/services/images.service.ts`: `uploadImage(file)` answers a link to save as the `badgeUrl` of a tier, pass or rank, or the `iconUrl` of a game (any other link is refused); `setMyAvatar(file)` for the gamer; show any of them with `<img src={imageSrc(url)}>`. PNG, JPEG or WebP, at most 2 MB (`IMAGE_MAX_BYTES`, `IMAGE_ACCEPT`). Rank shapes in `src/core/api-types/ranks.ts` |
-| Audit log (HQ) | `GET /audit-logs?branchId&from&action&q&limit` | Who did which sensitive action, on what, when: role changes, suspensions, password resets, refunds, shutdowns, revoked stations, branch / plan / price changes (HQ: the branch in the top bar). Filter by day, action, name. **Not on the backend yet**: until it is, the page says so (404). Expected answer: `AuditLogEntry[]` in `src/core/api-types/audit.ts`; action wording in `src/domain/audit.ts` |
+| Audit log (HQ) | `GET /audit-logs?branchId&from&action&q&limit` | Who did which sensitive action, on what, when: role changes, suspensions, refunds, shutdowns, revoked stations, branch / plan / price changes (HQ: the branch in the top bar). Filter by day, action, name. **Not on the backend yet**: until it is, the page says so (404). Expected answer: `AuditLogEntry[]` in `src/core/api-types/audit.ts`; action wording in `src/domain/audit.ts` |
 | Portal: home (Figma design) | `/auth/me` (`xp`, `rank`, `nextRank`), `/memberships/me`, `/subscriptions/me`, `GET /api/v1/games` | The gamer's picture (BIDI until they upload one), XP bar towards the next rank, badges (rank, tier, pass), the game collection: an endless ring (drag it, or the arrow keys; after the last game comes the first), games with a poster first, Bookings and Events (tournaments: *coming soon*). Every portal screen uses the design system in `src/components/` |
 | Portal: welcome, login, sign-up (Figma design) | `POST /auth/login`, `GET /branches`, `POST /users` | Signed out, the portal opens on **Welcome** (Login / Sign Up). Sign-up asks the username, the **home branch**, the password twice (they must match), then logs in and opens Bookings. The eye shows or hides a password (two Figma icons: crossed out while hidden, open once shown). Login is the same form as the staff app's (`useLoginForm` in `shared/components/LoginForm.tsx`) |
 | Portal: bookings (Figma design) | `GET /branches/:id/stations`, `/reservations`, `/reservations/walk-in`, `/reservations/:id/check-in`, `DELETE /reservations/:id` | **My Bookings**: a card per booking (PC, branch, length, start) with its **PIN**; a tap shows New PIN and Cancel. **Reserve**: day (a picker of the 7 bookable days, `booking/DayPicker.tsx`), time ("Now" = Play now) and length, then the room's seat map (`booking/seats.ts`: rows of 2 + 3 seats, numbered; red = taken for that slot, from each PC's bookings of the next 7 days). The wallet must cover the booking (`INSUFFICIENT_FUNDS`) |
@@ -142,7 +142,7 @@ Seed first (`back-end/`), start at least one real agent (Play now needs the PC O
 - The access token is kept in memory; the refresh token in `sessionStorage` (one per app). A reload keeps you logged in; closing the tab logs out.
 - A `401` triggers one token refresh and a retry. If the refresh fails, the login page says the session expired.
 - The menu hides what the role can't use; opening such a page by URL shows **Access denied**. The server's `403` is still the real rule.
-- **Own password:** admin top bar → **Password** (`#/account`), portal → Settings. Both use `useChangePassword` (`src/hooks/`, `POST /auth/change-password`): the desk through `apps/desk/components/ChangePasswordForm.tsx`, the portal on My account: every other login of the account ends, this tab stays logged in with the new tokens. A lost password is reset by a branch admin or HQ on Users & Staff.
+- **Own password, and only one's own:** desk sidebar → **Password** (`#/account`), portal → Settings. Both use `useChangePassword` (`src/hooks/`, `POST /auth/change-password`): the desk through `apps/desk/components/ChangePasswordForm.tsx`, the portal on My account: every other login of the account ends, this tab stays logged in with the new tokens. The desk has no way to set someone else's password.
 
 ## Live updates
 
@@ -196,11 +196,15 @@ src/
                  useLoginForm, useChangePassword, queries.ts (named reads: useMyWallet(), useBranches()…)
   providers/     AuthProvider (who is logged in), guards (RequireAuth…), RealtimeProvider
   components/    the design system (CSS Modules, every size in --u, 1/360 of the phone column)
-    tokens/      tokens.css (colors, weights, the unit, base rules; layers: classic < base < components), fonts/
-    primitives/  Button (+ ButtonLink, ButtonRow), Field, Notice (+ ActionNote), Card, SectionTitle, PageTitle,
+    tokens/      tokens.css (colors, weights, the unit (--u: 1/360 of the phone column, 1px on the desk), base rules;
+                 layers: desk < base < components), fonts/
+    primitives/  Button (+ ButtonLink, ButtonRow), Field (+ SelectField), Select (every dropdown: keyboard,
+                 screen readers, required), Notice (+ ActionNote), Card, SectionTitle, PageTitle,
                  Pill, Avatar, BadgeImage, Art (+ u())
     composites/  XpBar, PlayerBadges, PlanCard, WalletCard, CoinBalance, ChipPicker (a pill opening chips),
-                 DayPicker (ChipPicker of days), GameCarousel, EmptyScreen
+                 DayPicker (ChipPicker of days), CalendarPicker / CalendarPanel (any day, a month), DateField,
+                 TimeField, SlotPicker (day, time,
+                 length: the app's booking slot; anyDay for the desk), usePopover, GameCarousel, EmptyScreen
     layout/      MobileShell, AuthLayout (AuthScreen (`wide` for a desktop window), AuthLogo, AuthMascot, AuthForm,
                  AuthFields, AuthError), LoginScreen (the login of both apps),
                  Page, PageErrorBoundary
@@ -211,15 +215,17 @@ src/
       pages/     auth/ (welcome, login, sign-up), home/ (home, events), book/, profile/, settings/ (settings,
                  my account, memberships & passes, history / terms / FAQ), session/, wallet/, NotFoundPage;
                  each page XxxPage.tsx with its own XxxPage.module.css
-    desk/        main.tsx, DeskApp.tsx (routes), menu.ts, classic.css (the desk's old theme, loaded by desk.css into
-                 the lowest cascade layer: a redesigned page or component is never touched by it)
-      layout/    DeskLayout (top bar, side menu), AccessDenied
+    desk/        main.tsx, DeskApp.tsx (routes), menu.ts, desk-theme.css (the portal's design for the desk pages' plain
+                 markup: tables .grid/.kv, fieldsets, .toolbar, .msg, buttons (.secondary, .danger); loaded by desk.css
+                 into the lowest cascade layer, so a design component always wins over it)
+      layout/    DeskLayout (sidebar card: logo, menu, who is logged in; header: live status, HQ's branch), AccessDenied
       providers/ BranchContext (HQ's branch scope), AlertFeedContext
       hooks/     useCommands, useStationList, useStationNames, useRecentGamers
-      components/  the desk's classic pieces: TopBar, ErrorBox, ActionMessages, EmptyRow, LoginForm,
+      components/  the desk's pieces: RoomMap (a branch's room as in the app), BranchSection, ErrorBox, ActionMessages, EmptyRow,
                  ChangePasswordForm, ConnectionBanner, CopyButton, ImageField, Thumb, CommandError…
-      pages/     login (in the portal's design), and one folder per menu entry (classic look until redesigned):
-                 stations, sessions, bookings, wallet, alerts, users, plans, ranks, games, hq, audit, account
+      pages/     login, and one folder per menu entry, in the portal's design:
+                 stations, bookings (with the sessions; sessions/ keeps a session's bill), wallet, alerts, users,
+                 plans, ranks, games, hq, audit, account
 ```
 
 **The dependency rule** (`npm run check:layers`): `apps → providers / hooks → services → domain → lib → core`;

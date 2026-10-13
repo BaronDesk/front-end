@@ -12,7 +12,7 @@ import { cx } from '../../lib/cx';
 import styles from './AuthLayout.module.css';
 
 /**
- * Where the background shapes sit on the 360 × 696 Figma screens: each
+ * Where the background shapes sit on the 360 × 696 design screens: each
  * layer's center and rotation. The red blob is drawn twice (top left, top
  * right); the brown outline once, mostly below the screen.
  */
@@ -27,7 +27,7 @@ const OUTLINE = { w: ART.authOutline[0], h: ART.authOutline[1] };
 
 /**
  * The signed-out screens (welcome, login, sign-up): the gradient with its
- * shapes, and a 360 × 696 stage laid out as drawn, centered on the phone.
+ * shapes, and a 360 × 696 stage, centered on the phone.
  */
 /** `wide`: a desktop window (the desk): the design fills it, the stage stays in the middle. */
 export function AuthScreen({ variant, wide = false, children }: { variant: keyof typeof SHAPES; wide?: boolean; children: ReactNode }) {

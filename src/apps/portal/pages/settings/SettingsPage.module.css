@@ -35,7 +35,7 @@
   white-space: nowrap;
 }
 
-/* Smaller than Figma's 24 / 16 px (the user's call): real names are longer than "BIDI4". */
+/* Kept small (20 / 13 px): real usernames and branch names can be long. */
 .profileCardName {
   left: calc(73 * var(--u));
   top: calc(20 * var(--u));
@@ -113,7 +113,7 @@
   justify-content: flex-start;
   width: calc(112 * var(--u));
   margin: calc(29 * var(--u)) 0 0 calc(126 * var(--u));
-  /* 2 on top: the text sits 1 lower than the centre, as drawn. */
+  /* 2 px on top: Neue Kaine's glyphs sit high, this centres the label. */
   padding: calc(2 * var(--u)) 0 0 calc(36 * var(--u));
 }
 

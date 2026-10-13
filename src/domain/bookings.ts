@@ -50,27 +50,6 @@ export function stationOf(r: Reservation): string {
   return r.machine ? (r.machine.name ?? r.machine.serialNumber) : r.machineId.slice(0, 8);
 }
 
-export interface KnownStation {
-  id: string;
-  label: string;
-}
-
-/**
- * Stations the gamer can book: the one from the desk's booking link, plus
- * every station they booked before. The backend doesn't let gamers list
- * stations, so there is no other source.
- */
-export function knownStations(list: Reservation[] | undefined, fromLink: KnownStation | null): KnownStation[] {
-  const byId = new Map<string, KnownStation>();
-  if (fromLink) byId.set(fromLink.id, fromLink);
-  for (const r of list ?? []) {
-    if (!byId.has(r.machineId)) {
-      byId.set(r.machineId, { id: r.machineId, label: r.machine ? `${stationOf(r)} (${r.machine.serialNumber})` : stationOf(r) });
-    }
-  }
-  return [...byId.values()];
-}
-
 /** "2 Hours", "1 Hour 30 Min", "45 Min" */
 export function bookingLengthText(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -79,14 +58,41 @@ export function bookingLengthText(minutes: number): string {
   return [hours, m ? `${m} Min` : ''].filter(Boolean).join(' ');
 }
 
-/** The start times a day offers (yyyy-mm-dd): every half hour, from the next one when it is today. */
-export function bookableTimes(day: string, now = new Date()): string[] {
+/**
+ * The start times a day offers (yyyy-mm-dd): every half hour, from the next
+ * one when it is today (`past`: the hours gone by too, for the desk looking back).
+ */
+export function bookableTimes(day: string, now = new Date(), past = false): string[] {
   const pad = (n: number) => String(n).padStart(2, '0');
   const today = day === `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   const times: string[] = [];
   for (let t = 0; t < 24 * 60; t += 30) {
-    if (today && t <= now.getHours() * 60 + now.getMinutes()) continue;
+    if (today && !past && t <= now.getHours() * 60 + now.getMinutes()) continue;
     times.push(`${pad(Math.floor(t / 60))}:${pad(t % 60)}`);
   }
   return times;
+}
+
+/** The lengths a booking can have (minutes), as the app offers them. */
+export const BOOKING_LENGTHS = [30, 60, 90, 120, 180];
+/** Bookings are known 7 days ahead: today and the next 6. */
+export const BOOKING_DAYS_AHEAD = 6;
+
+/** A length on a pill: "30 min", "1.5 h". */
+export function lengthShortText(minutes: number): string {
+  return minutes < 60 ? `${minutes} min` : `${minutes / 60} h`;
+}
+
+/** A time slot as the app's pickers choose it: a day, "now" or a start time, a length. */
+export interface Slot {
+  day: string;
+  time: string;
+  minutes: number;
+}
+
+/** The slot's start and end; "now" starts now. */
+export function slotRange(slot: Slot, now = new Date()): { start: Date; end: Date; isNow: boolean } {
+  const isNow = slot.time === 'now';
+  const start = isNow ? now : new Date(`${slot.day}T${slot.time}:00`);
+  return { start, end: new Date(start.getTime() + slot.minutes * 60_000), isNow };
 }

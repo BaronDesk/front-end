@@ -12,7 +12,7 @@ import { GameCarousel } from '../../../../components/composites/GameCarousel';
 import { cx } from '../../../../lib/cx';
 import styles from './HomePage.module.css';
 
-/** Figma "Home": who the gamer is, the game collection, and the way to Bookings and Events. */
+/** Home: who the gamer is, the game collection, and the way to Bookings and Events. */
 export function HomePage() {
   const { user } = useAuth();
   const plans = useActivePlans();

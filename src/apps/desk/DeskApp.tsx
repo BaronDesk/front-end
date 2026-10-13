@@ -18,7 +18,6 @@ import { AccountPage } from './pages/account/AccountPage';
 import { PlansPage } from './pages/plans/PlansPage';
 import { RanksPage } from './pages/ranks/RanksPage';
 import { SessionBillPage } from './pages/sessions/SessionBillPage';
-import { SessionsPage } from './pages/sessions/SessionsPage';
 import { EnrollmentPage } from './pages/stations/EnrollmentPage';
 import { StationDetailPage } from './pages/stations/StationDetailPage';
 import { StationsPage } from './pages/stations/StationsPage';
@@ -35,7 +34,6 @@ const PAGES: Record<string, ReactNode> = {
   '/plans': <PlansPage />,
   '/ranks': <RanksPage />,
   '/games': <GamesPage />,
-  '/sessions': <SessionsPage />,
   '/bookings': <BookingsPage />,
   '/hq': <HqPage />,
   '/audit': <AuditPage />,
@@ -72,6 +70,8 @@ export function DeskApp() {
                   );
                 })}
                 <Route path="/stations/:id" element={<StationDetailPage />} />
+                {/* The sessions list is part of Bookings; each session's bill has its own page. */}
+                <Route path="/sessions" element={<Navigate to="/bookings" replace />} />
                 <Route path="/sessions/:id" element={<SessionBillPage />} />
                 <Route path="/account" element={<AccountPage />} />
                 <Route path="/denied" element={<AccessDenied />} />

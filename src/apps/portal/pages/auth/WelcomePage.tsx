@@ -6,7 +6,7 @@ import { ButtonLink } from '../../../../components/primitives/Button';
 import { cx } from '../../../../lib/cx';
 import styles from './WelcomePage.module.css';
 
-/** Figma "Sign Up / Login": the first screen of a signed-out gamer. */
+/** Welcome: the first screen of a signed-out gamer (log in or sign up). */
 export function WelcomePage() {
   const { state } = useAuth();
   // Where the gamer was going: login and sign-up bring them back there.

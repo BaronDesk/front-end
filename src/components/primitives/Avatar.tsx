@@ -4,7 +4,7 @@ import { u } from './Art';
 import { cx } from '../../lib/cx';
 import styles from './Avatar.module.css';
 
-/** The gamer's picture in a ringed circle; BIDI's head until they upload one. `size`: its Figma size in px. */
+/** The gamer's picture in a ringed circle; BIDI's head until they upload one. `size`: in design px. */
 export function Avatar({ url, size, className }: { url: string | null | undefined; size: number; className?: string }) {
   const photo = imageSrc(url);
   return (

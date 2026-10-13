@@ -27,6 +27,10 @@
     align-items: center;
     justify-content: center;
     gap: calc(1 * var(--u));
+    /* Its own height and lines, whatever the page styles plain buttons with (the desk theme). */
+    height: auto;
+    line-height: normal;
+    white-space: normal;
     padding: calc(5 * var(--u)) 0;
     border: calc(1 * var(--u)) solid var(--bd-brown);
     border-radius: calc(8 * var(--u));

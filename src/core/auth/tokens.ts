@@ -1,5 +1,5 @@
 /*
- * Token storage (brief §5): the access token lives in memory only; the
+ * Token storage: the access token lives in memory only; the
  * refresh token in sessionStorage, so a reload survives and closing the
  * tab/window logs out. Admin and portal keep separate refresh tokens.
  */

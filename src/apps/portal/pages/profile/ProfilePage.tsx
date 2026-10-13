@@ -13,8 +13,8 @@ import { cx } from '../../../../lib/cx';
 import styles from './ProfilePage.module.css';
 
 /**
- * Figma "Profile": the gamer, their XP, their coins, the ranks reached and the
- * membership tiers; then the passes (Plans, not in Figma: drawn like the tiers).
+ * Profile: the gamer, their XP, their coins, the ranks reached and the
+ * membership tiers; then the passes (Plans), drawn like the tiers.
  */
 export function ProfilePage() {
   const { user } = useAuth();

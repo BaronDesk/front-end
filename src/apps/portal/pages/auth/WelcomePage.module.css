@@ -1,6 +1,6 @@
 /* WelcomePage's own styles (not layered: they win over the components', so the page can place them). */
 
-/* The two choices are xl Buttons, placed as drawn. */
+/* The two choices: xl Buttons, side by side. */
 .choice {
   position: absolute;
   top: calc(521 * var(--u));

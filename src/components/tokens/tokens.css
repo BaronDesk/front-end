@@ -6,11 +6,11 @@
  */
 
 /*
- * Cascade order: classic (the desk's legacy theme, apps/desk/classic.css, until
- * each desk page is redesigned) < base < components (CSS Modules) < the pages'
- * own, unlayered styles. So inside the design nothing of classic.css shows.
+ * Cascade order: desk (the desk's theme for its plain markup: tables, forms,
+ * toolbars; apps/desk/desk-theme.css) < base < components (CSS Modules) < the
+ * pages' own, unlayered styles. A component always looks the same, wherever it is.
  */
-@layer classic, base, components;
+@layer desk, base, components;
 
 @font-face {
   font-family: 'Neue Kaine';
@@ -42,14 +42,16 @@
 }
 
 @layer base {
-  /* Every rule below is scoped to the design (.bd-app), so a classic desk page is untouched. */
+  /* Every rule below is scoped to the design (.bd-app), so a desk page (styled by the desk theme) is untouched. */
   *,
   *::before,
   *::after {
     box-sizing: border-box;
   }
 
-  .bd-app {
+  /* The design's variables: the phone app (.bd-app) and the desk (.bd-desk). */
+  .bd-app,
+  .bd-desk {
     /* Graphic charter */
     --bd-red: #710912;
     --bd-black: #0d0d0d;
@@ -66,6 +68,13 @@
     /* Neue Kaine Medium: buttons, fields and figures. */
     --bd-medium: 567;
 
+    color: var(--bd-brown);
+    font-family: 'Neue Kaine', sans-serif;
+    font-weight: var(--bd-regular);
+  }
+
+  /* The phone app: one column, every size in the unit (--u, 1/360 of the column). */
+  .bd-app {
     --bd-column: 430px;
     /*
      * The design unit: the screens are drawn 360 wide, so 1 unit is 1/360 of
@@ -84,9 +93,6 @@
     margin: 0 auto;
     padding-bottom: calc(var(--bd-nav-height) + calc(12 * var(--u)));
     overflow-x: hidden;
-    color: var(--bd-brown);
-    font-family: 'Neue Kaine', sans-serif;
-    font-weight: var(--bd-regular);
     font-size: calc(16 * var(--u));
     line-height: normal;
     background:
@@ -95,7 +101,12 @@
       var(--bd-cream);
   }
 
-  /* A one-screen design: the unit also follows the height (696 drawn), so it all fits. */
+  /* The desk, on a computer screen: the components' sizes are their design pixels. */
+  .bd-desk {
+    --u: 1px;
+  }
+
+  /* A one-screen design: the unit also follows the height (696 design px), so it all fits. */
   .bd-fit {
     --u: min(calc(min(100vw, var(--bd-column)) / 360), calc(100vh / 696));
     --u: min(calc(min(100vw, var(--bd-column)) / 360), calc(100dvh / 696));
@@ -112,12 +123,12 @@
     text-decoration: none;
   }
 
-  /* classic.css gives every label a 110 px minimum width (its desk forms). */
+  /* The desk theme gives its form labels a minimum width: not inside the phone design. */
   .bd-app label {
     min-width: 0;
   }
 
-  /* classic.css styles every field and button of the desk: none of it inside the design. */
+  /* The desk theme styles plain fields and buttons: none of it inside the phone design. */
   .bd-app :where(input, select, textarea, button) {
     min-width: 0;
     margin: 0;

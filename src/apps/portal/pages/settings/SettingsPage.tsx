@@ -15,7 +15,7 @@ import { ART, Art, u } from '../../../../components/primitives/Art';
 import { Button } from '../../../../components/primitives/Button';
 import styles from './SettingsPage.module.css';
 
-/** Figma "Settings": the profile, the gamer's membership and pass, the other pages, and logging out. */
+/** Settings: the profile, the gamer's membership and pass, the other pages, and logging out. */
 export function SettingsPage() {
   const { user, logout: signOut } = useAuth();
   const branches = useBranches();

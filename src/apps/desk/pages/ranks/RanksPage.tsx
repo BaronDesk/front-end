@@ -83,7 +83,7 @@ export function RanksPage() {
                 <button type="button" className="secondary" onClick={() => setForm({ id: r.id, name: r.name, minXp: String(r.minXp), badgeUrl: r.badgeUrl })}>
                   Edit
                 </button>{' '}
-                <button type="button" className="secondary" disabled={action.busy === r.id} onClick={() => remove(r)}>
+                <button type="button" className="danger" disabled={action.busy === r.id} onClick={() => remove(r)}>
                   Delete
                 </button>
               </td>

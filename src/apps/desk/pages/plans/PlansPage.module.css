@@ -1,0 +1,27 @@
+/* Plans: the pass windows table, narrow enough to sit inside the form. */
+
+.time {
+  min-width: 0;
+  width: 92px;
+}
+
+.discount {
+  width: 76px;
+}
+
+/* The days wrap onto a second line when the form is narrow, so the table never sticks out of it. */
+.days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.days label {
+  margin-right: 0;
+  white-space: nowrap;
+}
+
+/* Create pass: a little apart from Add window above it. */
+.submit {
+  margin-top: 22px;
+}

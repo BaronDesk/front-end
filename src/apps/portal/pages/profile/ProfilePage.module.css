@@ -2,7 +2,7 @@
 
 /* ---------- Profile ---------- */
 
-/* Laid out as drawn (816 high), every part at its Figma place; Plans added below, spaced like Memberships. */
+/* A fixed layout, 816 high, every part at its place; Plans below, spaced like Memberships. */
 .root {
   position: relative;
   height: calc(950 * var(--u));
@@ -74,7 +74,7 @@
   top: 0;
   height: 100%;
   border-radius: calc(48 * var(--u));
-  /* Figma lists the stops backwards (167%, then 100%); as drawn: dark brown, lighter at its end. */
+  /* Dark brown, lighter towards its end. */
   background: linear-gradient(90deg, rgb(54, 40, 34) 60%, rgba(120, 88, 48, 0.95) 100%);
 }
 

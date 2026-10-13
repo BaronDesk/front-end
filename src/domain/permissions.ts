@@ -24,13 +24,3 @@ export function canSetStatus(caller: PublicUser, target: PublicUser): boolean {
   if (caller.role === 'ADMIN') return true;
   return target.role === 'EMPLOYEE' && target.branchId !== null && target.branchId === caller.branchId;
 }
-
-/** Password reset: HQ anyone but themselves; a branch admin their branch's staff and gamers (own: Settings). */
-export function canResetPassword(caller: PublicUser, target: PublicUser): boolean {
-  if (target.id === caller.id) return false;
-  if (caller.role === 'ADMIN') return true;
-  if (caller.branchId === null) return false;
-  if (target.role === 'EMPLOYEE') return target.branchId === caller.branchId;
-  if (target.role === 'GAMER') return target.homeBranchId === caller.branchId;
-  return false;
-}

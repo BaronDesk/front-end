@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { BranchStation } from '../core/api-types';
-import { isTaken, panelHeight, seatLayout } from './seats';
+import { isTaken, panelHeight, roomsOf, seatLayout, seatOrder } from './seats';
 
 describe('seatLayout', () => {
   it('fills the room as drawn: 28 seats in 6 rows, the first 2 rows one seat short on the right', () => {
@@ -17,6 +17,29 @@ describe('seatLayout', () => {
     expect(seatLayout(30).slice(28).map((s) => s.y)).toEqual([233, 233]);
     expect(seatLayout(5).map((s) => s.y)).toEqual([53, 53, 53, 53, 83]);
     expect(panelHeight(5)).toBe(83 + 24 + 14);
+  });
+});
+
+describe('seatOrder', () => {
+  it('numbers the room like the app: by name, then serial number, unnamed stations last', () => {
+    const list = [
+      { name: 'PC-02', serialNumber: 'B' },
+      { name: null, serialNumber: 'A' },
+      { name: 'PC-01', serialNumber: 'Z' },
+      { name: 'PC-01', serialNumber: 'C' },
+    ];
+    expect(seatOrder(list).map((s) => s.serialNumber)).toEqual(['C', 'Z', 'B', 'A']);
+  });
+});
+
+describe('roomsOf', () => {
+  it('makes one room per branch, by branch name, each in seat order', () => {
+    const st = (branchId: string, name: string) => ({ branchId, name, serialNumber: name });
+    const rooms = roomsOf([st('b2', 'PC-02'), st('b1', 'PC-09'), st('b2', 'PC-01')], (id) => (id === 'b1' ? 'Lac 2' : 'El Manar'));
+    expect(rooms.map((r) => [r.name, r.stations.map((s) => s.name)])).toEqual([
+      ['El Manar', ['PC-01', 'PC-02']],
+      ['Lac 2', ['PC-09']],
+    ]);
   });
 });
 

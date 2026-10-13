@@ -11,7 +11,7 @@ import { Button } from '../../../../components/primitives/Button';
 import styles from './SignupPage.module.css';
 
 /**
- * Figma "Sign Up": create a gamer account. Every gamer picks the branch they
+ * Sign-up: create a gamer account. Every gamer picks the branch they
  * play at: the booking page then lists that branch's stations (changeable in Settings).
  */
 export function SignupPage() {
@@ -61,16 +61,14 @@ export function SignupPage() {
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
           />
-          <SelectField label="Branch" required value={form.branchId} onChange={(e) => setForm({ ...form, branchId: e.target.value })}>
-            <option value="" disabled>
-              {branches.data ? 'Branch' : 'Loading…'}
-            </option>
-            {(branches.data ?? []).map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </SelectField>
+          <SelectField
+            label="Branch"
+            placeholder={branches.data ? 'Branch' : 'Loading…'}
+            required
+            value={form.branchId}
+            options={(branches.data ?? []).map((b) => ({ value: b.id, label: b.name }))}
+            onChange={(branchId) => setForm({ ...form, branchId })}
+          />
           <PasswordField
             placeholder="Password"
             autoComplete="new-password"

@@ -29,7 +29,7 @@ const ITEMS: Record<NavKey, { to: string; label: string; active: Icon; idle: Ico
 const ORDER: NavKey[] = ['home', 'book', 'profile', 'settings'];
 
 /**
- * Where each item's center sits on the 360 px Figma screen, for each active
+ * Where each item's center sits on the 360 px design screen, for each active
  * item: the icons make room around the raised circle differently per screen.
  */
 const LAYOUT: Record<NavKey, Record<NavKey, number>> = {
@@ -43,7 +43,7 @@ const SCREEN = 360;
 const percent = (x: number) => `${(x / SCREEN) * 100}%`;
 
 /**
- * The black bar at the bottom of every redesigned screen. It stays mounted
+ * The black bar at the bottom of every signed-in screen. It stays mounted
  * from page to page (PortalShell), so changing page animates it: the raised
  * circle and its bump slide to the new page, the icons glide to their places
  * and the outlined icon turns into the filled one as it rises.

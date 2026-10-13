@@ -5,9 +5,9 @@ import { cx } from '../../lib/cx';
 import styles from './PlanCard.module.css';
 
 /**
- * One plan card (Figma "Membership Card"): the badge overflowing its left
- * side, a line, the name and two lines. As drawn, the tier card's line and
- * text sit 1–2 px right of the pass card's (`tier`). `empty`: the "No Plans"
+ * One plan card: the badge overflowing its left side, a line, the name and
+ * two lines. The tier card's line and text sit 1–2 px right of the pass
+ * card's (`tier`). `empty`: the "No Plans"
  * card's crossed-out circle instead of a badge. `footer`: a row under the
  * text (the buying page's price and button), which makes the card taller.
  */

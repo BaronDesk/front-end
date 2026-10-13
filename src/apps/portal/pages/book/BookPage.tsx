@@ -5,7 +5,7 @@ import type { Reservation } from '../../../../core/api-types';
 import { useAuth } from '../../../../providers/AuthProvider';
 import { useAction } from '../../../../hooks/useAction';
 import { useActivePlans, useBranchStations, useBranches, useMyBookings, useMyWallet } from '../../../../hooks/queries';
-import { bookableTimes, bookingLengthText, canCheckIn, isCancellable, stationOf } from '../../../../domain/bookings';
+import { bookingLengthText, canCheckIn, isCancellable, slotRange, stationOf, type Slot } from '../../../../domain/bookings';
 import { dayDateTime, dayFromValue, localDateInput } from '../../../../lib/dates';
 import { describeError } from '../../../../lib/errors';
 import alarm from '../../../../components/assets/alarm.svg';
@@ -14,8 +14,7 @@ import { Avatar } from '../../../../components/primitives/Avatar';
 import { CoinBalance } from '../../../../components/composites/CoinBalance';
 import { PlayerBadges } from '../../../../components/composites/PlayerBadges';
 import { ART, Art, u } from '../../../../components/primitives/Art';
-import { DayPicker } from '../../../../components/composites/DayPicker';
-import { ChipPicker } from '../../../../components/composites/ChipPicker';
+import { SlotPicker } from '../../../../components/composites/SlotPicker';
 import { reservationsService } from '../../../../services/reservations.service';
 import { isTaken, panelHeight, SEAT, seatLayout } from '../../../../domain/seats';
 import { Button, ButtonLink } from '../../../../components/primitives/Button';
@@ -25,12 +24,7 @@ import { cx } from '../../../../lib/cx';
 import styles from './BookPage.module.css';
 
 
-const DURATIONS = [30, 60, 90, 120, 180];
-const lengthText = (m: number) => (m < 60 ? `${m} min` : `${m / 60} h`);
-/** The booking page knows each station's bookings for the next 7 days. */
-const DAYS_AHEAD = 6;
-
-/** Figma "Bookings": the gamer's bookings with their PIN, and booking a seat on the room's map. */
+/** Bookings: the gamer's bookings with their PIN, and booking a seat on the room's map. */
 export function BookPage() {
   const { user } = useAuth();
   const plans = useActivePlans();
@@ -42,17 +36,14 @@ export function BookPage() {
   const branchName = (id: string | undefined) => branches.data?.find((b) => b.id === id)?.name ?? '';
   const action = useAction();
 
-  const [day, setDay] = useState(() => localDateInput(new Date()));
-  // 'now' = Play now (the walk-in rate); otherwise a booking from that time.
-  const [time, setTime] = useState('now');
-  const [minutes, setMinutes] = useState(60);
+  // time 'now' = Play now (the walk-in rate); otherwise a booking from that time.
+  const [slot, setSlot] = useState<Slot>(() => ({ day: localDateInput(new Date()), time: 'now', minutes: 60 }));
+  const { day, time, minutes } = slot;
   const [seatId, setSeatId] = useState<string | null>(null);
   const [openCard, setOpenCard] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const isNow = time === 'now';
-  const start = isNow ? new Date() : new Date(`${day}T${time}:00`);
-  const end = new Date(start.getTime() + minutes * 60_000);
+  const { start, end, isNow } = slotRange(slot);
   const list = stations.data ?? [];
   const seat = list.find((s) => s.id === seatId) ?? null;
   const upcoming = (bookings.data ?? []).filter((r) => r.status === 'CONFIRMED' || r.status === 'PENDING' || r.status === 'ACTIVE');
@@ -154,37 +145,15 @@ export function BookPage() {
         </PageTitle>
         {homeBranchId ? (
           <section className={styles.reserve} style={{ height: u(Math.max(panelHeight(list.length), 120)) }}>
-            <DayPicker
-              className={cx(styles.reservePill, styles.pillDate)}
-              value={day}
-              daysAhead={DAYS_AHEAD}
-              onChange={(v) => {
-                setDay(v);
-                setTime(v === localDateInput(new Date()) ? 'now' : '18:00');
-                setSeatId(null);
+            <SlotPicker
+              value={slot}
+              onChange={(next) => (setSlot(next), setSeatId(null))}
+              classNames={{
+                day: cx(styles.reservePill, styles.pillDate),
+                time: cx(styles.reservePill, styles.pillTime),
+                length: cx(styles.reservePill, styles.pillLength),
               }}
             />
-            <ChipPicker
-              className={cx(styles.reservePill, styles.pillTime)}
-              name="Pick a time"
-              columns={6}
-              value={time}
-              choices={[...(day === localDateInput(new Date()) ? [{ value: 'now', label: 'Now' }] : []), ...bookableTimes(day).map((t) => ({ value: t, label: t }))]}
-              onChange={(t) => (setTime(t), setSeatId(null))}
-            >
-              <Art src={alarm} w={ART.alarm[0]} h={ART.alarm[1]} />
-              <span>{isNow ? 'Now' : time}</span>
-            </ChipPicker>
-            <ChipPicker
-              className={cx(styles.reservePill, styles.pillLength)}
-              name="Pick how long"
-              columns={DURATIONS.length}
-              value={minutes}
-              choices={DURATIONS.map((m) => ({ value: m, label: lengthText(m) }))}
-              onChange={(m) => (setMinutes(m), setSeatId(null))}
-            >
-              <span>{lengthText(minutes)}</span>
-            </ChipPicker>
 
             {list.map((s, i) => {
               const taken = isTaken(s, start, end, isNow);

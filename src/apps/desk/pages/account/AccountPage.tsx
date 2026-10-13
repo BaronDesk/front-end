@@ -3,7 +3,7 @@ import { ROLE_LABEL } from '../../../../core/auth/roles';
 import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 import { useBranchScope } from '../../providers/BranchContext';
 
-/** My account (from the top bar): who is logged in, and changing one's own password. */
+/** My account (from the sidebar): who is logged in, and changing one's own password. */
 export function AccountPage() {
   const { user } = useAuth();
   const { branchName } = useBranchScope();

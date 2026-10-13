@@ -4,7 +4,7 @@ import { useStationNames } from '../hooks/useStationNames';
 import { useAlertFeed } from '../providers/AlertFeedContext';
 import { alertDetail, repeatText, typeLabel } from '../../../domain/alerts';
 
-/** Red bar for alerts that just arrived (brief §6.5: alert → toast + list). Hidden on the Alerts page itself. */
+/** A bar for alerts that just arrived, linking to the Alerts page (hidden on that page). */
 export function AlertBanner() {
   const { unseen, dismissAll } = useAlertFeed();
   const { pathname } = useLocation();

@@ -1,13 +1,13 @@
 import type { CSSProperties, ImgHTMLAttributes } from 'react';
 
 /**
- * A design length (px on the 360 px Figma screen) in the portal's unit
+ * A design length (px on the 360 px design screen) in the portal's unit
  * (--u, 1/360 of the column): the layout scales with the phone.
  */
 export const u = (px: number): string => `calc(${px} * var(--u))`;
 
 /**
- * A static design image at its Figma size, scaled like the rest. Its SVG's
+ * A static design image at its design size, scaled like the rest. Its SVG's
  * own width/height are in px and would not scale, so the size is set here.
  */
 export function Art({ src, w, h, style, alt = '', ...rest }: ImgHTMLAttributes<HTMLImageElement> & { src: string; w: number; h: number }) {
@@ -15,7 +15,7 @@ export function Art({ src, w, h, style, alt = '', ...rest }: ImgHTMLAttributes<H
   return <img src={src} alt={alt} style={size} draggable={false} {...rest} />;
 }
 
-/** The Figma size of each SVG in assets/ (its root width × height). */
+/** The design size of each SVG in assets/ (its root width × height). */
 export const ART = {
   manette: [64.015, 78.0591],
   gamerScribble: [54.3839, 65.0616],

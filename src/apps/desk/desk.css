@@ -1,2 +1,2 @@
-/* The desk's styles: its classic theme in the lowest cascade layer (see tokens.css), under the design. */
-@import './classic.css' layer(classic);
+/* The desk's styles: its theme for plain markup in the lowest cascade layer (see tokens.css), under the design. */
+@import './desk-theme.css' layer(desk);

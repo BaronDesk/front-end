@@ -6,7 +6,7 @@ import { u } from '../primitives/Art';
 import { cx } from '../../lib/cx';
 import styles from './GameCarousel.module.css';
 
-/** A card and the gap after it, in Figma px (203 + 34). */
+/** A card and the gap after it, in design px (203 + 34). */
 const STEP = 237;
 /** Cards drawn on each side of the centered one: enough to fill a 430 px column. */
 const AROUND = 2;
@@ -21,7 +21,7 @@ const mod = (k: number, n: number) => ((k % n) + n) % n;
  */
 export function GameCarousel({ games }: { games: PublicGame[] }) {
   const n = games.length;
-  // As in Figma, it opens with a game centered and one peeking in on each side.
+  // It opens with a game centered and one peeking in on each side.
   const [pos, setPos] = useState(() => (n >= 3 ? 1 : 0));
   const [dragging, setDragging] = useState(false);
   const box = useRef<HTMLDivElement>(null);

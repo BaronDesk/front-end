@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { PublicUser, Role } from '../core/api-types';
-import { accountBranchId, canChangeRole, canResetPassword, canSetStatus } from './permissions';
+import { accountBranchId, canChangeRole, canSetStatus } from './permissions';
 
 const user = (id: string, role: Role, branchId: string | null, homeBranchId: string | null = null): PublicUser => ({
   id,
@@ -37,18 +37,15 @@ describe('Users page permissions', () => {
     for (const target of [manager, ownStaff, otherGamer]) {
       expect(canChangeRole(hq, target)).toBe(true);
       expect(canSetStatus(hq, target)).toBe(true);
-      expect(canResetPassword(hq, target)).toBe(true);
     }
     expect(canChangeRole(hq, hq)).toBe(false);
     expect(canSetStatus(hq, hq)).toBe(false);
-    expect(canResetPassword(hq, hq)).toBe(false);
   });
 
   it('a branch admin never changes a branch admin, HQ or themselves', () => {
     for (const target of [manager, otherManager, hq]) {
       expect(canChangeRole(manager, target)).toBe(false);
       expect(canSetStatus(manager, target)).toBe(false);
-      expect(canResetPassword(manager, target)).toBe(false);
     }
   });
 
@@ -56,12 +53,5 @@ describe('Users page permissions', () => {
     expect(canSetStatus(manager, ownStaff)).toBe(true);
     expect(canSetStatus(manager, otherStaff)).toBe(false);
     expect(canSetStatus(manager, ownGamer)).toBe(false);
-  });
-
-  it("a branch admin resets their staff's and their gamers' passwords", () => {
-    expect(canResetPassword(manager, ownStaff)).toBe(true);
-    expect(canResetPassword(manager, ownGamer)).toBe(true);
-    expect(canResetPassword(manager, otherStaff)).toBe(false);
-    expect(canResetPassword(manager, otherGamer)).toBe(false);
   });
 });

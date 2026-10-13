@@ -62,10 +62,10 @@ function measureShape(src: string): Promise<Shape> {
 }
 
 /**
- * A badge cropped to its drawing (Figma px):
+ * A badge cropped to its drawing (design px):
  * - `height`: the drawing is this tall, whatever the picture (header badges look the same size);
- * - `box`: the picture is this square, cropped at its sides only (the Profile rows, as drawn).
- * `dim`: a badge not reached or not owned yet, faded as in Figma (30%).
+ * - `box`: the picture is this square, cropped at its sides only (the Profile rows).
+ * `dim`: a badge not reached or not owned yet, faded (30%).
  */
 export function BadgeImage({ src, name, height, box, dim = false }: { src: string; name: string; height?: number; box?: number; dim?: boolean }) {
   const [shape, setShape] = useState<Shape | null>(() => measured.get(src) ?? null);

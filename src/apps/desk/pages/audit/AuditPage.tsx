@@ -10,14 +10,16 @@ import { useBranchScope } from '../../providers/BranchContext';
 import { actionText, AUDIT_ACTIONS, detailsText, isSerious, targetText } from '../../../../domain/audit';
 import { EmptyRow } from '../../components/EmptyRow';
 import { auditService } from '../../../../services/audit.service';
+import { Select } from '../../../../components/primitives/Select';
+import { DateField } from '../../../../components/composites/DateField';
 
 const LIST_LIMIT = 100;
 
 /**
  * Audit log (HQ): who did which sensitive action, to what, and when: role
- * changes, suspensions, password resets, refunds, shutdowns, revoked stations,
+ * changes, suspensions, refunds, shutdowns, revoked stations,
  * branch, plan and price changes. Reads GET /audit-logs (HQ: the branch in the
- * top bar); no live event, so it reloads on demand.
+ * header); no live event, so it reloads on demand.
  */
 export function AuditPage() {
   const { isHq, branchId, branchName, scoped } = useBranchScope();
@@ -44,7 +46,7 @@ export function AuditPage() {
     <>
       <h1>Audit log</h1>
       <p className="muted">
-        Who did what: role changes, suspended accounts, password resets, wallet refunds, shut down or revoked stations, and changes to
+        Who did what: role changes, suspended accounts, wallet refunds, shut down or revoked stations, and changes to
         branches, plans and prices.
       </p>
 
@@ -56,17 +58,10 @@ export function AuditPage() {
         }}
       >
         <label htmlFor="au-date">Since</label>{' '}
-        <input id="au-date" type="date" required value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
+        <DateField id="au-date" value={date} onChange={setDate} />
         <span className="sep-v" />
         <label htmlFor="au-action">Action</label>{' '}
-        <select id="au-action" value={action} onChange={(e) => setAction(e.target.value)}>
-          <option value="">All</option>
-          {AUDIT_ACTIONS.map((a) => (
-            <option key={a} value={a}>
-              {actionText(a)}
-            </option>
-          ))}
-        </select>
+        <Select id="au-action" value={action} onChange={setAction} options={[{ value: '', label: 'All' }, ...AUDIT_ACTIONS.map((a) => ({ value: a, label: actionText(a) }))]} />
         <span className="sep-v" />
         <label htmlFor="au-q">Who or what</label>{' '}
         <input id="au-q" type="search" placeholder="username, station…" value={query} onChange={(e) => setQuery(e.target.value)} />{' '}
