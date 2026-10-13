@@ -171,7 +171,6 @@ export function WalletPage() {
         </table>
       )}
 
-      {!code && !results && <p className="muted">Ask the gamer for their username: it is shown in their app, under Wallet.</p>}
       {code && <ErrorBox error={wallet.error ?? entries.error} />}
 
       {wallet.data && (
