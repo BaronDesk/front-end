@@ -7,7 +7,7 @@ import type { MembershipPlan, MembershipPlanInput, SubscriptionPlan, Pricing, Su
 import { ErrorBox } from '../../components/ErrorBox';
 import { ImageField } from '../../components/ImageField';
 import { Thumb } from '../../components/Thumb';
-import { coinsInCurrency, formatCoins, formatDateTime, parseCoins } from '../../../../lib/format';
+import { coinsInCurrency, formatCoins, parseCoins } from '../../../../lib/format';
 import { ActionMessages } from '../../components/ActionMessages';
 import { useAction, type Action } from '../../../../hooks/useAction';
 import {
@@ -24,6 +24,8 @@ import { useApiQuery } from '../../../../hooks/useApiQuery';
 import { catalogService } from '../../../../services/catalog.service';
 import { plansService } from '../../../../services/plans.service';
 import { TimeField } from '../../../../components/composites/TimeField';
+import { cx } from '../../../../lib/cx';
+import styles from './PlansPage.module.css';
 
 /** Membership tiers: a discount on every hour of play, and how far ahead a member may book. */
 function TierSection({ action }: { action: Action }) {
@@ -70,7 +72,6 @@ function TierSection({ action }: { action: Action }) {
   return (
     <div>
       <h2>Membership tiers</h2>
-      <p className="muted">A discount on every hour of play while the membership lasts. Gamers buy them in the BaronDesk app.</p>
       <ErrorBox error={tiers.error} />
       <table className="grid">
         <thead>
@@ -182,7 +183,6 @@ function TierSection({ action }: { action: Action }) {
             onBusy={setUploading}
           />
           <div className="form-row">
-            <label />
             <button type="submit" disabled={action.busy === 'save-tier' || uploading}>
               {form.id ? 'Save changes' : 'Create tier'}
             </button>{' '}
@@ -277,7 +277,6 @@ function PassSection({ action }: { action: Action }) {
   return (
     <div>
       <h2>Passes</h2>
-      <p className="muted">A monthly price for cheaper or free play at set times. Gamers buy them in the BaronDesk app.</p>
       <ErrorBox error={passes.error} />
       <table className="grid">
         <thead>
@@ -346,10 +345,6 @@ function PassSection({ action }: { action: Action }) {
             onChange={(badgeUrl) => setForm((f) => ({ ...f, badgeUrl }))}
             onBusy={setUploading}
           />
-          <p className="muted">
-            Windows: when the pass gives its discount (100 % = free). A window that ends before it starts runs past
-            midnight. Changes apply to new buyers; gamers who already bought the pass keep what they paid for.
-          </p>
           {form.otherBenefits && (
             <p className="muted">
               This pass&apos;s benefits ({benefitsText(passes.data?.find((p) => p.id === form.id)?.benefits)}) aren&apos;t
@@ -370,22 +365,25 @@ function PassSection({ action }: { action: Action }) {
               <tbody>
                 {form.windows.map((w, i) => (
                   <tr key={i}>
-                    <td className="nowrap">
-                      {WEEK_DAYS.map((d) => (
-                        <label key={d.value} className="inline">
-                          <input type="checkbox" checked={w.days.includes(d.value)} onChange={() => toggleDay(i, d.value)} /> {d.label}
-                        </label>
-                      ))}
-                      {w.days.length === 0 && <span className="status-bad">pick a day</span>}
+                    <td>
+                      <div className={styles.days}>
+                        {WEEK_DAYS.map((d) => (
+                          <label key={d.value} className="inline">
+                            <input type="checkbox" checked={w.days.includes(d.value)} onChange={() => toggleDay(i, d.value)} /> {d.label}
+                          </label>
+                        ))}
+                        {w.days.length === 0 && <span className="status-bad">pick a day</span>}
+                      </div>
                     </td>
                     <td>
-                      <TimeField aria-label={`Window ${i + 1} from`} value={w.startTime} onChange={(startTime) => setWindow(i, { startTime })} />
+                      <TimeField className={styles.time} aria-label={`Window ${i + 1} from`} value={w.startTime} onChange={(startTime) => setWindow(i, { startTime })} />
                     </td>
                     <td>
-                      <TimeField aria-label={`Window ${i + 1} to`} value={w.endTime} onChange={(endTime) => setWindow(i, { endTime })} />
+                      <TimeField className={styles.time} aria-label={`Window ${i + 1} to`} value={w.endTime} onChange={(endTime) => setWindow(i, { endTime })} />
                     </td>
                     <td>
                       <input
+                        className={styles.discount}
                         aria-label={`Window ${i + 1} discount`}
                         type="number"
                         min="0"
@@ -412,8 +410,7 @@ function PassSection({ action }: { action: Action }) {
             </button>{' '}
             {form.windows.length === 0 && !form.otherBenefits && <span className="status-bad">A pass needs at least one window.</span>}
           </div>
-          <div className="form-row">
-            <label />
+          <div className={cx('form-row', styles.submit)}>
             <button type="submit" disabled={action.busy === 'save-pass' || !canSave || uploading}>
               {form.id ? 'Save changes' : 'Create pass'}
             </button>{' '}
@@ -500,15 +497,9 @@ function PricingForm({ action }: { action: Action }) {
             </ul>
           )
         )}
-        {pricing.data && (
-          <p className="muted">
-            Changed {formatDateTime(pricing.data.updatedAt)}. Billed by the second; a tier&apos;s or pass&apos;s discount applies on top (the better of the two).
-            {!canEdit && ' Only HQ changes them.'}
-          </p>
-        )}
+        {pricing.data && !canEdit && <p className="muted">Only HQ changes the prices.</p>}
         {canEdit && (
           <div className="form-row">
-            <label />
             <button type="submit" disabled={action.busy === 'pricing' || pricing.loading}>
               Save prices
             </button>

@@ -142,7 +142,7 @@ Seed first (`back-end/`), start at least one real agent (Play now needs the PC O
 - The access token is kept in memory; the refresh token in `sessionStorage` (one per app). A reload keeps you logged in; closing the tab logs out.
 - A `401` triggers one token refresh and a retry. If the refresh fails, the login page says the session expired.
 - The menu hides what the role can't use; opening such a page by URL shows **Access denied**. The server's `403` is still the real rule.
-- **Own password, and only one's own:** desk sidebar → **Password** (`#/account`), portal → Settings. Both use `useChangePassword` (`src/hooks/`, `POST /auth/change-password`): the desk through `apps/desk/components/ChangePasswordForm.tsx`, the portal on My account: every other login of the account ends, this tab stays logged in with the new tokens. There is no way to set someone else's password, at the desk or through the API.
+- **Own password, and only one's own:** desk sidebar → **Password** (`#/account`), portal → Settings. Both use `useChangePassword` (`src/hooks/`, `POST /auth/change-password`): the desk through `apps/desk/components/ChangePasswordForm.tsx`, the portal on My account: every other login of the account ends, this tab stays logged in with the new tokens. The desk has no way to set someone else's password.
 
 ## Live updates
 
