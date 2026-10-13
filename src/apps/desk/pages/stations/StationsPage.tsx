@@ -126,6 +126,7 @@ export function StationsPage() {
             Lock
           </button>{' '}
           <button
+            className="danger"
             type="button"
             disabled={selectedIds.length === 0}
             onClick={() => {

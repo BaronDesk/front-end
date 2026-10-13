@@ -113,7 +113,7 @@ function TierSection({ action }: { action: Action }) {
                 >
                   Edit
                 </button>{' '}
-                <button type="button" className="secondary" disabled={action.busy === p.id} onClick={() => remove(p)}>
+                <button type="button" className="danger" disabled={action.busy === p.id} onClick={() => remove(p)}>
                   Delete
                 </button>
               </td>
@@ -304,7 +304,7 @@ function PassSection({ action }: { action: Action }) {
                 <button type="button" className="secondary" onClick={() => edit(p)}>
                   Edit
                 </button>{' '}
-                <button type="button" className="secondary" disabled={action.busy === p.id} onClick={() => remove(p)}>
+                <button type="button" className="danger" disabled={action.busy === p.id} onClick={() => remove(p)}>
                   Delete
                 </button>
               </td>

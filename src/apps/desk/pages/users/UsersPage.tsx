@@ -264,7 +264,7 @@ export function UsersPage() {
                 </td>
                 <td className="nowrap">
                   {user && canSetStatus(user, u) && (u.accountStatus === 'ACTIVE' || u.accountStatus === 'SUSPENDED') && (
-                    <button type="button" className="secondary" disabled={action.busy === u.id} onClick={() => toggleStatus(u)}>
+                    <button type="button" className={u.accountStatus === 'ACTIVE' ? 'danger' : 'secondary'} disabled={action.busy === u.id} onClick={() => toggleStatus(u)}>
                       {u.accountStatus === 'ACTIVE' ? 'Suspend' : 'Reactivate'}
                     </button>
                   )}{' '}

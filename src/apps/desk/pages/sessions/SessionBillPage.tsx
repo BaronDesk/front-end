@@ -105,7 +105,7 @@ export function SessionBillPage() {
 
       {isOpenSession(s.status) && (
         <p>
-          <button type="button" disabled={action.busy === 'end'} onClick={end}>
+          <button type="button" className="danger" disabled={action.busy === 'end'} onClick={end}>
             End &amp; bill
           </button>
         </p>

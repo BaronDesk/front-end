@@ -194,7 +194,7 @@ export function EnrollmentPage() {
                     <button type="button" onClick={() => decide(m, 'approve')}>
                       Approve
                     </button>{' '}
-                    <button type="button" className="secondary" onClick={() => decide(m, 'reject')}>
+                    <button type="button" className="danger" onClick={() => decide(m, 'reject')}>
                       Reject
                     </button>
                   </>
@@ -203,7 +203,7 @@ export function EnrollmentPage() {
                     <button type="button" className="secondary" disabled={action.busy === `rotate-${m.id}`} onClick={() => rotateToken(m)}>
                       New token
                     </button>{' '}
-                    <button type="button" className="secondary" onClick={() => decide(m, 'revoke')}>
+                    <button type="button" className="danger" onClick={() => decide(m, 'revoke')}>
                       Revoke
                     </button>
                   </>

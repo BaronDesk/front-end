@@ -228,7 +228,7 @@ export function GamesPage() {
                     <code>{g.gameId}</code>
                   </td>
                   <td>
-                    {LAUNCH_TYPE_LABEL[g.launchType]}: <code>{g.target}</code>
+                    {LAUNCH_TYPE_LABEL[g.launchType]}: <code className="path">{g.target}</code>
                     {g.arguments && <div className="muted">args: {g.arguments}</div>}
                   </td>
                   <td>{g.processName ?? <span className="muted">not tracked</span>}</td>
@@ -243,7 +243,7 @@ export function GamesPage() {
                     <button type="button" className="secondary" disabled={action.busy === g.id} onClick={() => setEnabled(g, !g.enabled)}>
                       {g.enabled ? 'Disable' : 'Enable'}
                     </button>{' '}
-                    <button type="button" className="secondary" disabled={action.busy === g.id} onClick={() => remove(g)}>
+                    <button type="button" className="danger" disabled={action.busy === g.id} onClick={() => remove(g)}>
                       Delete
                     </button>
                   </td>
@@ -393,12 +393,12 @@ export function GamesPage() {
                 <tr key={g.id}>
                   <td>{g.name}</td>
                   <td>
-                    <code>{g.target}</code>
+                    <code className="path">{g.target}</code>
                   </td>
                   <td className={g.installed ? 'status-ok' : g.installed === false ? 'status-bad' : 'muted'}>{installText(g)}</td>
                   <td className="muted">{g.reportedAt ? formatDateTime(g.reportedAt) : '—'}</td>
                   <td>
-                    <button type="button" className="secondary" disabled={action.busy === `station-${g.id}`} onClick={() => removeFromStation(g)}>
+                    <button type="button" className="danger" disabled={action.busy === `station-${g.id}`} onClick={() => removeFromStation(g)}>
                       Remove from station
                     </button>
                   </td>
@@ -447,7 +447,7 @@ export function GamesPage() {
             <tr key={`${x.launchType}:${x.target}`}>
               <td>{x.name}</td>
               <td>
-                {LAUNCH_TYPE_LABEL[x.launchType]}: <code>{x.target}</code>
+                {LAUNCH_TYPE_LABEL[x.launchType]}: <code className="path">{x.target}</code>
               </td>
               <td>{x.stations.length === 1 ? (x.stations[0].name ?? x.stations[0].serialNumber) : `${x.stations.length} stations`}</td>
               <td>

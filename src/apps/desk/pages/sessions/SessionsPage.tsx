@@ -187,7 +187,7 @@ function RunningRow({ station, action }: { station: Station; action: ReturnType<
       <td className="nowrap">
         {s && isOpenSession(s.status) && (
           <>
-            <button type="button" disabled={action.busy === s.id} onClick={end}>
+            <button type="button" className="danger" disabled={action.busy === s.id} onClick={end}>
               End &amp; bill
             </button>{' '}
           </>

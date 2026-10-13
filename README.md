@@ -196,7 +196,8 @@ src/
                  useLoginForm, useChangePassword, queries.ts (named reads: useMyWallet(), useBranches()…)
   providers/     AuthProvider (who is logged in), guards (RequireAuth…), RealtimeProvider
   components/    the design system (CSS Modules, every size in --u, 1/360 of the phone column)
-    tokens/      tokens.css (colors, weights, the unit, base rules; layers: classic < base < components), fonts/
+    tokens/      tokens.css (colors, weights, the unit (--u: 1/360 of the phone column, 1px on the desk), base rules;
+                 layers: desk < base < components), fonts/
     primitives/  Button (+ ButtonLink, ButtonRow), Field, Notice (+ ActionNote), Card, SectionTitle, PageTitle,
                  Pill, Avatar, BadgeImage, Art (+ u())
     composites/  XpBar, PlayerBadges, PlanCard, WalletCard, CoinBalance, ChipPicker (a pill opening chips),
@@ -211,14 +212,15 @@ src/
       pages/     auth/ (welcome, login, sign-up), home/ (home, events), book/, profile/, settings/ (settings,
                  my account, memberships & passes, history / terms / FAQ), session/, wallet/, NotFoundPage;
                  each page XxxPage.tsx with its own XxxPage.module.css
-    desk/        main.tsx, DeskApp.tsx (routes), menu.ts, classic.css (the desk's old theme, loaded by desk.css into
-                 the lowest cascade layer: a redesigned page or component is never touched by it)
-      layout/    DeskLayout (top bar, side menu), AccessDenied
+    desk/        main.tsx, DeskApp.tsx (routes), menu.ts, desk-theme.css (the portal's design for the desk pages' plain
+                 markup: tables .grid/.kv, fieldsets, .toolbar, .msg, buttons (.secondary, .danger); loaded by desk.css
+                 into the lowest cascade layer, so a design component always wins over it)
+      layout/    DeskLayout (sidebar card: logo, menu, who is logged in; header: live status, HQ's branch), AccessDenied
       providers/ BranchContext (HQ's branch scope), AlertFeedContext
       hooks/     useCommands, useStationList, useStationNames, useRecentGamers
       components/  the desk's classic pieces: TopBar, ErrorBox, ActionMessages, EmptyRow, LoginForm,
                  ChangePasswordForm, ConnectionBanner, CopyButton, ImageField, Thumb, CommandError…
-      pages/     login (in the portal's design), and one folder per menu entry (classic look until redesigned):
+      pages/     login, and one folder per menu entry, in the portal's design:
                  stations, sessions, bookings, wallet, alerts, users, plans, ranks, games, hq, audit, account
 ```
 

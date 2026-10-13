@@ -1,0 +1,683 @@
+/*
+ * The desk's theme: the portal's design (Neue Kaine + Nexa, brown on cream,
+ * rounded cards, pill buttons) applied to the plain markup the desk pages use:
+ * headings, tables (.grid, .kv), forms (fieldset, .form-row), toolbars,
+ * messages and buttons. Loaded by desk.css into the lowest cascade layer, so a
+ * design component (Button, Card…) always wins over it. Everything is scoped
+ * to the desk's shell (.bd-desk): the login, in the phone design, is untouched.
+ */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bd-cream, #efe5d2);
+}
+
+.bd-desk {
+  --line: rgba(54, 40, 34, 0.18);
+  --soft: rgba(194, 141, 57, 0.12);
+  --muted: rgba(54, 40, 34, 0.62);
+  --gold-text: #8a6424;
+  --card: linear-gradient(132.22deg, rgba(194, 141, 57, 0.15) 18.114%, rgba(92, 67, 27, 0.12) 81.886%);
+
+  min-height: 100vh;
+  font-family: 'Nexa', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.45;
+  background:
+    linear-gradient(180deg, rgba(194, 141, 57, 0.32) 0%, rgba(0, 0, 0, 0) 60%) fixed,
+    var(--bd-cream);
+}
+
+.bd-desk *,
+.bd-desk *::before,
+.bd-desk *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- Text ---------- */
+
+.bd-desk a {
+  color: var(--gold-text);
+  text-decoration: none;
+}
+
+.bd-desk a:hover {
+  color: var(--bd-brown);
+  text-decoration: underline;
+}
+
+.bd-desk h1 {
+  margin: 4px 0 18px;
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: var(--bd-regular);
+  font-size: 30px;
+  line-height: 1.15;
+}
+
+.bd-desk h2 {
+  margin: 26px 0 10px;
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: 733;
+  font-size: 18px;
+}
+
+.bd-desk h3 {
+  margin: 18px 0 8px;
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: 733;
+  font-size: 15px;
+}
+
+.bd-desk p {
+  margin: 0 0 10px;
+}
+
+.bd-desk b,
+.bd-desk strong {
+  font-weight: 700;
+}
+
+.bd-desk .muted {
+  color: var(--muted);
+}
+
+.bd-desk .nowrap {
+  white-space: nowrap;
+}
+
+.bd-desk code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--soft);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 12px;
+}
+
+/* The session PIN read out to the gamer: big and easy to read aloud. */
+.bd-desk .pin {
+  margin-left: 6px;
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: var(--bd-medium);
+  font-size: 26px;
+  letter-spacing: 4px;
+}
+
+/* A secret to copy once (enrollment token): selectable, wraps instead of scrolling. */
+.bd-desk pre.token {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--bd-brown);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.45);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: all;
+}
+
+.bd-desk .big-number {
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: var(--bd-medium);
+  font-size: 24px;
+}
+
+.bd-desk .money-credit {
+  font-weight: 700;
+}
+
+.bd-desk .money-debit {
+  color: var(--bd-red);
+}
+
+.bd-desk .status-ok {
+  font-weight: 700;
+}
+
+.bd-desk .status-bad {
+  color: var(--bd-red);
+  font-weight: 700;
+}
+
+/* ---------- Tables: a rounded card, a brown header row ---------- */
+
+.bd-desk table.grid {
+  width: 100%;
+  border: 1px solid var(--bd-brown);
+  border-radius: 14px;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.bd-desk table.grid th,
+.bd-desk table.grid td {
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.bd-desk table.grid th {
+  background: var(--bd-brown);
+  color: var(--bd-cream);
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: var(--bd-medium);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.bd-desk table.grid th a,
+.bd-desk table.grid th label {
+  color: inherit;
+}
+
+.bd-desk table.grid tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.bd-desk table.grid tbody tr:nth-child(even) {
+  background: var(--soft);
+}
+
+.bd-desk table.grid tbody tr:hover {
+  background: rgba(194, 141, 57, 0.22);
+}
+
+.bd-desk table.grid tfoot td {
+  border-top: 1px solid var(--bd-brown);
+  border-bottom: 0;
+  font-weight: 700;
+}
+
+/* A long path (a game's launch target) wraps anywhere instead of pushing the table out of the page. */
+.bd-desk code.path {
+  overflow-wrap: anywhere;
+}
+
+.bd-desk table.grid .num {
+  text-align: right;
+}
+
+.bd-desk .row-muted td {
+  color: var(--muted);
+}
+
+/* The branch HQ is working in (HQ overview). */
+.bd-desk .row-current td:first-child {
+  box-shadow: inset 4px 0 0 var(--bd-gold);
+}
+
+/* Key / value table on detail pages. */
+.bd-desk table.kv {
+  margin-bottom: 14px;
+  border: 1px solid var(--bd-brown);
+  border-radius: 14px;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.bd-desk table.kv th,
+.bd-desk table.kv td {
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.bd-desk table.kv tr:last-child th,
+.bd-desk table.kv tr:last-child td {
+  border-bottom: 0;
+}
+
+.bd-desk table.kv th {
+  width: 150px;
+  background: var(--soft);
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: var(--bd-medium);
+  font-size: 13px;
+}
+
+/* Reservations day grid: one row per station, one cell per hour. */
+.bd-desk .scroll-x {
+  overflow-x: auto;
+}
+
+.bd-desk table.timeline td,
+.bd-desk table.timeline th {
+  min-width: 28px;
+  padding: 5px 4px;
+  text-align: center;
+}
+
+.bd-desk table.timeline td:first-child {
+  text-align: left;
+}
+
+.bd-desk table.timeline tbody tr:nth-child(even) {
+  background: transparent;
+}
+
+.bd-desk .slot-booked {
+  background: var(--bd-gold) !important;
+}
+
+.bd-desk .slot-used {
+  background: var(--bd-red) !important;
+}
+
+.bd-desk .legend-box {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--bd-brown);
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.bd-desk table.bill {
+  width: auto;
+  min-width: 380px;
+}
+
+.bd-desk table.bill td:last-child {
+  text-align: right;
+}
+
+.bd-desk .bill-total td {
+  border-top: 1px solid var(--bd-brown);
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: 733;
+}
+
+/* ---------- Forms ---------- */
+
+.bd-desk fieldset {
+  margin: 0 0 16px;
+  padding: 14px 18px 16px;
+  border: 1px solid var(--bd-brown);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.bd-desk legend {
+  padding: 0 8px;
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: 733;
+  font-size: 15px;
+}
+
+.bd-desk label {
+  display: inline-block;
+  min-width: 150px;
+  font-size: 13px;
+}
+
+.bd-desk .wide-labels label {
+  min-width: 230px;
+}
+
+/* A checkbox label inside a form row (e.g. the days of a pass). */
+.bd-desk label.inline {
+  min-width: 0;
+  margin-right: 10px;
+}
+
+.bd-desk .form-row {
+  margin-bottom: 10px;
+}
+
+.bd-desk input,
+.bd-desk select,
+.bd-desk textarea {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(54, 40, 34, 0.4);
+  border-radius: 10px;
+  outline: 0;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--bd-brown);
+  font-family: 'Nexa', sans-serif;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.bd-desk textarea {
+  height: auto;
+  padding: 8px 12px;
+}
+
+.bd-desk input:focus,
+.bd-desk select:focus,
+.bd-desk textarea:focus {
+  border-color: var(--bd-gold);
+  box-shadow: 0 0 0 3px rgba(194, 141, 57, 0.25);
+}
+
+.bd-desk input[type='checkbox'],
+.bd-desk input[type='radio'] {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  accent-color: var(--bd-brown);
+  box-shadow: none;
+}
+
+.bd-desk input[type='file'] {
+  height: auto;
+  padding: 6px 10px;
+}
+
+/* The file picker's button: an outline pill. */
+.bd-desk input[type='file']::file-selector-button {
+  height: 26px;
+  margin-right: 10px;
+  padding: 2px 12px 0;
+  border: 1px solid var(--bd-brown);
+  border-radius: 54px;
+  background: transparent;
+  color: var(--bd-brown);
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: 733;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.bd-desk select {
+  padding-right: 32px;
+  appearance: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23362822' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 13px center / 10px 6px,
+    rgba(255, 255, 255, 0.55);
+}
+
+/* ---------- Buttons: the portal's pills (brown, outline, red for what cannot be undone) ---------- */
+
+.bd-desk button,
+.bd-desk .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  /* 2 on top: Neue Kaine sits high, the label is then centred (as on the portal's Log Out). */
+  padding: 2px 16px 0;
+  border: 1px solid var(--bd-brown);
+  border-radius: 54px;
+  background: var(--bd-brown);
+  color: var(--bd-cream);
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: 733;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.bd-desk button:hover,
+.bd-desk .button:hover {
+  background: #4a3830;
+  color: var(--bd-cream);
+  text-decoration: none;
+}
+
+.bd-desk button.secondary {
+  background: transparent;
+  color: var(--bd-brown);
+}
+
+.bd-desk button.secondary:hover {
+  background: rgba(54, 40, 34, 0.08);
+}
+
+.bd-desk button.danger {
+  border-color: var(--bd-red);
+  background: var(--bd-red);
+  color: var(--bd-cream);
+}
+
+.bd-desk button.danger:hover {
+  background: #8e1a25;
+}
+
+.bd-desk button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.bd-desk button:focus-visible {
+  outline: 2px solid var(--bd-gold);
+  outline-offset: 2px;
+}
+
+/* In a table row: smaller pills. */
+.bd-desk table button {
+  height: 28px;
+  padding: 2px 10px 0;
+  font-size: 12px;
+}
+
+/* ---------- Toolbars: a row of filters and actions above a table ---------- */
+
+.bd-desk .toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--bd-brown);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.bd-desk .toolbar label {
+  min-width: 0;
+  margin-right: 2px;
+  padding-top: 2px;
+}
+
+.bd-desk .sep-v {
+  display: inline-block;
+  width: 1px;
+  height: 20px;
+  margin: 0 6px;
+  background: var(--line);
+  vertical-align: middle;
+}
+
+.bd-desk ul.notices {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.bd-desk .columns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+/* Side by side when both fit (a wide screen), one under the other otherwise. */
+.bd-desk .columns > * {
+  flex: 1 1 520px;
+  min-width: 0;
+}
+
+/* A figure on its own (a wallet balance…). */
+.bd-desk .big-figure {
+  margin-bottom: 14px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--bd-brown) 0%, rgba(32, 12, 3, 0.98) 97%);
+  color: var(--bd-cream);
+}
+
+.bd-desk .big-figure .muted {
+  color: rgba(239, 229, 210, 0.65);
+}
+
+.bd-desk .big-figure b {
+  display: block;
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: var(--bd-regular);
+  font-size: 34px;
+  line-height: 1.1;
+}
+
+/* ---------- Images ---------- */
+
+.bd-desk .thumb {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.4);
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.bd-desk .thumb-round {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.bd-desk .with-thumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bd-desk .image-field {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---------- Messages, banners, tags ---------- */
+
+.bd-desk .msg {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(54, 40, 34, 0.35);
+  border-radius: 12px;
+  background: var(--soft);
+}
+
+.bd-desk .msg-ok {
+  border-color: var(--bd-gold);
+  font-weight: 700;
+}
+
+.bd-desk .msg-error {
+  border-color: var(--bd-red);
+  background: rgba(113, 9, 18, 0.07);
+  color: var(--bd-red);
+}
+
+.bd-desk .banner {
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--bd-red);
+  color: var(--bd-cream);
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: var(--bd-medium);
+}
+
+.bd-desk .banner a {
+  color: var(--bd-cream);
+  text-decoration: underline;
+}
+
+.bd-desk .banner-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(180deg, var(--bd-brown) 0%, rgba(32, 12, 3, 0.98) 97%);
+  box-shadow: inset 4px 0 0 var(--bd-red);
+}
+
+.bd-desk .banner-alert::before {
+  content: '!';
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bd-red);
+  color: var(--bd-cream);
+  font-weight: 733;
+}
+
+.bd-desk .banner-actions {
+  margin-left: auto;
+  font-family: 'Nexa', sans-serif;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.bd-desk .banner-alert .banner-actions a {
+  color: var(--bd-gold);
+}
+
+.bd-desk .new-tag {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: var(--bd-red);
+  color: var(--bd-cream);
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: 733;
+  font-size: 10px;
+}
+
+/* LIVE / OFFLINE in the header. */
+.bd-desk .live-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--bd-brown);
+  border-radius: 14px;
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: 733;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.bd-desk .live-tag::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.bd-desk .live-on {
+  color: var(--bd-brown);
+}
+
+.bd-desk .live-on::before {
+  background: #3d8b4a;
+}
+
+.bd-desk .live-off {
+  border-color: var(--bd-red);
+  background: var(--bd-red);
+  color: var(--bd-cream);
+}

@@ -302,6 +302,7 @@ export function StationDetailPage() {
         </button>{' '}
         <button
           type="button"
+          className="danger"
           disabled={busy || !canManage}
           title={canManage ? '' : 'Only a branch admin can shut a station down'}
           onClick={() => window.confirm(shutdownConfirmText(name, Boolean(s.sessionId))) && run({ type: 'SHUTDOWN' })}
