@@ -1,0 +1,82 @@
+import type { CSSProperties } from 'react';
+import { Link } from 'react-router';
+
+import bookingIcon from '../../../components/assets/booking-icon.svg';
+import homeIcon from '../../../components/assets/home-icon.svg';
+import navBookActive from '../../../components/assets/nav-book-active.svg';
+import navBump from '../../../components/assets/nav-bump.svg';
+import navHomeOutline from '../../../components/assets/nav-home-outline.svg';
+import navSettingsActive from '../../../components/assets/nav-settings-active.svg';
+import navUserActive from '../../../components/assets/nav-user-active.svg';
+import settingsIcon from '../../../components/assets/settings-icon.svg';
+import userIcon from '../../../components/assets/user-icon.svg';
+import { ART, Art } from '../../../components/primitives/Art';
+import { cx } from '../../../lib/cx';
+import styles from './BottomNav.module.css';
+
+export type NavKey = 'home' | 'book' | 'profile' | 'settings';
+
+type Icon = { src: string; size: readonly [number, number] };
+
+/** Each item's icon: filled in the raised circle (the current page), outlined on the bar. */
+const ITEMS: Record<NavKey, { to: string; label: string; active: Icon; idle: Icon }> = {
+  home: { to: '/', label: 'Home', active: { src: homeIcon, size: ART.homeIcon }, idle: { src: navHomeOutline, size: ART.navHomeOutline } },
+  book: { to: '/book', label: 'Bookings', active: { src: navBookActive, size: ART.navBookActive }, idle: { src: bookingIcon, size: ART.bookingIcon } },
+  profile: { to: '/profile', label: 'Profile', active: { src: navUserActive, size: ART.navUserActive }, idle: { src: userIcon, size: ART.userIcon } },
+  settings: { to: '/settings', label: 'Settings', active: { src: navSettingsActive, size: ART.navSettingsActive }, idle: { src: settingsIcon, size: ART.settingsIcon } },
+};
+
+const ORDER: NavKey[] = ['home', 'book', 'profile', 'settings'];
+
+/**
+ * Where each item's center sits on the 360 px Figma screen, for each active
+ * item: the icons make room around the raised circle differently per screen.
+ */
+const LAYOUT: Record<NavKey, Record<NavKey, number>> = {
+  home: { home: 74, book: 167.5, profile: 242, settings: 319 },
+  book: { home: 48, book: 148, profile: 244, settings: 319 },
+  profile: { home: 47.3, book: 121.5, profile: 224, settings: 319 },
+  settings: { home: 48.3, book: 118.5, profile: 196.5, settings: 287 },
+};
+
+const SCREEN = 360;
+const percent = (x: number) => `${(x / SCREEN) * 100}%`;
+
+/**
+ * The black bar at the bottom of every redesigned screen. It stays mounted
+ * from page to page (PortalShell), so changing page animates it: the raised
+ * circle and its bump slide to the new page, the icons glide to their places
+ * and the outlined icon turns into the filled one as it rises.
+ */
+export function BottomNav({ active }: { active: NavKey }) {
+  const at = LAYOUT[active];
+  const style = {
+    '--bd-bump': `url("${navBump}")`,
+    // The bar is as wide as the column (at most 430 px): the bump follows the active circle.
+    '--bd-active-x': `calc(${at[active] / SCREEN} * min(100vw, var(--bd-column)))`,
+  } as CSSProperties;
+
+  return (
+    <nav className={styles.nav} style={style} aria-label="Main">
+      <div className={styles.bar} />
+      <span className={styles.circle} style={{ left: percent(at[active]) }} />
+      {ORDER.map((key) => {
+        const item = ITEMS[key];
+        const on = key === active;
+        return (
+          <Link
+            key={key}
+            to={item.to}
+            className={on ? cx(styles.item, styles.on) : styles.item}
+            style={{ left: percent(at[key]) }}
+            aria-label={item.label}
+            aria-current={on ? 'page' : undefined}
+          >
+            <Art className={styles.iconIdle} src={item.idle.src} w={item.idle.size[0]} h={item.idle.size[1]} />
+            <Art className={styles.iconOn} src={item.active.src} w={item.active.size[0]} h={item.active.size[1]} />
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}

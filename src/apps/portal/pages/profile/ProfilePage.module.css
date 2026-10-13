@@ -1,0 +1,144 @@
+/* ProfilePage's own styles (not layered: they win over the components', so the page can place them). */
+
+/* ---------- Profile ---------- */
+
+/* Laid out as drawn (816 high), every part at its Figma place; Plans added below, spaced like Memberships. */
+.root {
+  position: relative;
+  height: calc(950 * var(--u));
+  overflow: hidden;
+}
+
+.root > * {
+  position: absolute;
+}
+
+.wallet {
+  left: calc(28 * var(--u));
+  top: calc(266 * var(--u));
+}
+
+.bg {
+  left: 0;
+  top: 0;
+}
+
+.avatar {
+  left: calc(119 * var(--u));
+  top: calc(33 * var(--u));
+}
+
+.name,
+.rank {
+  left: 0;
+  right: 0;
+  text-align: center;
+}
+
+.name {
+  top: calc(162 * var(--u));
+  font-weight: 817; /* Neue Kaine Extra Bold */
+  font-size: calc(28 * var(--u));
+}
+
+.rank {
+  top: calc(194 * var(--u));
+  color: rgba(54, 40, 34, 0.72);
+  font-weight: var(--bd-medium);
+  font-size: calc(16 * var(--u));
+}
+
+.xp {
+  left: calc(37 * var(--u));
+  top: calc(220 * var(--u));
+  width: calc(285 * var(--u));
+  height: calc(43 * var(--u));
+  font-weight: var(--bd-medium);
+  font-size: calc(16 * var(--u));
+}
+
+.xp::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: calc(2 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(48 * var(--u));
+}
+
+.xp > span {
+  position: absolute;
+}
+
+.xpFill {
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: calc(48 * var(--u));
+  /* Figma lists the stops backwards (167%, then 100%); as drawn: dark brown, lighter at its end. */
+  background: linear-gradient(90deg, rgb(54, 40, 34) 60%, rgba(120, 88, 48, 0.95) 100%);
+}
+
+.xpValue {
+  left: calc(15 * var(--u));
+  top: calc(15 * var(--u));
+  color: #d7c8ad;
+}
+
+.xpGoal {
+  right: calc(14 * var(--u));
+  top: calc(15 * var(--u));
+}
+
+.section {
+  z-index: 1;
+  font-weight: 733 !important; /* Neue Kaine Bold */
+  font-size: calc(16 * var(--u));
+}
+
+.levelsTitle {
+  left: calc(16 * var(--u));
+  top: calc(497 * var(--u));
+}
+
+.tiersTitle {
+  left: calc(13 * var(--u));
+  top: calc(656 * var(--u));
+}
+
+/* The badge rows run past the edge of the screen: they scroll sideways. */
+.row {
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: calc(12 * var(--u));
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.row::-webkit-scrollbar {
+  display: none;
+}
+
+.row > * {
+  flex: none;
+}
+
+.levels {
+  top: calc(503 * var(--u));
+  padding-left: calc(16 * var(--u));
+}
+
+.tiers {
+  top: calc(668 * var(--u));
+  padding-left: calc(13 * var(--u));
+}
+
+.plansTitle {
+  left: calc(13 * var(--u));
+  top: calc(808 * var(--u));
+}
+
+.plans {
+  top: calc(820 * var(--u));
+  padding-left: calc(13 * var(--u));
+}

@@ -1,0 +1,44 @@
+/* AccountPage's own styles (not layered: they win over the components', so the page can place them). */
+
+/* My account */
+.picture {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(10 * var(--u));
+  margin-top: calc(18 * var(--u));
+}
+
+.pictureNote {
+  margin: 0 calc(27 * var(--u));
+}
+
+.name {
+  font-weight: 817;
+  font-size: calc(24 * var(--u));
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(10 * var(--u));
+  width: calc(300 * var(--u));
+  margin-left: calc(30 * var(--u));
+}
+
+.head {
+  align-self: flex-start;
+  margin: calc(26 * var(--u)) 0 0 calc(1 * var(--u));
+}
+
+.note {
+  align-self: stretch;
+  margin: 0;
+}
+
+/* Save and Change password: md Buttons, wide enough for their label. */
+.submit {
+  width: calc(180 * var(--u));
+  margin-top: calc(14 * var(--u));
+}

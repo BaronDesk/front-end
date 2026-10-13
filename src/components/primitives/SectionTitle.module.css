@@ -1,0 +1,9 @@
+/* SectionTitle: a section's heading inside a page (Neue Kaine Bold 16). */
+
+@layer components {
+  .root {
+    margin: calc(26 * var(--u)) calc(31 * var(--u)) calc(10 * var(--u));
+    font-weight: 733;
+    font-size: calc(16 * var(--u));
+  }
+}

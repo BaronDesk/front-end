@@ -1,0 +1,71 @@
+/* AuthLayout: the signed-out screens' background and stage. */
+
+@layer components {
+  .root {
+    /* Signed out, the whole 360 × 696 screen must fit: the unit also follows the height. */
+    --u: min(calc(min(100vw, var(--bd-column)) / 360), calc(100vh / 696));
+    --u: min(calc(min(100vw, var(--bd-column)) / 360), calc(100dvh / 696));
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0;
+    overflow: hidden;
+    /* No red tint at the top here, unlike the signed-in screens. */
+    background:
+      linear-gradient(180deg, rgba(194, 141, 57, 0.32) 0%, rgba(0, 0, 0, 0) 100%),
+      var(--bd-cream);
+  }
+
+  .shapes {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .shapes img {
+    position: absolute;
+    display: block;
+    max-width: none;
+  }
+
+  /* The screen as drawn, centered: on a taller phone the space goes above and below. */
+  .stage {
+    position: relative;
+    flex: none;
+    width: calc(360 * var(--u));
+    height: calc(696 * var(--u));
+    margin: auto;
+  }
+
+  .logo {
+    position: absolute;
+    display: block;
+  }
+
+  /* A refusal under the form (a Notice), centered under the button. */
+  .stage .error {
+    width: calc(260 * var(--u));
+    margin: calc(12 * var(--u)) 0 0;
+  }
+
+  .mascot {
+    position: absolute;
+    display: block;
+    /* BIDI's soft shadow in Figma (a layer effect, not part of the file). */
+    filter: drop-shadow(0 calc(4 * var(--u)) calc(12 * var(--u)) rgba(54, 40, 34, 0.35));
+  }
+
+  .form {
+    position: absolute;
+    left: calc(74 * var(--u));
+    width: calc(212 * var(--u));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .fields {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+}

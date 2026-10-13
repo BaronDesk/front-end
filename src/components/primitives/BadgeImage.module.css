@@ -1,0 +1,17 @@
+/* BadgeImage: a badge cropped to its drawing. */
+
+@layer components {
+  /* Each badge shows only its drawing: the picture is moved inside a box its drawing's size. */
+  .root {
+    position: relative;
+    flex: none;
+    display: block;
+    overflow: hidden;
+  }
+
+  .root img {
+    position: absolute;
+    display: block;
+    max-width: none;
+  }
+}

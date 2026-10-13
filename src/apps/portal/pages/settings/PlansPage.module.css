@@ -1,0 +1,55 @@
+/* PlansPage's own styles (not layered: they win over the components', so the page can place them). */
+
+/* Memberships & passes */
+/* The coins (a link to My wallet), under the title. */
+.coins {
+  width: fit-content;
+  margin: calc(8 * var(--u)) 0 0 calc(27 * var(--u));
+}
+
+.current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(10 * var(--u));
+  margin-top: calc(16 * var(--u));
+}
+
+.head {
+  margin-top: calc(30 * var(--u));
+}
+
+/* The cards' badges stick out above and to the left: room between them. */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(40 * var(--u));
+  padding-top: calc(16 * var(--u));
+}
+
+.planPrice {
+  font-family: "Nexa", sans-serif;
+  font-weight: 700;
+  font-size: calc(13 * var(--u));
+  line-height: 1.2;
+}
+
+.planPrice small {
+  display: block;
+  font-weight: 300;
+  font-size: calc(10 * var(--u));
+}
+
+.planYours {
+  padding: calc(5 * var(--u)) calc(10 * var(--u));
+  border: calc(1 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(14 * var(--u));
+  font-family: "Nexa", sans-serif;
+  font-weight: 700;
+  font-size: calc(11 * var(--u));
+}
+
+.planPrice,
+.planPrice small {
+  white-space: nowrap;
+}

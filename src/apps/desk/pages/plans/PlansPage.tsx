@@ -1,0 +1,535 @@
+import { useEffect, useState, type FormEvent } from 'react';
+
+import { ApiError } from '../../../../core/http/client';
+import { useAuth } from '../../../../providers/AuthProvider';
+import { uploadImage } from '../../../../services/images.service';
+import type { MembershipPlan, MembershipPlanInput, SubscriptionPlan, Pricing, SubscriptionPlanInput } from '../../../../core/api-types';
+import { ErrorBox } from '../../components/ErrorBox';
+import { ImageField } from '../../components/ImageField';
+import { Thumb } from '../../components/Thumb';
+import { coinsInCurrency, formatCoins, formatDateTime, parseCoins } from '../../../../lib/format';
+import { ActionMessages } from '../../components/ActionMessages';
+import { useAction, type Action } from '../../../../hooks/useAction';
+import {
+  benefitsText,
+  discountText,
+  MAX_WINDOWS,
+  NEW_WINDOW,
+  rowsToWindows,
+  WEEK_DAYS,
+  windowRows,
+  type WindowRow,
+} from '../../../../domain/plans';
+import { useApiQuery } from '../../../../hooks/useApiQuery';
+import { catalogService } from '../../../../services/catalog.service';
+import { plansService } from '../../../../services/plans.service';
+
+/** Membership tiers: a discount on every hour of play, and how far ahead a member may book. */
+function TierSection({ action }: { action: Action }) {
+  const tiers = useApiQuery<MembershipPlan[]>(plansService.paths.tiers);
+  const empty = {
+    id: null as string | null,
+    name: '',
+    price: '',
+    durationDays: '30',
+    discountPercent: '10',
+    bookingAdvanceDays: '7',
+    badgeUrl: null as string | null,
+  };
+  const [form, setForm] = useState(empty);
+  const [uploading, setUploading] = useState(false);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    const body: MembershipPlanInput = {
+      name: form.name.trim(),
+      price: Number(form.price),
+      durationDays: Number(form.durationDays),
+      discountPercent: Number(form.discountPercent),
+      bookingAdvanceDays: Number(form.bookingAdvanceDays),
+      badgeUrl: form.badgeUrl,
+    };
+    const saved = await action.run(
+      'save-tier',
+      () => plansService.saveTier(form.id, body),
+      (p) => `Tier ${p.name} ${form.id ? 'updated' : 'created'}.`,
+    );
+    if (saved) {
+      setForm(empty);
+      tiers.reload();
+    }
+  }
+
+  async function remove(p: MembershipPlan) {
+    if (!window.confirm(`Delete the tier ${p.name}?`)) return;
+    const done = await action.run(p.id, () => plansService.deleteTier(p.id), `Tier ${p.name} deleted.`);
+    if (done) tiers.reload();
+  }
+
+  return (
+    <div>
+      <h2>Membership tiers</h2>
+      <p className="muted">A discount on every hour of play while the membership lasts. Gamers buy them in the BaronDesk app.</p>
+      <ErrorBox error={tiers.error} />
+      <table className="grid">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Discount</th>
+            <th>Book ahead</th>
+            <th>Lasts</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {(tiers.data ?? []).map((p) => (
+            <tr key={p.id}>
+              <td>
+                <span className="with-thumb">
+                  <Thumb url={p.badgeUrl} />
+                  <b>{p.name}</b>
+                </span>
+              </td>
+              <td>{formatCoins(p.price)}</td>
+              <td>{discountText(p.discountPercent)}</td>
+              <td>{p.bookingAdvanceDays} days</td>
+              <td>{p.durationDays} days</td>
+              <td className="nowrap">
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() =>
+                    setForm({
+                      id: p.id,
+                      name: p.name,
+                      price: String(p.price),
+                      durationDays: String(p.durationDays),
+                      discountPercent: String(Number(p.discountPercent)),
+                      bookingAdvanceDays: String(p.bookingAdvanceDays),
+                      badgeUrl: p.badgeUrl,
+                    })
+                  }
+                >
+                  Edit
+                </button>{' '}
+                <button type="button" className="secondary" disabled={action.busy === p.id} onClick={() => remove(p)}>
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <form onSubmit={save} style={{ marginTop: 8 }}>
+        <fieldset>
+          <legend>{form.id ? `Edit ${form.name}` : 'New tier'}</legend>
+          <div className="form-row">
+            <label htmlFor="t-name">Name</label>
+            <input id="t-name" required maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div className="form-row">
+            <label htmlFor="t-price">Price (coins)</label>
+            <input id="t-price" type="number" min="0" step="1" required value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+          </div>
+          <div className="form-row">
+            <label htmlFor="t-discount">Discount (%)</label>
+            <input
+              id="t-discount"
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              required
+              value={form.discountPercent}
+              onChange={(e) => setForm({ ...form, discountPercent: e.target.value })}
+            />
+          </div>
+          <div className="form-row">
+            <label htmlFor="t-advance">Book ahead (days)</label>
+            <input
+              id="t-advance"
+              type="number"
+              min="0"
+              max="365"
+              step="1"
+              required
+              value={form.bookingAdvanceDays}
+              onChange={(e) => setForm({ ...form, bookingAdvanceDays: e.target.value })}
+            />
+          </div>
+          <div className="form-row">
+            <label htmlFor="t-days">Lasts (days)</label>
+            <input
+              id="t-days"
+              type="number"
+              min="1"
+              max="3650"
+              step="1"
+              required
+              value={form.durationDays}
+              onChange={(e) => setForm({ ...form, durationDays: e.target.value })}
+            />
+          </div>
+          <ImageField
+            id="t-badge"
+            label="Badge"
+            value={form.badgeUrl}
+            upload={uploadImage}
+            onChange={(badgeUrl) => setForm((f) => ({ ...f, badgeUrl }))}
+            onBusy={setUploading}
+          />
+          <div className="form-row">
+            <label />
+            <button type="submit" disabled={action.busy === 'save-tier' || uploading}>
+              {form.id ? 'Save changes' : 'Create tier'}
+            </button>{' '}
+            {form.id && (
+              <button type="button" className="secondary" onClick={() => setForm(empty)}>
+                Cancel
+              </button>
+            )}
+          </div>
+        </fieldset>
+      </form>
+    </div>
+  );
+}
+
+/**
+ * Passes: a monthly price for cheaper or free play inside time windows
+ * (e.g. every night 00:00–06:00 free, weekends half price). A pass has one or
+ * more windows, added, changed and removed here. Gamers who already bought a
+ * pass keep the windows they paid for (the backend snapshots them).
+ */
+function PassSection({ action }: { action: Action }) {
+  const passes = useApiQuery<SubscriptionPlan[]>(plansService.paths.passes);
+  const empty = {
+    id: null as string | null,
+    name: '',
+    price: '',
+    durationDays: '30',
+    windows: [NEW_WINDOW],
+    // Editing a pass whose benefits aren't windows (seeded shapes): saved
+    // without benefits, so they stay, unless windows are added.
+    otherBenefits: false,
+    badgeUrl: null as string | null,
+  };
+  const [form, setForm] = useState(empty);
+  const [uploading, setUploading] = useState(false);
+  const windows = rowsToWindows(form.windows);
+  const canSave = windows !== null && (windows.length > 0 || form.otherBenefits);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    if (!windows || !canSave) return;
+    const base = { name: form.name.trim(), price: Number(form.price), durationDays: Number(form.durationDays), badgeUrl: form.badgeUrl };
+    const body: Partial<SubscriptionPlanInput> = windows.length ? { ...base, benefits: { windows } } : base;
+    const saved = await action.run(
+      'save-pass',
+      () => plansService.savePass(form.id, body),
+      (p) => `Pass ${p.name} ${form.id ? 'updated' : 'created'}.`,
+    );
+    if (saved) {
+      setForm(empty);
+      passes.reload();
+    }
+  }
+
+  async function remove(p: SubscriptionPlan) {
+    if (!window.confirm(`Delete the pass ${p.name}?`)) return;
+    const done = await action.run(p.id, () => plansService.deletePass(p.id), `Pass ${p.name} deleted.`);
+    if (done) passes.reload();
+  }
+
+  function edit(p: SubscriptionPlan) {
+    const rows = windowRows(p.benefits);
+    setForm({
+      id: p.id,
+      name: p.name,
+      price: String(p.price),
+      durationDays: String(p.durationDays),
+      windows: rows,
+      otherBenefits: rows.length === 0,
+      badgeUrl: p.badgeUrl,
+    });
+  }
+
+  function setWindow(i: number, change: Partial<WindowRow>) {
+    setForm((f) => ({ ...f, windows: f.windows.map((w, j) => (j === i ? { ...w, ...change } : w)) }));
+  }
+
+  function toggleDay(i: number, d: number) {
+    const days = form.windows[i].days;
+    setWindow(i, { days: days.includes(d) ? days.filter((x) => x !== d) : [...days, d].sort((x, y) => x - y) });
+  }
+
+  function addWindow() {
+    setForm((f) => ({ ...f, windows: [...f.windows, NEW_WINDOW] }));
+  }
+
+  function removeWindow(i: number) {
+    setForm((f) => ({ ...f, windows: f.windows.filter((_, j) => j !== i) }));
+  }
+
+  return (
+    <div>
+      <h2>Passes</h2>
+      <p className="muted">A monthly price for cheaper or free play at set times. Gamers buy them in the BaronDesk app.</p>
+      <ErrorBox error={passes.error} />
+      <table className="grid">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Benefits</th>
+            <th>Lasts</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {(passes.data ?? []).map((p) => (
+            <tr key={p.id}>
+              <td>
+                <span className="with-thumb">
+                  <Thumb url={p.badgeUrl} />
+                  <b>{p.name}</b>
+                </span>
+              </td>
+              <td>{formatCoins(p.price)}</td>
+              <td>{benefitsText(p.benefits)}</td>
+              <td>{p.durationDays} days</td>
+              <td className="nowrap">
+                <button type="button" className="secondary" onClick={() => edit(p)}>
+                  Edit
+                </button>{' '}
+                <button type="button" className="secondary" disabled={action.busy === p.id} onClick={() => remove(p)}>
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <form onSubmit={save} style={{ marginTop: 8 }}>
+        <fieldset>
+          <legend>{form.id ? `Edit ${form.name}` : 'New pass'}</legend>
+          <div className="form-row">
+            <label htmlFor="p-name">Name</label>
+            <input id="p-name" required maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div className="form-row">
+            <label htmlFor="p-price">Price (coins)</label>
+            <input id="p-price" type="number" min="0" step="1" required value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+          </div>
+          <div className="form-row">
+            <label htmlFor="p-days">Lasts (days)</label>
+            <input
+              id="p-days"
+              type="number"
+              min="1"
+              max="3650"
+              step="1"
+              required
+              value={form.durationDays}
+              onChange={(e) => setForm({ ...form, durationDays: e.target.value })}
+            />
+          </div>
+          <ImageField
+            id="p-badge"
+            label="Badge"
+            value={form.badgeUrl}
+            upload={uploadImage}
+            onChange={(badgeUrl) => setForm((f) => ({ ...f, badgeUrl }))}
+            onBusy={setUploading}
+          />
+          <p className="muted">
+            Windows: when the pass gives its discount (100 % = free). A window that ends before it starts runs past
+            midnight. Changes apply to new buyers; gamers who already bought the pass keep what they paid for.
+          </p>
+          {form.otherBenefits && (
+            <p className="muted">
+              This pass&apos;s benefits ({benefitsText(passes.data?.find((p) => p.id === form.id)?.benefits)}) aren&apos;t
+              time windows: they stay as they are unless you add windows, which replace them.
+            </p>
+          )}
+          {form.windows.length > 0 && (
+            <table className="grid">
+              <thead>
+                <tr>
+                  <th>Days</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Discount (%)</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {form.windows.map((w, i) => (
+                  <tr key={i}>
+                    <td className="nowrap">
+                      {WEEK_DAYS.map((d) => (
+                        <label key={d.value} className="inline">
+                          <input type="checkbox" checked={w.days.includes(d.value)} onChange={() => toggleDay(i, d.value)} /> {d.label}
+                        </label>
+                      ))}
+                      {w.days.length === 0 && <span className="status-bad">pick a day</span>}
+                    </td>
+                    <td>
+                      <input aria-label={`Window ${i + 1} from`} type="time" required value={w.startTime} onChange={(e) => setWindow(i, { startTime: e.target.value })} />
+                    </td>
+                    <td>
+                      <input aria-label={`Window ${i + 1} to`} type="time" required value={w.endTime} onChange={(e) => setWindow(i, { endTime: e.target.value })} />
+                    </td>
+                    <td>
+                      <input
+                        aria-label={`Window ${i + 1} discount`}
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        required
+                        value={w.discountPercent}
+                        onChange={(e) => setWindow(i, { discountPercent: e.target.value })}
+                      />
+                    </td>
+                    <td>
+                      <button type="button" className="secondary" onClick={() => removeWindow(i)}>
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <div className="form-row" style={{ marginTop: 6 }}>
+            <button type="button" className="secondary" disabled={form.windows.length >= MAX_WINDOWS} onClick={addWindow}>
+              Add window
+            </button>{' '}
+            {form.windows.length === 0 && !form.otherBenefits && <span className="status-bad">A pass needs at least one window.</span>}
+          </div>
+          <div className="form-row">
+            <label />
+            <button type="submit" disabled={action.busy === 'save-pass' || !canSave || uploading}>
+              {form.id ? 'Save changes' : 'Create pass'}
+            </button>{' '}
+            {form.id && (
+              <button type="button" className="secondary" onClick={() => setForm(empty)}>
+                Cancel
+              </button>
+            )}
+          </div>
+        </fieldset>
+      </form>
+    </div>
+  );
+}
+
+/** An hourly rate in other words: "1,000 coins per 15 min, 4.000 DT / hour". */
+function rateHint(coinsPerHour: number): string {
+  return `${formatCoins(Math.round(coinsPerHour / 4))} per 15 min, ${coinsInCurrency(coinsPerHour)} / hour`;
+}
+
+/**
+ * The play prices (GET / PUT /pricing), whole coins per hour, the same in
+ * every branch. Only HQ (ADMIN) changes them; managers see them. Without
+ * prices no session can start, so the empty form says so.
+ */
+function PricingForm({ action }: { action: Action }) {
+  const { user } = useAuth();
+  const canEdit = user?.role === 'ADMIN';
+  const pricing = useApiQuery<Pricing>(catalogService.paths.pricing);
+  const [form, setForm] = useState({ paygRate: '', bookingRate: '' });
+  const notSet = pricing.error instanceof ApiError && pricing.error.code === 'PRICING_NOT_SET';
+
+  useEffect(() => {
+    if (pricing.data) {
+      setForm({ paygRate: String(pricing.data.paygRate), bookingRate: String(pricing.data.bookingRate) });
+    } else if (notSet) {
+      setForm({ paygRate: '', bookingRate: '' });
+    }
+  }, [pricing.data, notSet]);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    const paygRate = parseCoins(form.paygRate);
+    const bookingRate = parseCoins(form.bookingRate);
+    if (!paygRate || !bookingRate) return;
+    const saved = await action.run('pricing', () => plansService.savePricing({ paygRate, bookingRate }), 'Prices saved for every branch.');
+    if (saved) {
+      pricing.setData(() => saved);
+      pricing.reload(); // clears a PRICING_NOT_SET error
+    }
+  }
+
+  const rateField = (id: string, label: string, key: 'paygRate' | 'bookingRate') => {
+    const coins = parseCoins(form[key]);
+    return (
+      <div className="form-row">
+        <label htmlFor={id}>{label} (coins / hour)</label>
+        <input id={id} type="number" min="1" step="1" required value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
+        {coins ? <span className="muted"> {rateHint(coins)}</span> : null}
+      </div>
+    );
+  };
+
+  return (
+    <form onSubmit={save}>
+      {!notSet && <ErrorBox error={pricing.error} />}
+      <fieldset className="wide-labels">
+        <legend>Play prices (every branch)</legend>
+        {notSet && <p className="status-bad">No prices set yet: sessions can&apos;t start until HQ sets them.</p>}
+        {canEdit ? (
+          <>
+            {rateField('p-payg', 'Walk-in play', 'paygRate')}
+            {rateField('p-booking', 'Booked play', 'bookingRate')}
+          </>
+        ) : (
+          pricing.data && (
+            <ul>
+              <li>
+                Walk-in play: <b>{formatCoins(pricing.data.paygRate)} / hour</b> ({rateHint(pricing.data.paygRate)})
+              </li>
+              <li>
+                Booked play: <b>{formatCoins(pricing.data.bookingRate)} / hour</b> ({rateHint(pricing.data.bookingRate)})
+              </li>
+            </ul>
+          )
+        )}
+        {pricing.data && (
+          <p className="muted">
+            Changed {formatDateTime(pricing.data.updatedAt)}. Billed by the second; a tier&apos;s or pass&apos;s discount applies on top (the better of the two).
+            {!canEdit && ' Only HQ changes them.'}
+          </p>
+        )}
+        {canEdit && (
+          <div className="form-row">
+            <label />
+            <button type="submit" disabled={action.busy === 'pricing' || pricing.loading}>
+              Save prices
+            </button>
+          </div>
+        )}
+      </fieldset>
+    </form>
+  );
+}
+
+/** Prices, membership tiers and passes (brief §6.9). Gamers buy tiers and passes in the BaronDesk app. */
+export function PlansPage() {
+  const action = useAction();
+  return (
+    <>
+      <h1>Plans &amp; prices</h1>
+      <ActionMessages action={action} />
+      <PricingForm action={action} />
+      <div className="columns">
+        <TierSection action={action} />
+        <PassSection action={action} />
+      </div>
+    </>
+  );
+}

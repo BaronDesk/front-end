@@ -1,0 +1,55 @@
+/* WalletPage's own styles (not layered: they win over the components', so the page can place them). */
+
+.head {
+  margin-top: calc(30 * var(--u));
+}
+
+/* My wallet */
+.pageCard {
+  margin: calc(4 * var(--u)) 0 0 calc(28 * var(--u));
+}
+
+.topup {
+  margin-top: calc(22 * var(--u));
+}
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10 * var(--u));
+}
+
+/* The column's gap spaces the entries. */
+.entry + .entry {
+  margin-top: 0;
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: calc(10 * var(--u));
+  padding-bottom: calc(10 * var(--u));
+}
+
+.entryRight {
+  text-align: right;
+}
+
+.entryWhat {
+  font-size: calc(15 * var(--u));
+}
+
+.entryWhen {
+  font-size: calc(11 * var(--u));
+  opacity: 0.8;
+}
+
+.entryAmount {
+  font-weight: 700;
+  font-size: calc(16 * var(--u));
+}
+
+.entryOut {
+  color: var(--bd-red);
+}

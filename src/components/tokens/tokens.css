@@ -1,0 +1,139 @@
+/*
+ * BaronDesk's design tokens and base: the graphic charter's colors, the
+ * Neue Kaine and Nexa fonts, the design unit (--u) and the few global rules
+ * every screen needs. Loaded once by each app's entry (main.tsx); components
+ * style themselves with CSS Modules that use these variables.
+ */
+
+/* Cascade order: base < components (CSS Modules) < the pages' own, unlayered styles. */
+@layer base, components;
+
+@font-face {
+  font-family: 'Neue Kaine';
+  src: url('./fonts/NeueKaine-Variable.ttf') format('truetype');
+  /* One variable font: Light is 400 on its axis, Black 900. */
+  font-weight: 400 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nexa';
+  src: url('./fonts/Nexa-Light.otf') format('opentype');
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nexa';
+  src: url('./fonts/Nexa-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nexa';
+  src: url('./fonts/Nexa-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@layer base {
+  /*
+   * The portal's base: it no longer loads the admin's classic.css (every portal
+   * page is in this design now), so the few global rules it needs are here.
+   */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    background: #0d0d0d;
+  }
+
+  /* Before the login is known (RequireAuth): a quiet line on the dark stage. */
+  body > #root > p {
+    margin: 0;
+    padding: 24px;
+    color: #efe5d2;
+    font-family: sans-serif;
+  }
+
+  .bd-app {
+    /* Graphic charter */
+    --bd-red: #710912;
+    --bd-black: #0d0d0d;
+    --bd-gold: #c28d39;
+    --bd-brown: #362822;
+    --bd-cream: #efe5d2;
+    /* Text on the dark brown buttons and the nav bar */
+    --bd-on-dark: #e8decb;
+
+    /* Neue Kaine's named weights sit at these points of its axis. */
+    --bd-light: 400;
+    --bd-regular: 483;
+    --bd-semibold: 650;
+    /* Neue Kaine Medium: buttons, fields and figures. */
+    --bd-medium: 567;
+
+    --bd-column: 430px;
+    /*
+     * The design unit: the screens are drawn 360 wide, so 1 unit is 1/360 of
+     * the column. Every size below is a number of units: the design scales
+     * with the phone.
+     */
+    --u: calc(min(100vw, var(--bd-column)) / 360);
+    --bd-nav-height: calc(77 * var(--u));
+    /* How the nav moves from page to page. */
+    --bd-nav-move: 380ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    position: relative;
+    min-height: 100vh;
+    min-height: 100dvh;
+    max-width: var(--bd-column);
+    margin: 0 auto;
+    padding-bottom: calc(var(--bd-nav-height) + calc(12 * var(--u)));
+    overflow-x: hidden;
+    color: var(--bd-brown);
+    font-family: 'Neue Kaine', sans-serif;
+    font-weight: var(--bd-regular);
+    font-size: calc(16 * var(--u));
+    line-height: normal;
+    background:
+      linear-gradient(180deg, rgba(63, 19, 19, 0.2) 0%, rgba(102, 102, 102, 0) 14.904%),
+      linear-gradient(180deg, rgba(194, 141, 57, 0.32) 0%, rgba(0, 0, 0, 0) 100%),
+      var(--bd-cream);
+  }
+
+  /* A one-screen design: the unit also follows the height (696 drawn), so it all fits. */
+  .bd-fit {
+    --u: min(calc(min(100vw, var(--bd-column)) / 360), calc(100vh / 696));
+    --u: min(calc(min(100vw, var(--bd-column)) / 360), calc(100dvh / 696));
+  }
+
+  /* Around the phone-width column on a wide screen. */
+  .bd-stage {
+    min-height: 100vh;
+    background: var(--bd-black);
+  }
+
+  .bd-app :where(a) {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* classic.css gives every label a 110 px minimum width (its admin forms). */
+  .bd-app label {
+    min-width: 0;
+  }
+
+  .bd-app :where(p, h1, h2) {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: inherit;
+  }
+}

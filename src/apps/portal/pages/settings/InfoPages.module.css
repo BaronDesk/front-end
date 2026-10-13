@@ -1,0 +1,55 @@
+/* InfoPages's own styles (not layered: they win over the components', so the page can place them). */
+
+/* ---------- Settings pages (history, terms, FAQ) ---------- */
+
+.root {
+  padding: calc(20 * var(--u)) 0 calc(20 * var(--u));
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: calc(12 * var(--u));
+  width: calc(318 * var(--u));
+  margin: calc(16 * var(--u)) 0 0 calc(21 * var(--u));
+}
+
+.cards > * {
+  width: auto;
+  margin: 0;
+}
+
+.question {
+  margin-bottom: calc(6 * var(--u)) !important;
+  font-family: "Neue Kaine", sans-serif;
+  font-weight: 733;
+  font-size: calc(16 * var(--u));
+}
+
+.historyTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.historyStation {
+  font-size: calc(20 * var(--u));
+}
+
+.historyBranch {
+  color: rgba(54, 40, 34, 0.69);
+  font-size: calc(12 * var(--u));
+}
+
+.historyWhen {
+  margin-top: calc(4 * var(--u)) !important;
+  font-size: calc(14 * var(--u));
+}
+
+.historyFigures {
+  display: flex;
+  gap: calc(14 * var(--u));
+  margin-top: calc(8 * var(--u)) !important;
+  font-weight: 400;
+  font-size: calc(14 * var(--u));
+}

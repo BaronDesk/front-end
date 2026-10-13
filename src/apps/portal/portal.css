@@ -1,0 +1,9 @@
+/* The portal's few global rules: what sits inside the design without belonging to one page (each page styles itself with its own CSS Module, beside it). */
+
+/* A page's error box (PageErrorBoundary) inside the design. */
+.bd-app .msg-error {
+  margin: calc(20 * var(--u)) calc(27 * var(--u));
+  color: var(--bd-red);
+  font-family: "Nexa", sans-serif;
+  font-size: calc(14 * var(--u));
+}

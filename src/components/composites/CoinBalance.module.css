@@ -1,0 +1,30 @@
+/* CoinBalance: the balance pill under the Baron coin. */
+
+@layer components {
+  /* The balance pill runs under the coin's left side (23 px), as drawn. The page places it. */
+  .root {
+    display: flex;
+    align-items: center;
+  }
+
+  .pill {
+    min-width: calc(76 * var(--u));
+    height: calc(27 * var(--u));
+    /* 2 on top, 1 less line: the digits sit 1 lower than the centre, as drawn. */
+    padding: calc(2 * var(--u)) calc(31 * var(--u)) 0 calc(8 * var(--u));
+    border-radius: calc(62 * var(--u));
+    background: var(--bd-brown);
+    color: var(--bd-cream);
+    font-weight: var(--bd-medium);
+    font-size: calc(12 * var(--u));
+    line-height: calc(25 * var(--u));
+    white-space: nowrap;
+  }
+
+  .coin {
+    position: relative;
+    width: calc(38 * var(--u));
+    height: calc(38 * var(--u));
+    margin-left: calc(-23 * var(--u));
+  }
+}

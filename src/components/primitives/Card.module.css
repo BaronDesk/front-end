@@ -1,0 +1,28 @@
+/* Card: the soft brown-to-gold panel of the portal (bookings, history, FAQ, wallet…). */
+
+@layer components {
+  .root {
+    width: calc(318 * var(--u));
+    margin: 0 0 0 calc(21 * var(--u));
+    padding: calc(14 * var(--u)) calc(16 * var(--u));
+    border-radius: calc(18 * var(--u));
+    background: linear-gradient(180deg, rgba(54, 40, 34, 0.22) 0%, rgba(194, 141, 57, 0.13) 100%);
+    font-family: 'Nexa', sans-serif;
+    font-weight: 300;
+    font-size: calc(15 * var(--u));
+    line-height: 1.35;
+  }
+
+  .root b {
+    font-weight: 700;
+  }
+
+  .root + .root {
+    margin-top: calc(12 * var(--u));
+  }
+
+  .alert {
+    border: calc(1 * var(--u)) solid var(--bd-red);
+    color: var(--bd-red);
+  }
+}

@@ -1,0 +1,10 @@
+/* PlayerBadges: rank, tier and pass in a row. */
+
+@layer components {
+  /* ---------- Badges (rank, membership, pass) ---------- */
+
+  .root {
+    display: flex;
+    align-items: center;
+  }
+}

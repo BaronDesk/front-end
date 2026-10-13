@@ -1,0 +1,7 @@
+/* Page: the body of a page that is not drawn edge to edge (account, plans, session, wallet). */
+
+@layer components {
+  .root {
+    padding: calc(20 * var(--u)) 0 calc(24 * var(--u));
+  }
+}

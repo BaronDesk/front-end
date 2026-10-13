@@ -1,0 +1,128 @@
+/* HomePage's own styles (not layered: they win over the components', so the page can place them). */
+
+/* ---------- Home ---------- */
+
+/* The screen's height above the nav; the cards and buttons share what the header leaves. */
+.root {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--bd-nav-height) - calc(12 * var(--u)));
+  min-height: calc(100dvh - var(--bd-nav-height) - calc(12 * var(--u)));
+}
+
+.main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.head {
+  position: relative;
+  height: calc(115 * var(--u));
+  border-bottom: calc(2 * var(--u)) solid rgba(54, 40, 34, 0.75);
+}
+
+.avatar {
+  position: absolute;
+  left: calc(31 * var(--u));
+  top: calc(28 * var(--u));
+}
+
+.name {
+  position: absolute;
+  left: calc(102 * var(--u));
+  top: calc(34 * var(--u));
+  font-weight: var(--bd-semibold);
+  font-size: calc(18 * var(--u));
+}
+
+/* The last drawing ends 30.4 px from the edge, as in Figma. */
+.badges {
+  position: absolute;
+  right: calc(30.4 * var(--u));
+  top: calc(25 * var(--u));
+  height: calc(31 * var(--u));
+}
+
+.xp {
+  position: absolute;
+  left: calc(95.85 * var(--u));
+  right: calc(27 * var(--u));
+  top: calc(56 * var(--u));
+}
+
+.hero {
+  position: relative;
+  height: calc(152 * var(--u));
+}
+
+.title {
+  position: absolute;
+  left: calc(11 * var(--u));
+  top: calc(12 * var(--u));
+  font-weight: var(--bd-regular);
+  font-size: calc(40 * var(--u));
+}
+
+.collection {
+  position: absolute;
+  right: 0;
+  top: calc(103 * var(--u));
+  width: calc(143 * var(--u));
+  height: calc(27 * var(--u));
+  padding: calc(5 * var(--u)) 0 0 calc(9 * var(--u));
+  border-radius: calc(77 * var(--u)) 0 0 calc(70 * var(--u));
+  background: var(--bd-brown);
+  color: var(--bd-cream);
+  font-family: 'Nexa', sans-serif;
+  font-weight: 300;
+  font-size: calc(17 * var(--u));
+  white-space: nowrap;
+}
+
+/* 29 px from the left at 360 px, as drawn; the pair stays in the middle on wider phones. */
+.buttons {
+  display: flex;
+  gap: calc(19 * var(--u));
+  margin-top: calc(27 * var(--u));
+  padding-left: calc(50% - calc(151 * var(--u)));
+}
+
+.buttonBig {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: calc(138 * var(--u));
+  height: calc(51 * var(--u));
+  overflow: hidden;
+  border-radius: calc(24 * var(--u));
+  background: linear-gradient(180deg, var(--bd-brown) 0%, rgba(32, 12, 3, 0.98) 97.115%);
+  color: var(--bd-on-dark);
+  font-weight: var(--bd-semibold);
+  font-size: calc(18 * var(--u));
+}
+
+.buttonBig span {
+  position: relative;
+}
+
+/* The doodles drawn faintly inside the two buttons. */
+.buttonDoodle {
+  position: absolute;
+  display: block;
+  max-width: none;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.doodleManette {
+  left: calc(-14 * var(--u));
+  top: calc(-14 * var(--u));
+}
+
+.doodleScribble {
+  left: calc(93.9 * var(--u));
+  top: calc(-15.76 * var(--u));
+  transform: rotate(-16deg);
+}

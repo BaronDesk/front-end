@@ -91,12 +91,12 @@ Every screen reads and writes the real backend. The last column says what each s
 | Session and bill | `GET /sessions/:id` | Read again every 5 s until the bill is settled |
 | Bookings | `GET /api/v1/reservations`, `DELETE /api/v1/reservations/:id` | Who booked which station, for one day or 7 days, by status (HQ: the branch in the top bar). **Cancel** a booking nobody plays on yet (its PIN stops working). Polled every 30 s (no event for a new booking) |
 | Wallet (desk) | `GET /gamers?q=`, `/wallets/:gamerProfileId…` | Find the gamer by **username** (an exact name opens at once, else pick from the matches; recent gamers are remembered per browser); idempotent top-up and refund (refund: branch admin and HQ) |
-| Users & Staff (gamers with their profile picture) | `GET /users`, `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `PATCH /users/:id/status`, `POST /users/:id/password` | List and search by username and role (HQ: everyone, or the branch picked in the top bar; a branch admin: gamers and their own staff). A new gamer needs a home branch. Suspend / Reactivate and Reset password show only where the server allows them (`src/admin/users/permissions.ts`) |
+| Users & Staff (gamers with their profile picture) | `GET /users`, `POST /users`, `POST /employees`, `PATCH /users/:id/role`, `PATCH /users/:id/status`, `POST /users/:id/password` | List and search by username and role (HQ: everyone, or the branch picked in the top bar; a branch admin: gamers and their own staff). A new gamer needs a home branch. Suspend / Reactivate and Reset password show only where the server allows them (`src/domain/permissions.ts`) |
 | Plans & prices | `/pricing`, `/membership-plans`, `/subscription-plans` | The play prices in coins per hour, the same in every branch: HQ edits them, managers see them. Create, edit, delete tiers and passes (prices in coins). A pass has one or more time windows (days, from–to, discount), added, changed and removed in its form; gamers who already bought it keep the windows they paid for. **Badge** on each tier and pass: the picture is uploaded when picked (`POST /uploads/images`) and saved with the form |
 | Ranks | `GET/POST/PATCH/DELETE /ranks`, `POST /uploads/images` | The gamer ranks (Wood → GrandMaster): name, the XP each starts at, badge. Shared by every branch; warns when no rank starts at 0 XP |
-| Images (how pages use them) | `POST /uploads/images`, `PUT/DELETE /users/me/avatar`, `GET /uploads/…` | Forms use `src/shared/components/ImageField.tsx` (picker, preview, Remove; checks type and size before sending) and lists `Thumb.tsx`. The portal profile sets the gamer's picture with it. `src/api/images.ts`: `uploadImage(file)` answers a link to save as the `badgeUrl` of a tier, pass or rank, or the `iconUrl` of a game (any other link is refused); `setMyAvatar(file)` for the gamer; show any of them with `<img src={imageSrc(url)}>`. PNG, JPEG or WebP, at most 2 MB (`IMAGE_MAX_BYTES`, `IMAGE_ACCEPT`). Rank shapes in `src/api/types/ranks.ts` |
-| Audit log (HQ) | `GET /audit-logs?branchId&from&action&q&limit` | Who did which sensitive action, on what, when: role changes, suspensions, password resets, refunds, shutdowns, revoked stations, branch / plan / price changes (HQ: the branch in the top bar). Filter by day, action, name. **Not on the backend yet**: until it is, the page says so (404). Expected answer: `AuditLogEntry[]` in `src/api/types/audit.ts`; action wording in `src/admin/audit/audit.ts` |
-| Portal: home (Figma design) | `/auth/me` (`xp`, `rank`, `nextRank`), `/memberships/me`, `/subscriptions/me`, `GET /api/v1/games` | The gamer's picture (BIDI until they upload one), XP bar towards the next rank, badges (rank, tier, pass), the game collection: an endless ring (drag it, or the arrow keys; after the last game comes the first), games with a poster first, Bookings and Events (tournaments: *coming soon*). The redesign from Figma goes one screen at a time: redesigned screens use `src/portal/ui/`, the others keep the classic layout |
+| Images (how pages use them) | `POST /uploads/images`, `PUT/DELETE /users/me/avatar`, `GET /uploads/…` | Desk forms use `src/apps/desk/components/ImageField.tsx` (picker, preview, Remove; checks type and size before sending) and lists `Thumb.tsx`. The portal profile sets the gamer's picture with it. `src/services/images.service.ts`: `uploadImage(file)` answers a link to save as the `badgeUrl` of a tier, pass or rank, or the `iconUrl` of a game (any other link is refused); `setMyAvatar(file)` for the gamer; show any of them with `<img src={imageSrc(url)}>`. PNG, JPEG or WebP, at most 2 MB (`IMAGE_MAX_BYTES`, `IMAGE_ACCEPT`). Rank shapes in `src/core/api-types/ranks.ts` |
+| Audit log (HQ) | `GET /audit-logs?branchId&from&action&q&limit` | Who did which sensitive action, on what, when: role changes, suspensions, password resets, refunds, shutdowns, revoked stations, branch / plan / price changes (HQ: the branch in the top bar). Filter by day, action, name. **Not on the backend yet**: until it is, the page says so (404). Expected answer: `AuditLogEntry[]` in `src/core/api-types/audit.ts`; action wording in `src/domain/audit.ts` |
+| Portal: home (Figma design) | `/auth/me` (`xp`, `rank`, `nextRank`), `/memberships/me`, `/subscriptions/me`, `GET /api/v1/games` | The gamer's picture (BIDI until they upload one), XP bar towards the next rank, badges (rank, tier, pass), the game collection: an endless ring (drag it, or the arrow keys; after the last game comes the first), games with a poster first, Bookings and Events (tournaments: *coming soon*). Every portal screen uses the design system in `src/components/` |
 | Portal: welcome, login, sign-up (Figma design) | `POST /auth/login`, `GET /branches`, `POST /users` | Signed out, the portal opens on **Welcome** (Login / Sign Up). Sign-up asks the username, the **home branch**, the password twice (they must match), then logs in and opens Bookings. The eye shows or hides a password (two Figma icons: crossed out while hidden, open once shown). Login is the same form as the staff app's (`useLoginForm` in `shared/components/LoginForm.tsx`) |
 | Portal: bookings (Figma design) | `GET /branches/:id/stations`, `/reservations`, `/reservations/walk-in`, `/reservations/:id/check-in`, `DELETE /reservations/:id` | **My Bookings**: a card per booking (PC, branch, length, start) with its **PIN**; a tap shows New PIN and Cancel. **Reserve**: day (a picker of the 7 bookable days, `booking/DayPicker.tsx`), time ("Now" = Play now) and length, then the room's seat map (`booking/seats.ts`: rows of 2 + 3 seats, numbered; red = taken for that slot, from each PC's bookings of the next 7 days). The wallet must cover the booking (`INSUFFICIENT_FUNDS`) |
 | Portal: profile (Figma design) | `/auth/me`, `/wallets/me`, `/ranks`, `/membership-plans`, `/memberships/me` | Picture, rank, XP bar, the wallet card ("30.000"), the ranks reached (the others faded), the membership tiers and the passes (Plans, not in Figma: the gamer's in full, a tap opens Memberships & passes) |
@@ -105,7 +105,7 @@ Every screen reads and writes the real backend. The last column says what each s
 | Portal: my account, memberships & passes (same style, not in Figma) | `PATCH /users/me/branch`, `POST /auth/change-password`, `PUT/DELETE /users/me/avatar`, `…/purchase`, `POST /memberships/me/cancel` | My account: picture, home branch, password (twice). Memberships & passes: every tier and pass as a plan card with its price and **Buy** / **Upgrade** (pay the difference, prorated) / **Cancel** (no refund) |
 | Portal: my session, wallet (same style, not in Figma) | `GET /sessions/me/current`, `/reservations/:id/extend-options`, `POST /reservations/:id/extend`, `session_notice`, `/wallets/me…` | My session: a dark card (PC, time played, end, cost so far, balance after), **Extend** by 30 / 60 / 90 minutes near the end, the PIN before the start. Wallet: the Profile wallet card, how to top up (the username to give the desk), the history. Every portal page is in this design: the portal no longer loads classic.css |
 
-**Money:** the platform counts in **coins**, whole numbers, everywhere (wallets, prices, bills); screens show them with `formatCoins` in `src/shared/lib/format.ts` and never compute money. What a coin is worth is set there too (`COINS_PER_CURRENCY = 1000`, `CURRENCY = 'DT'`): only the desk top-up uses it, taking cash in DT and crediting the coins. Rates are coins per hour, billed by the second.
+**Money:** the platform counts in **coins**, whole numbers, everywhere (wallets, prices, bills); screens show them with `formatCoins` in `src/lib/format.ts` and never compute money. What a coin is worth is set there too (`COINS_PER_CURRENCY = 1000`, `CURRENCY = 'DT'`): only the desk top-up uses it, taking cash in DT and crediting the coins. Rates are coins per hour, billed by the second.
 
 ### The desk and the gamer app
 
@@ -142,7 +142,7 @@ Seed first (`back-end/`), start at least one real agent (Play now needs the PC O
 - The access token is kept in memory; the refresh token in `sessionStorage` (one per app). A reload keeps you logged in; closing the tab logs out.
 - A `401` triggers one token refresh and a retry. If the refresh fails, the login page says the session expired.
 - The menu hides what the role can't use; opening such a page by URL shows **Access denied**. The server's `403` is still the real rule.
-- **Own password:** admin top bar → **Password** (`#/account`), portal → Settings. Both use `src/shared/components/ChangePasswordForm.tsx` (`POST /auth/change-password`): every other login of the account ends, this tab stays logged in with the new tokens. A lost password is reset by a branch admin or HQ on Users & Staff.
+- **Own password:** admin top bar → **Password** (`#/account`), portal → Settings. Both use `useChangePassword` (`src/hooks/`, `POST /auth/change-password`): the desk through `apps/desk/components/ChangePasswordForm.tsx`, the portal on My account: every other login of the account ends, this tab stays logged in with the new tokens. A lost password is reset by a branch admin or HQ on Users & Staff.
 
 ## Live updates
 
@@ -159,62 +159,80 @@ Seed first (`back-end/`), start at least one real agent (Play now needs the PC O
 - **Audit log** (`#/audit`, HQ only): see the screens table; it needs `GET /audit-logs` on the backend.
 - **HQ overview** (`#/hq`, HQ's start page): stations, online, in session and open alerts per branch, computed from the machines, the stations and the open alerts.
 - **Branches:** below the table, HQ creates a branch (name, location) with `POST /branches`; **Edit** on a row renames or moves it with `PATCH /branches/:id`. A new branch then needs its PCs (New stations); the prices are the same in every branch.
-- Code: `src/admin/branches/BranchContext.tsx` (`useBranchScope()`: `scoped(path)`, `inScope(branchId)`), `src/admin/branches/HqPage.tsx`.
+- Code: `src/apps/desk/providers/BranchContext.tsx` (`useBranchScope()`: `scoped(path)`, `inScope(branchId)`), `src/apps/desk/pages/hq/HqPage.tsx`.
 
 ## Build and test
 
 ```sh
-npm run build      # typecheck + vite build → dist/
+npm run build          # typecheck + vite build → dist/admin, dist/portal
 npm run typecheck
-npm test           # 30 unit tests: money, branches, bookings, plan and ledger wording, pass windows, audit wording, Users page permissions,
-                   # wallet search, booking dates, peripherals, telemetry history, command wording
+npm run check:layers   # the dependency rule below: lists any import that breaks it
+npm test               # 48 unit tests: money, dates, branches, bookings, seats, plans and ledger wording, pass windows, XP,
+                       # audit wording, Users page permissions, wallet search, peripherals, telemetry, images
 ```
 
-## Layout
+## Source layout
+
+Two apps share one code base: **the desk** (staff, branch admins and HQ; one app, the menu follows the role)
+and **the portal** (gamers). Everything below `apps/` is shared, in layers.
 
 ```text
-admin/index.html, portal/index.html   the two entry pages (multi-page build)
+admin/index.html, portal/index.html   the two entry pages (multi-page build → dist/admin, dist/portal)
+scripts/check-layers.mjs              checks the dependency rule
 src/
-  api/              http.ts: api() (fetch with token refresh; a FormData body goes as multipart)
-                    images.ts: uploadImage, setMyAvatar / removeMyAvatar, imageSrc for <img src>
-    types/          backend shapes, one file per domain (stations, sessions, bookings, wallet,
-                    plans, ranks, uploads, games, commands, alerts, audit, events…); import from 'api/types'
-  auth/             login state, tokens, role checks, route guards
-  realtime/         live updates: Socket.IO client for /dashboard-io
-  shared/           used by both apps; no app-specific code here
-    components/     TopBar + LogoutLink, ErrorBox, ActionMessages, EmptyRow, NotFoundPage,
-                    LoginForm, ChangePasswordForm, ConnectionBanner, CopyButton, PageErrorBoundary,
-                    ImageField (upload a picture in a form), Thumb (a stored image)
-    hooks/          useApiQuery (GET + reload), useAction (busy / error / success of buttons)
-    lib/            pure helpers with their tests: format (money, dates), dates (day ranges),
-                    errors (explainRefusal), plans, wallet, bookings, images (file checks), menu types
-  admin/            the staff app
-    main.tsx, AdminApp.tsx (routes), menu.ts
-    layout/         AdminLayout (top bar, side menu), AccessDenied
-    <feature>/      one folder per menu entry: stations, sessions, bookings, wallet, alerts,
-                    users, plans, ranks, games, branches (HQ overview + branch scope), audit, account
-  portal/           the gamer app
-    main.tsx, PortalApp.tsx (routes)
-    ui/             the Figma design: portal.css (scoped under .bd-app; every size in --u, 1/360 of the
-                    column, so the screens scale with the phone), units.tsx (u(), Art), fonts/ (Neue Kaine, Nexa),
-                    assets/ (icons, doodles, mascot, logo, background shapes exported from Figma),
-                    DesignShell (signed in: column, background and one BottomNav kept across pages,
-                    so it animates from page to page), AuthScreen (signed out),
-                    Fields (text, password with its eye, select), Avatar, XpBar, PlayerBadges
-    <feature>/      home, events, booking (bookings, seat map, PIN), session, wallet, profile (profile, memberships & passes),
-                    account (welcome, login, sign-up, settings, my account, history / terms / FAQ)
-  styles/classic.css   the admin's theme (black / white / gold / red); the portal does not load it
+  core/          the platform: http/client.ts (api(): fetch with token refresh, ApiError), auth/ (tokens, roles),
+                 realtime/ (Socket.IO client for /dashboard-io), config.ts, api-types/ (the backend's shapes, one
+                 file per domain; import from 'core/api-types')
+  lib/           pure helpers, no React: format (coins, durations), dates, errors (describeError, explainRefusal),
+                 images (file checks, imageSrc), cx (class names)
+  domain/        the business rules, pure and tested: bookings, seats, plans, wallet, xp, images, and the desk's
+                 stations, telemetry, alerts, sessions, games, audit, permissions, branches, gamerSearch
+  services/      the only code that knows the backend's URLs: one object per resource (stations, sessions,
+                 reservations, wallet, users, plans, games, ranks, branches, machines, alerts, audit, catalog,
+                 auth, images). Each has `paths` for reads and a method per action; server refusals come back
+                 as sentences (an adapter over the error codes)
+  hooks/         useApiQuery (GET + reload), useAction (busy / message / error of a button), useNow,
+                 useLoginForm, useChangePassword, queries.ts (named reads: useMyWallet(), useBranches()…)
+  providers/     AuthProvider (who is logged in), guards (RequireAuth…), RealtimeProvider
+  components/    the design system (CSS Modules, every size in --u, 1/360 of the phone column)
+    tokens/      tokens.css (colors, weights, the unit, base rules; layers: base, components), fonts/
+    primitives/  Button (+ ButtonLink, ButtonRow), Field, Notice (+ ActionNote), Card, SectionTitle, PageTitle,
+                 Pill, Avatar, BadgeImage, Art (+ u())
+    composites/  XpBar, PlayerBadges, PlanCard, WalletCard, CoinBalance, ChipPicker (a pill opening chips),
+                 DayPicker (ChipPicker of days), GameCarousel, EmptyScreen
+    layout/      MobileShell, AuthLayout (AuthScreen, AuthLogo, AuthMascot, AuthForm, AuthFields, AuthError),
+                 Page, PageErrorBoundary
+    assets/      icons, doodles, mascot, logo, background shapes exported from Figma
+  apps/
+    portal/      main.tsx, PortalApp.tsx (routes), portal.css (the few global rules)
+      layout/    PortalShell (the route → nav item map), BottomNav
+      pages/     auth/ (welcome, login, sign-up), home/ (home, events), book/, profile/, settings/ (settings,
+                 my account, memberships & passes, history / terms / FAQ), session/, wallet/, NotFoundPage;
+                 each page XxxPage.tsx with its own XxxPage.module.css
+    desk/        main.tsx, DeskApp.tsx (routes), menu.ts, classic.css (the desk's theme until its redesign)
+      layout/    DeskLayout (top bar, side menu), AccessDenied
+      providers/ BranchContext (HQ's branch scope), AlertFeedContext
+      hooks/     useCommands, useStationList, useStationNames, useRecentGamers
+      components/  the desk's classic pieces: TopBar, ErrorBox, ActionMessages, EmptyRow, LoginForm,
+                 ChangePasswordForm, ConnectionBanner, CopyButton, ImageField, Thumb, CommandError…
+      pages/     one folder per menu entry: stations, sessions, bookings, wallet, alerts, users, plans,
+                 ranks, games, hq, audit, account
 ```
 
+**The dependency rule** (`npm run check:layers`): `apps → providers / hooks → services → domain → lib → core`;
+`components` only use `lib`, `domain` and `core` (they get their data through props). An app never imports the other app.
+
 **Where new code goes**
-- A screen goes in its app's feature folder (`src/admin/<feature>/XxxPage.tsx`), with the feature's own
-  helpers, hooks and small components next to it (`station.ts`, `useCommands.ts`, `CommandError.tsx`).
-- A pure helper's test sits next to it (`station.ts` → `station.test.ts`).
-- Code needed by **both** apps moves to `src/shared/` (`components/`, `hooks/` or `lib/`). An app never
-  imports from the other app.
-- A new backend shape goes in the matching `src/api/types/<domain>.ts` (a new domain also gets a line in
-  `src/api/types/index.ts`).
-- A server refusal shown in words: a `Record<code, sentence>` in the page and `explainRefusal(err, map)`
-  from `shared/lib/errors.ts`.
+- A screen: `src/apps/<app>/pages/<feature>/XxxPage.tsx` with its `XxxPage.module.css`. Page styles are not
+  layered, so they always win over a component's: a page places and sizes components with a `className`,
+  it does not restyle them.
+- A piece of UI used twice: a component in `src/components/` (primitive, composite or layout), with its
+  `.module.css` in `@layer components` and a `className` prop for placement. Pick a variant/size of
+  Button, Notice, Card… instead of writing button CSS in a page.
+- A backend route: a method or path in its `src/services/<resource>.service.ts`; a page never writes a URL.
+  A refusal shown in words: a `Record<code, sentence>` in the service and `explainRefusal(err, map)`.
+- A business rule: `src/domain/<topic>.ts`, pure, with its test beside it (`stations.ts` → `stations.test.ts`).
+- A read used by several pages: a named hook in `src/hooks/queries.ts`.
+- A new backend shape: the matching `src/core/api-types/<domain>.ts` (a new domain also gets a line in its `index.ts`).
 
 Routing uses hash URLs (`/admin/#/stations`) and the build uses relative asset paths, so the apps work behind a plain file server (Caddy) or inside a desktop shell, with no server rewrite rules.

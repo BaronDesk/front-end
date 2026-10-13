@@ -1,0 +1,94 @@
+/* PlanCard: a tier or pass card, its badge overflowing the left side. */
+
+@layer components {
+  .root {
+    position: relative;
+    width: calc(303 * var(--u));
+    height: calc(133 * var(--u));
+    margin-left: calc(28 * var(--u));
+    border: calc(1 * var(--u)) solid var(--bd-brown);
+    border-radius: calc(10 * var(--u));
+    background: linear-gradient(132.22deg, rgba(194, 141, 57, 0.15) 18.114%, rgba(92, 67, 27, 0.15) 81.886%);
+  }
+
+  .root > * {
+    position: absolute;
+  }
+
+  .badge {
+    display: block;
+    max-width: none;
+    pointer-events: none;
+  }
+
+  .divider {
+    top: calc(30 * var(--u));
+    height: calc(71 * var(--u));
+    border-left: calc(1 * var(--u)) solid var(--bd-brown);
+  }
+
+  .title {
+    top: calc(34 * var(--u));
+    font-weight: 733;
+    font-size: calc(16 * var(--u));
+  }
+
+  .lines {
+    left: calc(170 * var(--u));
+    top: calc(65 * var(--u));
+    font-weight: var(--bd-medium);
+    font-size: calc(14 * var(--u));
+  }
+
+  /* "No Plans": an empty circle crossed out where the badge would be. */
+  /* The tier card's two lines are 18 px apart, as drawn (the pass card's are tighter). */
+  .linesTier {
+    top: calc(66 * var(--u)) !important;
+    line-height: calc(18 * var(--u));
+  }
+
+  .none {
+    left: calc(27 * var(--u));
+    top: calc(18 * var(--u));
+    width: calc(95 * var(--u));
+    height: calc(95 * var(--u));
+    border: calc(2 * var(--u)) solid rgba(54, 40, 34, 0.45);
+    border-radius: 50%;
+  }
+
+  .none::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 100%;
+    border-top: calc(2 * var(--u)) solid rgba(54, 40, 34, 0.45);
+    transform: translate(-50%, -50%) rotate(-45deg);
+  }
+
+  .tall {
+    height: calc(165 * var(--u));
+  }
+
+  .footer {
+    left: calc(153 * var(--u));
+    right: calc(12 * var(--u));
+    bottom: calc(12 * var(--u));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(6 * var(--u));
+  }
+
+  /* Buying cards: the price on its own line, the button under it (the text column is narrow). */
+  .tall {
+    height: calc(190 * var(--u)) !important;
+  }
+
+  .footer {
+    left: calc(168 * var(--u)) !important;
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: calc(6 * var(--u)) !important;
+  }
+}

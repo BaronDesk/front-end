@@ -1,0 +1,10 @@
+/* PageTitle: the big title at the top of a page. */
+
+@layer components {
+  .root {
+    margin: calc(10 * var(--u)) 0 0 calc(27 * var(--u));
+    font-weight: var(--bd-regular);
+    font-size: calc(30 * var(--u));
+    line-height: normal;
+  }
+}

@@ -1,0 +1,47 @@
+/* WalletCard: the wallet, its coins and the balance. */
+
+@layer components {
+  /* The wallet card (WalletCard): a 304 × 192 box from the big coin's top; its parts placed inline. */
+  .root {
+    position: relative;
+    width: calc(304 * var(--u));
+    height: calc(192 * var(--u));
+  }
+
+  .root > * {
+    position: absolute;
+  }
+
+  .back {
+    width: calc(304 * var(--u));
+    height: calc(152 * var(--u));
+    border-radius: calc(11 * var(--u));
+    background: linear-gradient(180deg, rgba(194, 141, 57, 0.8) 0%, rgba(54, 40, 34, 0.8) 100%);
+    box-shadow: 0 0 calc(17.9 * var(--u)) calc(7 * var(--u)) rgba(0, 0, 0, 0.13);
+  }
+
+  .coin {
+    display: grid;
+    place-items: center;
+  }
+
+  .coin img {
+    display: block;
+    border-radius: 50%;
+  }
+
+  .front {
+  }
+
+  .label {
+    color: var(--bd-cream);
+    font-weight: var(--bd-regular);
+    font-size: calc(12 * var(--u));
+  }
+
+  .balance {
+    color: var(--bd-cream);
+    font-weight: var(--bd-medium);
+    font-size: calc(50 * var(--u));
+  }
+}

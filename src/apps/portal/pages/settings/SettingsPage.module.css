@@ -1,0 +1,125 @@
+/* SettingsPage's own styles (not layered: they win over the components', so the page can place them). */
+
+/* ---------- Settings ---------- */
+
+.root {
+  padding: calc(35 * var(--u)) 0 calc(20 * var(--u));
+}
+
+.profileCard {
+  position: relative;
+  display: block;
+  width: calc(300 * var(--u));
+  height: calc(73 * var(--u));
+  margin-left: calc(30 * var(--u));
+  border: calc(1 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(14 * var(--u));
+  background: linear-gradient(90deg, rgba(194, 141, 57, 0.3) 0%, rgba(92, 67, 27, 0.3) 100%);
+}
+
+.profileCard > * {
+  position: absolute;
+}
+
+.profileCardAvatar {
+  left: calc(8 * var(--u));
+  top: calc(7 * var(--u));
+}
+
+/* Long names and branch names stop before the arrow. */
+.profileCardName,
+.profileCardBranch {
+  max-width: calc(185 * var(--u));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Smaller than Figma's 24 / 16 px (the user's call): real names are longer than "BIDI4". */
+.profileCardName {
+  left: calc(73 * var(--u));
+  top: calc(20 * var(--u));
+  font-weight: 817;
+  font-size: calc(20 * var(--u));
+}
+
+.profileCardBranch {
+  left: calc(74 * var(--u));
+  top: calc(41 * var(--u));
+  color: rgba(54, 40, 34, 0.72);
+  font-weight: var(--bd-medium);
+  font-size: calc(13 * var(--u));
+}
+
+.profileCardChevron {
+  left: calc(271 * var(--u));
+  top: calc(27.5 * var(--u));
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 calc(38 * var(--u)) 0 calc(31 * var(--u));
+}
+
+.head h2 {
+  font-weight: 733;
+  font-size: calc(16 * var(--u));
+}
+
+.head a {
+  font-weight: var(--bd-regular);
+  font-size: calc(12 * var(--u));
+}
+
+.planLink {
+  display: block;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  width: calc(303 * var(--u));
+  margin: calc(7 * var(--u)) 0 0 calc(28 * var(--u));
+  border: calc(1 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(10 * var(--u));
+  background: rgba(194, 141, 57, 0.2);
+  overflow: hidden;
+}
+
+.list a {
+  display: flex;
+  align-items: center;
+  gap: calc(10 * var(--u));
+  height: calc(35 * var(--u));
+  padding-left: calc(14 * var(--u));
+  color: rgba(54, 40, 34, 0.75);
+  font-weight: var(--bd-medium);
+  font-size: calc(14 * var(--u));
+}
+
+.list a:first-child {
+  height: calc(40 * var(--u));
+}
+
+.list a + a {
+  border-top: calc(1 * var(--u)) solid var(--bd-brown);
+}
+
+.logout {
+  position: relative;
+  display: flex;
+  justify-content: flex-start;
+  width: calc(112 * var(--u));
+  margin: calc(29 * var(--u)) 0 0 calc(126 * var(--u));
+  /* 2 on top: the text sits 1 lower than the centre, as drawn. */
+  padding: calc(2 * var(--u)) 0 0 calc(36 * var(--u));
+}
+
+.logoutIcon {
+  position: absolute;
+  left: calc(9 * var(--u));
+  top: calc(6 * var(--u));
+  transform: rotate(180deg);
+}

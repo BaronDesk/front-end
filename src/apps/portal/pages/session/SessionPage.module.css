@@ -1,0 +1,115 @@
+/* SessionPage's own styles (not layered: they win over the components', so the page can place them). */
+
+/* ---------- Pages not in Figma, in the same style (account, plans, session, wallet) ---------- */
+
+.pageLink {
+  margin: calc(20 * var(--u)) calc(27 * var(--u)) 0 !important;
+  font-weight: var(--bd-medium);
+  font-size: calc(14 * var(--u));
+}
+
+/* A page's main link-button (Book a PC, Back home). */
+.book {
+  width: calc(130 * var(--u));
+  margin-top: calc(14 * var(--u));
+}
+
+/* My session: the wallet's dark card, with the numbers in cream. */
+.root {
+  width: calc(304 * var(--u));
+  margin: calc(18 * var(--u)) 0 0 calc(28 * var(--u));
+  padding: calc(18 * var(--u)) calc(20 * var(--u));
+  border-radius: calc(11 * var(--u));
+  background: linear-gradient(180deg, rgba(194, 141, 57, 0.8) 0%, rgba(54, 40, 34, 0.9) 100%);
+  box-shadow: 0 0 calc(17.9 * var(--u)) calc(7 * var(--u)) rgba(0, 0, 0, 0.13);
+  color: var(--bd-cream);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.station {
+  font-family: "Nexa", sans-serif;
+  font-weight: 300;
+  font-size: calc(20 * var(--u));
+}
+
+.chip {
+  padding: calc(4 * var(--u)) calc(10 * var(--u));
+  border: calc(1 * var(--u)) solid var(--bd-cream);
+  border-radius: calc(12 * var(--u));
+  font-family: "Nexa", sans-serif;
+  font-weight: 700;
+  font-size: calc(11 * var(--u));
+}
+
+.chipOff {
+  border-color: #ffb3ad;
+  color: #ffb3ad;
+}
+
+.label {
+  margin-top: calc(16 * var(--u)) !important;
+  font-weight: var(--bd-regular);
+  font-size: calc(12 * var(--u));
+}
+
+.played {
+  font-weight: var(--bd-medium);
+  font-size: calc(40 * var(--u));
+}
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: calc(8 * var(--u));
+  margin: calc(14 * var(--u)) 0 0;
+  padding-top: calc(12 * var(--u));
+  border-top: calc(1 * var(--u)) solid rgba(239, 229, 210, 0.4);
+}
+
+.figures dt {
+  font-weight: var(--bd-regular);
+  font-size: calc(11 * var(--u));
+  opacity: 0.8;
+}
+
+.figures dd {
+  margin: calc(3 * var(--u)) 0 0;
+  font-weight: var(--bd-medium);
+  font-size: calc(14 * var(--u));
+}
+
+.figures small {
+  display: block;
+  font-weight: var(--bd-regular);
+  font-size: calc(10 * var(--u));
+  opacity: 0.8;
+}
+
+.extendButtons {
+  margin: calc(12 * var(--u)) calc(27 * var(--u)) 0;
+}
+
+.booking,
+.none {
+  margin-top: calc(18 * var(--u));
+}
+
+.bookingNote {
+  margin: calc(6 * var(--u)) 0 calc(10 * var(--u));
+}
+
+.bookingStation {
+  font-size: calc(20 * var(--u));
+}
+
+.pin {
+  margin-top: calc(10 * var(--u)) !important;
+  font-weight: 400 !important;
+  font-size: calc(34 * var(--u));
+  letter-spacing: 0.08em;
+}

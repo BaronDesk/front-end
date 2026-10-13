@@ -1,0 +1,22 @@
+/* Pill: a small outlined choice (the Reserve panel's day, time and length). */
+
+@layer components {
+  .root {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: calc(32 * var(--u));
+    margin: 0;
+    padding: 0;
+    border: calc(1 * var(--u)) solid #000;
+    border-radius: calc(9 * var(--u));
+    background: transparent;
+    color: var(--bd-brown);
+    font-family: 'Nexa', sans-serif;
+    font-weight: 400;
+    font-size: calc(10 * var(--u));
+    text-align: left;
+    cursor: pointer;
+  }
+
+}

@@ -1,0 +1,19 @@
+/* Notice: a line telling what happened (done in brown, a refusal in the charter's red). */
+
+@layer components {
+  .root {
+    margin: calc(10 * var(--u)) calc(27 * var(--u)) 0;
+    font-family: 'Nexa', sans-serif;
+    font-weight: 400;
+    font-size: calc(13 * var(--u));
+    line-height: 1.35;
+  }
+
+  .error {
+    color: var(--bd-red);
+  }
+
+  .center {
+    text-align: center;
+  }
+}

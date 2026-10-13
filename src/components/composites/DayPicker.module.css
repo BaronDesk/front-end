@@ -1,0 +1,32 @@
+/* DayPicker: the calendar icon in its pill and the lines of a day chip. */
+
+@layer components {
+  /* The calendar icon as drawn: 10 × 10, its stroke reaching just past the box. */
+  .calendar {
+    width: calc(10 * var(--u));
+    height: calc(10 * var(--u));
+    overflow: hidden;
+  }
+
+  .calendar img {
+    display: block;
+    margin: calc(-0.19 * var(--u)) 0 0 calc(-0.19 * var(--u));
+  }
+
+  /* The chip's three lines (the chip itself: ChipPicker). */
+  .week {
+    font-weight: 300;
+    font-size: calc(8 * var(--u));
+  }
+
+  .number {
+    font-weight: 400;
+    font-size: calc(15 * var(--u));
+    line-height: 1;
+  }
+
+  .month {
+    font-weight: 300;
+    font-size: calc(8 * var(--u));
+  }
+}

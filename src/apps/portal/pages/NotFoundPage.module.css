@@ -1,0 +1,6 @@
+/* NotFoundPage's own styles (not layered: they win over the components', so the page can place them). */
+
+.home {
+  width: calc(130 * var(--u));
+  margin-top: calc(14 * var(--u));
+}

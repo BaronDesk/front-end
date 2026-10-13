@@ -1,0 +1,36 @@
+import { Link, useLocation } from 'react-router';
+
+import { useStationNames } from '../hooks/useStationNames';
+import { useAlertFeed } from '../providers/AlertFeedContext';
+import { alertDetail, repeatText, typeLabel } from '../../../domain/alerts';
+
+/** Red bar for alerts that just arrived (brief §6.5: alert → toast + list). Hidden on the Alerts page itself. */
+export function AlertBanner() {
+  const { unseen, dismissAll } = useAlertFeed();
+  const { pathname } = useLocation();
+  const stationNames = useStationNames();
+
+  if (unseen.length === 0 || pathname === '/alerts') return null;
+  const latest = unseen[0];
+  const more = unseen.length - 1;
+
+  return (
+    <div className="banner banner-alert" role="alert">
+      NEW ALERT: {stationNames.get(latest.machineId) ?? latest.serialNumber ?? 'a station'} &middot; {typeLabel(latest.type)}{' '}
+      ({latest.severity}) &middot; {alertDetail(latest)} {repeatText(latest)}
+      {more > 0 && ` (+${more} more)`}
+      <span className="banner-actions">
+        <Link to="/alerts">View alerts</Link> &nbsp;|&nbsp;{' '}
+        <a
+          href="#dismiss"
+          onClick={(e) => {
+            e.preventDefault();
+            dismissAll();
+          }}
+        >
+          Dismiss
+        </a>
+      </span>
+    </div>
+  );
+}

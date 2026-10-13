@@ -1,0 +1,85 @@
+/* Button: one look for every button and button-link; pages only place and size it (width, margins). */
+
+@layer components {
+  .root {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: calc(8 * var(--u));
+    margin: 0;
+    padding: 0 calc(16 * var(--u));
+    border: calc(1 * var(--u)) solid transparent;
+    font-family: 'Neue Kaine', sans-serif;
+    font-weight: var(--bd-medium);
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .root:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .root:focus-visible {
+    outline: calc(2 * var(--u)) solid var(--bd-gold);
+    outline-offset: calc(2 * var(--u));
+  }
+
+  /* Sizes: each sets its height, corner and type, so a button's text never outgrows it. */
+  .sm {
+    height: calc(28 * var(--u));
+    padding: 0 calc(14 * var(--u));
+    border-radius: calc(14 * var(--u));
+    font-size: calc(12 * var(--u));
+  }
+
+  .md {
+    height: calc(35 * var(--u));
+    border-radius: calc(54 * var(--u));
+    font-weight: 733;
+    font-size: calc(14 * var(--u));
+  }
+
+  .lg {
+    height: calc(43 * var(--u));
+    border-radius: calc(18 * var(--u));
+    font-size: calc(18 * var(--u));
+  }
+
+  .xl {
+    height: calc(51 * var(--u));
+    border-radius: calc(18 * var(--u));
+    font-size: calc(20 * var(--u));
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(8 * var(--u));
+  }
+
+  /* Variants */
+  .primary {
+    background: var(--bd-brown);
+    color: var(--bd-cream);
+  }
+
+  .secondary {
+    border: calc(1.5 * var(--u)) solid var(--bd-brown);
+    background: var(--bd-cream);
+    color: var(--bd-brown);
+  }
+
+  .outline {
+    border-color: var(--bd-brown);
+    background: transparent;
+    color: var(--bd-brown);
+  }
+
+  .danger {
+    background: var(--bd-red);
+    color: var(--bd-cream);
+  }
+}

@@ -1,0 +1,259 @@
+/* BookPage's own styles (not layered: they win over the components', so the page can place them). */
+
+/* ---------- Bookings ---------- */
+
+.root {
+  padding-bottom: calc(24 * var(--u));
+}
+
+.head {
+  position: relative;
+  height: calc(80 * var(--u));
+}
+
+/* The coins, top right of the header, as drawn. */
+.coins {
+  position: absolute;
+  right: calc(18 * var(--u));
+  top: calc(21 * var(--u));
+}
+
+.avatar {
+  position: absolute;
+  left: calc(27 * var(--u));
+  top: calc(18 * var(--u));
+}
+
+.badges {
+  position: absolute;
+  left: calc(82 * var(--u));
+  top: calc(27.5 * var(--u));
+  height: calc(24 * var(--u));
+}
+
+.reserveTitle {
+  margin-top: calc(34 * var(--u)) !important;
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: calc(12 * var(--u));
+  margin: calc(13 * var(--u)) 0 0 calc(21 * var(--u));
+  width: calc(286 * var(--u));
+}
+
+.booking {
+  border-radius: calc(18 * var(--u));
+  background: linear-gradient(180deg, rgba(54, 40, 34, 0.22) 0%, rgba(194, 141, 57, 0.13) 100%);
+  font-family: 'Nexa', sans-serif;
+  font-weight: 300;
+}
+
+/* The card is one button: a tap shows its actions (New PIN, Cancel). */
+:global(.bd-app) .bookingMain,
+:global(.bd-app) .bookingMain:hover,
+:global(.bd-app) .bookingMain:active {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: calc(106 * var(--u));
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bd-brown);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bookingMain > * {
+  position: absolute;
+}
+
+.bookingStation {
+  left: calc(16 * var(--u));
+  top: calc(13 * var(--u));
+  font-size: calc(20 * var(--u));
+}
+
+.bookingBranch {
+  right: calc(15 * var(--u));
+  top: calc(18 * var(--u));
+  color: rgba(54, 40, 34, 0.69);
+  font-size: calc(12 * var(--u));
+}
+
+.bookingLine {
+  left: calc(16 * var(--u));
+  top: calc(48 * var(--u));
+  width: calc(256 * var(--u));
+  border-top: calc(1 * var(--u)) solid var(--bd-brown);
+}
+
+.bookingAlarm {
+  left: calc(16 * var(--u));
+  top: calc(62 * var(--u));
+}
+
+.bookingLength {
+  left: calc(33 * var(--u));
+  top: calc(61 * var(--u));
+  font-size: calc(16 * var(--u));
+}
+
+/* The calendar icon as drawn: 10 × 10, its stroke reaching just past the box. */
+.bookingCalendar {
+  width: calc(10 * var(--u));
+  height: calc(10 * var(--u));
+  overflow: hidden;
+}
+
+.bookingCalendar img {
+  display: block;
+  margin: calc(-0.19 * var(--u)) 0 0 calc(-0.19 * var(--u));
+}
+
+.bookingCalendar {
+  left: calc(18 * var(--u));
+  top: calc(82 * var(--u));
+}
+
+.bookingWhen {
+  left: calc(33 * var(--u));
+  top: calc(80 * var(--u));
+  font-size: calc(16 * var(--u));
+}
+
+.bookingPin {
+  right: calc(13 * var(--u));
+  top: calc(79 * var(--u));
+  font-weight: 400;
+  font-size: calc(16 * var(--u));
+  letter-spacing: 0.02em;
+}
+
+.bookingActions {
+  display: flex;
+  gap: calc(10 * var(--u));
+  padding: 0 calc(16 * var(--u)) calc(12 * var(--u));
+}
+
+.bookingNone {
+  padding: calc(18 * var(--u)) calc(16 * var(--u));
+  border-radius: calc(18 * var(--u));
+  background: linear-gradient(180deg, rgba(54, 40, 34, 0.22) 0%, rgba(194, 141, 57, 0.13) 100%);
+  font-family: 'Nexa', sans-serif;
+  font-weight: 300;
+  font-size: calc(16 * var(--u));
+}
+
+/* The "Reserve" panel: day, time and length pills, then the room's seats. */
+.reserve {
+  position: relative;
+  width: calc(304 * var(--u));
+  margin: calc(8 * var(--u)) 0 0 calc(26 * var(--u));
+  border: calc(1 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(17 * var(--u));
+}
+
+/* The day, time and length Pills, in a row at the panel's top. */
+.reservePill {
+  position: absolute;
+  top: calc(12 * var(--u));
+}
+
+.pillDate {
+  left: calc(10 * var(--u));
+  width: calc(98 * var(--u));
+  gap: calc(10 * var(--u));
+  padding-left: calc(9 * var(--u));
+}
+
+.pillTime {
+  left: calc(117 * var(--u));
+  width: calc(69 * var(--u));
+  gap: calc(11 * var(--u));
+  padding-left: calc(6 * var(--u));
+}
+
+.pillLength {
+  left: calc(195 * var(--u));
+  width: calc(69 * var(--u));
+  justify-content: center;
+}
+
+:global(.bd-app) .seat,
+:global(.bd-app) .seat:hover,
+:global(.bd-app) .seat:active {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: calc(1 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(6 * var(--u));
+  background: transparent;
+  color: var(--bd-brown);
+  font-family: 'Nexa', sans-serif;
+  font-weight: 400;
+  font-size: calc(10 * var(--u));
+  cursor: pointer;
+}
+
+:global(.bd-app) .seatTaken,
+:global(.bd-app) .seatTaken:hover {
+  background: var(--bd-red);
+  color: var(--bd-cream);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+:global(.bd-app) .seatChosen,
+:global(.bd-app) .seatChosen:hover {
+  background: var(--bd-brown);
+  color: var(--bd-cream);
+}
+
+.reserveEmpty {
+  position: absolute;
+  left: calc(13 * var(--u));
+  right: calc(13 * var(--u));
+  top: calc(60 * var(--u));
+  font-family: 'Nexa', sans-serif;
+  font-weight: 300;
+  font-size: calc(14 * var(--u));
+}
+
+.reserveNobranch {
+  position: static;
+  margin: calc(8 * var(--u)) calc(27 * var(--u)) 0 !important;
+}
+
+.reserveNobranch a {
+  text-decoration: underline !important;
+}
+
+.reserveConfirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(12 * var(--u));
+  width: calc(304 * var(--u));
+  margin: calc(14 * var(--u)) 0 0 calc(26 * var(--u));
+  font-family: 'Nexa', sans-serif;
+  font-weight: 300;
+  font-size: calc(14 * var(--u));
+}
+
+.reserveConfirm b {
+  font-weight: 700;
+}
+
+.reserveButton {
+  flex: none;
+  width: calc(112 * var(--u));
+}
+
+.notice {
+  margin-top: calc(12 * var(--u));
+}
