@@ -518,27 +518,6 @@ body {
   min-width: 0;
 }
 
-/* A figure on its own (a wallet balance…). */
-.bd-desk .big-figure {
-  margin-bottom: 14px;
-  padding: 14px 18px;
-  border-radius: 14px;
-  background: linear-gradient(180deg, var(--bd-brown) 0%, rgba(32, 12, 3, 0.98) 97%);
-  color: var(--bd-cream);
-}
-
-.bd-desk .big-figure .muted {
-  color: rgba(239, 229, 210, 0.65);
-}
-
-.bd-desk .big-figure b {
-  display: block;
-  font-family: 'Neue Kaine', sans-serif;
-  font-weight: var(--bd-regular);
-  font-size: 34px;
-  line-height: 1.1;
-}
-
 /* ---------- Images ---------- */
 
 .bd-desk .thumb {

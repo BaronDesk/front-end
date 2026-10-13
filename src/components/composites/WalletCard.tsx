@@ -2,6 +2,7 @@ import { groupThousands } from '../../lib/format';
 import coin from '../assets/coin.png';
 import walletFront from '../assets/wallet-front.png';
 import { ART, Art, u } from '../primitives/Art';
+import { cx } from '../../lib/cx';
 import styles from './WalletCard.module.css';
 
 /** The card's box on the Profile screen (design px): it starts at the big coin's top, above the wallet. */
@@ -19,10 +20,10 @@ const COINS = [
 /** Design px on the Profile screen → px inside the card's box. */
 const at = (x: number, y: number) => ({ left: u(x - BOX.left), top: u(y - BOX.top) });
 
-/** The wallet with its coins and the balance ("30.000"), as on Profile; Wallet shows it too. */
-export function WalletCard({ balance }: { balance: number | undefined }) {
+/** The wallet with its coins and the balance ("30.000"): on Profile, the gamer's Wallet and the desk's Wallet. `className` places it. */
+export function WalletCard({ balance, className }: { balance: number | undefined; className?: string }) {
   return (
-    <div className={styles.root} aria-label={balance === undefined ? 'Wallet' : `Balance: ${balance} coins`}>
+    <div className={cx(styles.root, className)} aria-label={balance === undefined ? 'Wallet' : `Balance: ${balance} coins`}>
       <span className={styles.back} style={at(28, 299)} />
       {COINS.map((c, i) => (
         <span key={i} className={styles.coin} style={{ ...at(c.x - c.size / 2, c.y - c.size / 2), width: u(c.size), height: u(c.size) }}>

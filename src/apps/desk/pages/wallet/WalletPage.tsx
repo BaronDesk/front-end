@@ -18,6 +18,8 @@ import { useRecentGamers } from '../../hooks/useRecentGamers';
 import { EmptyRow } from '../../components/EmptyRow';
 import { usersService } from '../../../../services/users.service';
 import { walletService } from '../../../../services/wallet.service';
+import { WalletCard } from '../../../../components/composites/WalletCard';
+import styles from './WalletPage.module.css';
 
 /** Common cash amounts at the desk. */
 const QUICK_CASH = ['5', '10', '20', '50'];
@@ -178,40 +180,44 @@ export function WalletPage() {
 
       {wallet.data && (
         <>
-          <div className="big-figure">
-            Balance
-            <b className={wallet.data.balance <= 0 ? 'status-bad' : ''}>{formatCoins(wallet.data.balance)}</b>
-            <span className="muted">{picked?.username}</span>
+          {/* The phone's wallet card, a little larger; beside it, who it is and the top-up. */}
+          <div className={styles.balance}>
+            <WalletCard className={styles.card} balance={wallet.data.balance} />
+            <div className={styles.side}>
+              <div className={styles.who}>
+                <b>{picked?.username}</b>
+                {wallet.data.balance <= 0 && <span className="status-bad">Nothing left to play with</span>}
+              </div>
+              <form className={styles.topup} onSubmit={topup}>
+                <fieldset>
+                  <legend>Top-Up</legend>
+                  <div className="form-row">
+                    <label htmlFor="w-amount">Cash taken ({CURRENCY})</label>
+                    <input
+                      id="w-amount"
+                      type="number"
+                      min="0.001"
+                      step="0.001"
+                      required
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                    />{' '}
+                    {QUICK_CASH.map((q) => (
+                      <button key={q} type="button" className="secondary" onClick={() => setAmount(q)}>
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="form-row">
+                    <label />
+                    <button type="submit" disabled={action.busy === 'topup'}>
+                      Add {topupCoins ? `${formatCoins(topupCoins)} ` : ''}to wallet
+                    </button>
+                  </div>
+                </fieldset>
+              </form>
+            </div>
           </div>
-
-          <form onSubmit={topup}>
-            <fieldset>
-              <legend>Top up (cash at the desk)</legend>
-              <div className="form-row">
-                <label htmlFor="w-amount">Cash taken ({CURRENCY})</label>
-                <input
-                  id="w-amount"
-                  type="number"
-                  min="0.001"
-                  step="0.001"
-                  required
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />{' '}
-                {QUICK_CASH.map((q) => (
-                  <button key={q} type="button" className="secondary" onClick={() => setAmount(q)}>
-                    {q}
-                  </button>
-                ))}
-              </div>
-              <div className="form-row">
-                <label />
-                <button type="submit" disabled={action.busy === 'topup'}>
-                  Add {topupCoins ? `${formatCoins(topupCoins)} ` : ''}to wallet
-                </button>
-              </div>
-            </fieldset>
-          </form>
 
           <h2>History</h2>
           <table className="grid">

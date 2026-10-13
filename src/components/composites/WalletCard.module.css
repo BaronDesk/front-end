@@ -6,6 +6,9 @@
     position: relative;
     width: calc(304 * var(--u));
     height: calc(192 * var(--u));
+    /* Its own type, whatever page it sits on (the desk theme sets other text styles). */
+    font-family: 'Neue Kaine', sans-serif;
+    line-height: normal;
   }
 
   .root > * {
@@ -31,6 +34,11 @@
   }
 
   .front {
+  }
+
+  .label,
+  .balance {
+    margin: 0;
   }
 
   .label {
