@@ -1,7 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import './classic.css';
+import '../../components/tokens/tokens.css';
+import './desk.css';
 import { DeskApp } from './DeskApp';
 
 createRoot(document.getElementById('root')!).render(

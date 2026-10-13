@@ -5,8 +5,12 @@
  * style themselves with CSS Modules that use these variables.
  */
 
-/* Cascade order: base < components (CSS Modules) < the pages' own, unlayered styles. */
-@layer base, components;
+/*
+ * Cascade order: classic (the desk's legacy theme, apps/desk/classic.css, until
+ * each desk page is redesigned) < base < components (CSS Modules) < the pages'
+ * own, unlayered styles. So inside the design nothing of classic.css shows.
+ */
+@layer classic, base, components;
 
 @font-face {
   font-family: 'Neue Kaine';
@@ -38,28 +42,11 @@
 }
 
 @layer base {
-  /*
-   * The portal's base: it no longer loads the admin's classic.css (every portal
-   * page is in this design now), so the few global rules it needs are here.
-   */
+  /* Every rule below is scoped to the design (.bd-app), so a classic desk page is untouched. */
   *,
   *::before,
   *::after {
     box-sizing: border-box;
-  }
-
-  html,
-  body {
-    margin: 0;
-    background: #0d0d0d;
-  }
-
-  /* Before the login is known (RequireAuth): a quiet line on the dark stage. */
-  body > #root > p {
-    margin: 0;
-    padding: 24px;
-    color: #efe5d2;
-    font-family: sans-serif;
   }
 
   .bd-app {
@@ -125,9 +112,16 @@
     text-decoration: none;
   }
 
-  /* classic.css gives every label a 110 px minimum width (its admin forms). */
+  /* classic.css gives every label a 110 px minimum width (its desk forms). */
   .bd-app label {
     min-width: 0;
+  }
+
+  /* classic.css styles every field and button of the desk: none of it inside the design. */
+  .bd-app :where(input, select, textarea, button) {
+    min-width: 0;
+    margin: 0;
+    box-shadow: none;
   }
 
   .bd-app :where(p, h1, h2) {

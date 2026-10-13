@@ -15,6 +15,13 @@
       var(--bd-cream);
   }
 
+  /* A desktop window: no phone column; the unit follows the height (the width on a narrow window). */
+  .wide {
+    --u: min(calc(100vw / 360), calc(100vh / 696));
+    --u: min(calc(100vw / 360), calc(100dvh / 696));
+    max-width: none;
+  }
+
   .shapes {
     position: absolute;
     inset: 0;

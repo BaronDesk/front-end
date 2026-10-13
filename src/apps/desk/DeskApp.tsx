@@ -4,9 +4,9 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router';
 import { AuthProvider, useAuth } from '../../providers/AuthProvider';
 import { RequireAuth, RequireRole } from '../../providers/guards';
 import { RealtimeProvider } from '../../providers/RealtimeProvider';
-import { LoginForm } from './components/LoginForm';
+import { LoginPage } from './pages/login/LoginPage';
 import { NotFoundPage } from './components/NotFoundPage';
-import { DeskLayout, DeskLoginLayout } from './layout/DeskLayout';
+import { DeskLayout } from './layout/DeskLayout';
 import { AlertsPage } from './pages/alerts/AlertsPage';
 import { AuditPage } from './pages/audit/AuditPage';
 import { BookingsPage } from './pages/bookings/BookingsPage';
@@ -56,17 +56,7 @@ export function DeskApp() {
       <RealtimeProvider>
         <HashRouter>
           <Routes>
-            <Route element={<DeskLoginLayout />}>
-              <Route
-                path="/login"
-                element={
-                  <>
-                    <h1>Staff login</h1>
-                    <LoginForm legend="Log in to BaronDesk" />
-                  </>
-                }
-              />
-            </Route>
+            <Route path="/login" element={<LoginPage />} />
 
             <Route element={<RequireAuth />}>
               <Route element={<DeskLayout />}>

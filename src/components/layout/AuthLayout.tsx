@@ -29,11 +29,12 @@ const OUTLINE = { w: ART.authOutline[0], h: ART.authOutline[1] };
  * The signed-out screens (welcome, login, sign-up): the gradient with its
  * shapes, and a 360 × 696 stage laid out as drawn, centered on the phone.
  */
-export function AuthScreen({ variant, children }: { variant: keyof typeof SHAPES; children: ReactNode }) {
+/** `wide`: a desktop window (the desk): the design fills it, the stage stays in the middle. */
+export function AuthScreen({ variant, wide = false, children }: { variant: keyof typeof SHAPES; wide?: boolean; children: ReactNode }) {
   const { left, right } = SHAPES[variant];
   return (
     <div className="bd-stage">
-      <div className={cx('bd-app', styles.root)}>
+      <div className={cx('bd-app', styles.root, wide && styles.wide)}>
         <div className={styles.shapes} aria-hidden="true">
           {/* Anchored to the corner each one decorates, so they stay there on any phone. */}
           <Art src={blob} w={BLOB.w} h={BLOB.h} style={{ left: u(left[0] - BLOB.w / 2), top: u(left[1] - BLOB.h / 2), transform: 'rotate(-10.25deg)' }} />

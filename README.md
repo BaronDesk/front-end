@@ -196,12 +196,13 @@ src/
                  useLoginForm, useChangePassword, queries.ts (named reads: useMyWallet(), useBranches()…)
   providers/     AuthProvider (who is logged in), guards (RequireAuth…), RealtimeProvider
   components/    the design system (CSS Modules, every size in --u, 1/360 of the phone column)
-    tokens/      tokens.css (colors, weights, the unit, base rules; layers: base, components), fonts/
+    tokens/      tokens.css (colors, weights, the unit, base rules; layers: classic < base < components), fonts/
     primitives/  Button (+ ButtonLink, ButtonRow), Field, Notice (+ ActionNote), Card, SectionTitle, PageTitle,
                  Pill, Avatar, BadgeImage, Art (+ u())
     composites/  XpBar, PlayerBadges, PlanCard, WalletCard, CoinBalance, ChipPicker (a pill opening chips),
                  DayPicker (ChipPicker of days), GameCarousel, EmptyScreen
-    layout/      MobileShell, AuthLayout (AuthScreen, AuthLogo, AuthMascot, AuthForm, AuthFields, AuthError),
+    layout/      MobileShell, AuthLayout (AuthScreen (`wide` for a desktop window), AuthLogo, AuthMascot, AuthForm,
+                 AuthFields, AuthError), LoginScreen (the login of both apps),
                  Page, PageErrorBoundary
     assets/      icons, doodles, mascot, logo, background shapes exported from Figma
   apps/
@@ -210,14 +211,15 @@ src/
       pages/     auth/ (welcome, login, sign-up), home/ (home, events), book/, profile/, settings/ (settings,
                  my account, memberships & passes, history / terms / FAQ), session/, wallet/, NotFoundPage;
                  each page XxxPage.tsx with its own XxxPage.module.css
-    desk/        main.tsx, DeskApp.tsx (routes), menu.ts, classic.css (the desk's theme until its redesign)
+    desk/        main.tsx, DeskApp.tsx (routes), menu.ts, classic.css (the desk's old theme, loaded by desk.css into
+                 the lowest cascade layer: a redesigned page or component is never touched by it)
       layout/    DeskLayout (top bar, side menu), AccessDenied
       providers/ BranchContext (HQ's branch scope), AlertFeedContext
       hooks/     useCommands, useStationList, useStationNames, useRecentGamers
       components/  the desk's classic pieces: TopBar, ErrorBox, ActionMessages, EmptyRow, LoginForm,
                  ChangePasswordForm, ConnectionBanner, CopyButton, ImageField, Thumb, CommandError…
-      pages/     one folder per menu entry: stations, sessions, bookings, wallet, alerts, users, plans,
-                 ranks, games, hq, audit, account
+      pages/     login (in the portal's design), and one folder per menu entry (classic look until redesigned):
+                 stations, sessions, bookings, wallet, alerts, users, plans, ranks, games, hq, audit, account
 ```
 
 **The dependency rule** (`npm run check:layers`): `apps → providers / hooks → services → domain → lib → core`;

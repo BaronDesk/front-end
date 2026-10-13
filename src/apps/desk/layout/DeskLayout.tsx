@@ -74,15 +74,3 @@ function AdminShell() {
   );
 }
 
-/** Login screen: top bar and a small centered box, no menu. */
-export function DeskLoginLayout() {
-  return (
-    <>
-      <TopBar subtitle={SUBTITLE} />
-      <div className="login-box">
-        <Outlet />
-      </div>
-      <Footer />
-    </>
-  );
-}
