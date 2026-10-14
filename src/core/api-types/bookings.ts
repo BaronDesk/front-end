@@ -26,6 +26,8 @@ export interface Reservation {
   startTime: string;
   endTime: string;
   status: ReservationStatus;
+  /** Play now (priced at the pay-as-you-go rate) rather than booked ahead. */
+  isWalkIn?: boolean;
   createdAt: string;
   updatedAt: string;
   machine?: StationRef;

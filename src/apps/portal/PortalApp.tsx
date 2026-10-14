@@ -10,7 +10,8 @@ import { SettingsPage } from './pages/settings/SettingsPage';
 import { SignupPage } from './pages/auth/SignupPage';
 import { WelcomePage } from './pages/auth/WelcomePage';
 import { BookPage } from './pages/book/BookPage';
-import { EventsPage } from './pages/home/EventsPage';
+import { EventsPage } from './pages/events/EventsPage';
+import { TournamentPage } from './pages/events/TournamentPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { HomePage } from './pages/home/HomePage';
 import { PortalShell } from './layout/PortalShell';
@@ -34,6 +35,7 @@ export function PortalApp() {
               <Route element={<PortalShell />}>
                 <Route index element={<HomePage />} />
                 <Route path="/events" element={<EventsPage />} />
+                <Route path="/events/:id" element={<TournamentPage />} />
                 <Route path="/book" element={<BookPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/settings" element={<SettingsPage />} />

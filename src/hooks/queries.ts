@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+
 import type {
   Branch,
   BranchStation,
@@ -11,6 +13,7 @@ import type {
   Reservation,
   Subscription,
   SubscriptionPlan,
+  Tournament,
   Wallet,
   WalletEntry,
 } from '../core/api-types';
@@ -18,6 +21,7 @@ import { catalogService } from '../services/catalog.service';
 import { plansService } from '../services/plans.service';
 import { reservationsService } from '../services/reservations.service';
 import { sessionsService, type SessionHistoryRow } from '../services/sessions.service';
+import { tournamentsService } from '../services/tournaments.service';
 import { walletService } from '../services/wallet.service';
 import { useApiQuery } from './useApiQuery';
 
@@ -59,3 +63,22 @@ export const useExtendOptions = (reservationId: string | null) =>
   useApiQuery<ExtendOptions>(reservationId ? reservationsService.paths.extendOptions(reservationId) : null);
 export const useCurrentSession = () => useApiQuery<CurrentSession | null>(sessionsService.paths.current);
 export const useSessionHistory = () => useApiQuery<SessionHistoryRow[]>(sessionsService.paths.history);
+
+// Tournaments
+/**
+ * The tournaments: sample data until the backend has them (not a request
+ * yet). Each game's poster comes from the catalog, matched by name, so a
+ * tournament without its own cover shows it.
+ */
+export function useTournaments(): { data: Tournament[] } {
+  const games = useGames();
+  const data = useMemo(
+    () =>
+      tournamentsService.list().map((t) => ({
+        ...t,
+        game: { ...t.game, iconUrl: t.game.iconUrl ?? games.data?.find((g) => g.name === t.game.name)?.iconUrl ?? null },
+      })),
+    [games.data],
+  );
+  return { data };
+}

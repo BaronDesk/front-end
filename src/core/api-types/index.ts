@@ -19,3 +19,4 @@ export * from './bookings';
 export * from './sessions';
 export * from './audit';
 export * from './events';
+export * from './tournaments';

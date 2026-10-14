@@ -21,7 +21,7 @@ const NAV: Record<string, NavKey> = {
 };
 
 /** One-screen designs: they also shrink to the phone's height. */
-const FIT = new Set(['/', '/events']);
+const FIT = new Set(['/']);
 
 /**
  * The signed-in portal: the mobile shell around the page, with the bottom

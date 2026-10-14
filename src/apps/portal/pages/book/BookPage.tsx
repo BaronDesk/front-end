@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 
 import type { Reservation } from '../../../../core/api-types';
 import { useAuth } from '../../../../providers/AuthProvider';
 import { useAction } from '../../../../hooks/useAction';
 import { useActivePlans, useBranchStations, useBranches, useMyBookings, useMyMemberships, useMySubscriptions, useMyWallet, usePricing } from '../../../../hooks/queries';
-import { bookingPrice } from '../../../../domain/pricing';
-import { groupThousands } from '../../../../lib/format';
-import { bookingLengthText, canCheckIn, isCancellable, slotRange, stationOf, type Slot } from '../../../../domain/bookings';
+import { bookingPrice, committedCoins, playNowLength, type PlayNowLength } from '../../../../domain/pricing';
+import { formatClock, groupThousands } from '../../../../lib/format';
+import { bookingLengthText, canCheckIn, isCancellable, slotRange, stationOf, UNTIL_BALANCE, type Slot } from '../../../../domain/bookings';
 import { dayDateTime, dayFromValue, localDateInput } from '../../../../lib/dates';
 import { describeError } from '../../../../lib/errors';
 import alarm from '../../../../components/assets/alarm.svg';
@@ -25,8 +25,18 @@ import { PageTitle } from '../../../../components/primitives/PageTitle';
 import { cx } from '../../../../lib/cx';
 import styles from './BookPage.module.css';
 
+/** What ends a Max Play now, after its length. */
+function untilText(length: PlayNowLength): string {
+  if (length.limit === 'balance') return 'until your coins run out';
+  if (length.limit === 'booked') return `until ${formatClock(length.until.toISOString()).slice(0, 5)}, booked then`;
+  return 'the longest Play now';
+}
 
-/** Bookings: the gamer's bookings with their PIN, and booking a seat on the room's map. */
+/**
+ * Bookings: the gamer's bookings with their PIN, and booking a seat on the
+ * room's map with its price. Play now (time "Now") takes only a PC that is on
+ * and free, can run until the coins run out (Max), and opens My session.
+ */
 export function BookPage() {
   const { user } = useAuth();
   const plans = useActivePlans();
@@ -37,6 +47,7 @@ export function BookPage() {
   const branches = useBranches();
   const branchName = (id: string | undefined) => branches.data?.find((b) => b.id === id)?.name ?? '';
   const action = useAction();
+  const navigate = useNavigate();
 
   // time 'now' = Play now (the walk-in rate); otherwise a booking from that time.
   const [slot, setSlot] = useState<Slot>(() => ({ day: localDateInput(new Date()), time: 'now', minutes: 60 }));
@@ -54,22 +65,39 @@ export function BookPage() {
   const pricing = usePricing();
   const memberships = useMyMemberships();
   const subscriptions = useMySubscriptions();
-  const price =
+  const rates =
     pricing.data && memberships.data && subscriptions.data
-      ? bookingPrice({ pricing: pricing.data, isNow, start, minutes, memberships: memberships.data, subscriptions: subscriptions.data })
+      ? { pricing: pricing.data, memberships: memberships.data, subscriptions: subscriptions.data }
       : null;
+  // Max: as long as the coins left after the bookings ahead last on the chosen PC.
+  const untilBalance = isNow && minutes === UNTIL_BALANCE;
+  const maxLength =
+    untilBalance && seat && rates && wallet.data && bookings.data
+      ? playNowLength({
+          now: start,
+          coinsPerHour: bookingPrice({ ...rates, isNow, start, minutes: 60 }).coinsPerHour,
+          coinsLeft: wallet.data.balance - committedCoins(bookings.data, rates, start),
+          seatBookings: seat.bookings,
+          myBookings: bookings.data,
+        })
+      : null;
+  const playMinutes = untilBalance ? (maxLength?.minutes ?? null) : minutes;
+  const price = rates && playMinutes ? bookingPrice({ ...rates, isNow, start, minutes: playMinutes }) : null;
+  const noneFreeNow = isNow && list.length > 0 && list.every((s) => isTaken(s, start, end, true));
 
   async function reserve() {
-    if (!seat) return;
+    if (!seat || !playMinutes) return;
     setNotice(null);
     const made = isNow
-      ? await action.run('book', () => reservationsService.playNow(seat.id, minutes))
+      ? await action.run('book', () => reservationsService.playNow(seat.id, playMinutes))
       : await action.run('book', () => reservationsService.book(seat.id, start, end));
     if (made) {
       setSeatId(null);
-      setNotice(isNow ? `${seat.name} is yours: type the PIN on its lock screen.` : `Booked. Your PIN is on the booking above.`);
       bookings.reload();
       stations.reload();
+      // My session shows the PIN to type on the PC, then the time and cost once playing.
+      if (isNow) navigate('/session');
+      else setNotice('Booked. Your PIN is on the booking above.');
     }
   }
 
@@ -157,6 +185,7 @@ export function BookPage() {
         {homeBranchId ? (
           <section className={styles.reserve} style={{ height: u(Math.max(panelHeight(list.length), 120)) }}>
             <SlotPicker
+              untilBalance
               value={slot}
               onChange={(next) => (setSlot(next), setSeatId(null))}
               classNames={{
@@ -193,20 +222,33 @@ export function BookPage() {
             Pick the branch you play at to see its PCs: <Link to="/account">My account</Link>
           </p>
         )}
+        {homeBranchId && noneFreeNow && <Notice className={styles.notice}>No PC is switched on and free right now. Pick a later time to book one.</Notice>}
 
         {seat && (
           <div className={styles.reserveConfirm}>
             <p>
-              <b>{seat.name}</b> · {isNow ? 'now' : `${dayFromValue(day)} ${time}`} · {bookingLengthText(minutes)}
+              <b>{seat.name}</b> · {isNow ? 'now' : `${dayFromValue(day)} ${time}`}
+              {playMinutes ? ` · ${bookingLengthText(playMinutes)}` : ''}
+              {maxLength && maxLength.minutes > 0 && `, ${untilText(maxLength)}`}
               {price && (
                 <>
                   <br />
-                  {price.coins === 0 ? <b>Free</b> : <><b>{groupThousands(price.coins)}</b> coins</>}
+                  {price.coins === 0 ? <b>Free</b> : <>{untilBalance && 'up to '}<b>{groupThousands(price.coins)}</b> coins</>}
                   {price.discountPercent > 0 && price.coins > 0 && ` (−${price.discountPercent} %)`}
+                  <br />
+                  <span className={styles.rate}>
+                    {groupThousands(price.coinsPerHour)} coins/h{isNow && ' · you pay only the time you play'}
+                  </span>
+                </>
+              )}
+              {maxLength?.minutes === 0 && (
+                <>
+                  <br />
+                  {maxLength.limit === 'booked' ? 'You or this PC have a booking now.' : 'Your coins cover no play time: top up first.'}
                 </>
               )}
             </p>
-            <Button size="lg" className={styles.reserveButton} onClick={reserve} disabled={action.busy === 'book'}>
+            <Button size="lg" className={styles.reserveButton} onClick={reserve} disabled={action.busy === 'book' || !playMinutes}>
               {isNow ? 'Play now' : 'Book'}
             </Button>
           </div>

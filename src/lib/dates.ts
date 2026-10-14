@@ -33,3 +33,10 @@ export function dayDateTime(iso: string): string {
 export function dayFromValue(value: string): string {
   return value.split('-').reverse().join('/');
 }
+
+/** "Sat 18 Oct, 18:00" for an ISO time (local): a day this week or next, read at a glance. */
+export function weekdayDateTime(iso: string): string {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  return `${day}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Membership, Subscription } from '../core/api-types';
-import { bookingPrice, inWindow } from './pricing';
+import type { Membership, Reservation, Subscription } from '../core/api-types';
+import { bookingPrice, committedCoins, inWindow, playNowLength } from './pricing';
 
 const pricing = { paygRate: 4000, bookingRate: 5000 };
 // Wed 30 Sep 2026, on this device's clock
@@ -35,5 +35,37 @@ describe('booking price', () => {
     expect(inWindow(w([3], '00:00', '00:00'), wed('23:30'))).toBe(true);
     expect(inWindow(w([2], '22:00', '02:00'), wed('01:00'))).toBe(true);
     expect(inWindow(w([3], '22:00', '02:00'), wed('01:00'))).toBe(false);
+  });
+});
+
+describe('Play now until the coins run out', () => {
+  const now = wed('14:00');
+  const at = (hhmm: string) => wed(hhmm).toISOString();
+  const mine = (over: Partial<Reservation>) => ({ id: 'r', status: 'CONFIRMED', startTime: at('20:00'), endTime: at('21:00'), ...over }) as Reservation;
+
+  it('plays as long as the coins left cover at the rate, rounded down to the minute', () => {
+    expect(playNowLength({ now, coinsPerHour: 4000, coinsLeft: 10_000, seatBookings: [], myBookings: [] })).toMatchObject({ minutes: 150, limit: 'balance' });
+    expect(playNowLength({ now, coinsPerHour: 3200, coinsLeft: 1000, seatBookings: [], myBookings: [] }).minutes).toBe(18);
+  });
+
+  it("stops at the PC's next booking or the gamer's own, and never past 24 h", () => {
+    const seat = [{ startTime: at('16:00'), endTime: at('17:00') }];
+    expect(playNowLength({ now, coinsPerHour: 4000, coinsLeft: 100_000, seatBookings: seat, myBookings: [] })).toMatchObject({ minutes: 120, limit: 'booked', until: wed('16:00') });
+    // part of a minute left: it plays the whole minutes, and says the booking's own time
+    expect(playNowLength({ now: new Date(wed('14:00').getTime() + 30_000), coinsPerHour: 4000, coinsLeft: 100_000, seatBookings: seat, myBookings: [] })).toMatchObject({ minutes: 119, until: wed('16:00') });
+    expect(playNowLength({ now, coinsPerHour: 4000, coinsLeft: 100_000, seatBookings: [], myBookings: [mine({ startTime: at('15:00') })] }).minutes).toBe(60);
+    expect(playNowLength({ now, coinsPerHour: 0, coinsLeft: 0, seatBookings: [], myBookings: [] })).toMatchObject({ minutes: 24 * 60, limit: 'max' });
+  });
+
+  it('starts nothing while one of the gamer\'s bookings is on, or with no coins', () => {
+    expect(playNowLength({ now, coinsPerHour: 4000, coinsLeft: 100_000, seatBookings: [], myBookings: [mine({ status: 'ACTIVE', startTime: at('13:00'), endTime: at('15:00') })] })).toMatchObject({ minutes: 0, limit: 'booked' });
+    expect(playNowLength({ now, coinsPerHour: 4000, coinsLeft: 0, seatBookings: [], myBookings: [] })).toMatchObject({ minutes: 0, limit: 'balance' });
+  });
+
+  it('counts the bookings ahead not started yet, at their own rate', () => {
+    const plans = { pricing, memberships: [], subscriptions: [] };
+    const list = [mine({}), mine({ isWalkIn: true, startTime: at('13:30'), endTime: at('14:30') }), mine({ status: 'COMPLETED' })];
+    // 20:00–21:00 booked: 5000; a walk-in from 13:30, its PIN unused: 4000 for its full hour
+    expect(committedCoins(list, plans, now)).toBe(9000);
   });
 });
