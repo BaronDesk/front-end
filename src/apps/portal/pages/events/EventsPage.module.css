@@ -10,20 +10,20 @@
 
 /* ---------- Filter chips ---------- */
 
+/* The five chips share the cards' width (303), edge to edge. */
 .filters {
   display: flex;
-  gap: calc(5 * var(--u));
-  margin: calc(16 * var(--u)) calc(28 * var(--u)) 0 calc(29 * var(--u));
-  overflow-x: auto;
-  scrollbar-width: none;
+  gap: calc(4 * var(--u));
+  width: calc(303 * var(--u));
+  margin: calc(16 * var(--u)) 0 0 calc(29 * var(--u));
 }
 
 .filter,
 .filter:hover,
 .filter:active {
-  flex: none;
+  flex: 1 0 auto;
   height: calc(28 * var(--u));
-  padding: 0 calc(10 * var(--u));
+  padding: 0 calc(8 * var(--u));
   border: calc(1 * var(--u)) solid var(--bd-brown);
   border-radius: calc(14 * var(--u));
   background: transparent;
