@@ -212,7 +212,8 @@ function SignUp({ tournament: t, username }: { tournament: Tournament; username:
 /**
  * The gamer's team: its name, how full it is, the PIN teammates join with,
  * and its menu (⋮): a player can leave the team; the leader can give the
- * lead to a teammate, remove someone, or delete the team (after a warning).
+ * lead to a teammate, remove someone, make a new team code (the old one stops
+ * working), or delete the team (after a warning).
  * Solo play: leave the tournament. Once sign-up closes the team is locked:
  * the menu still opens, its choices greyed out, and says so. Below, a cell per
  * player place: the members in the middle, the leader crowned; the leader
@@ -271,6 +272,13 @@ function TeamCard({ tournament: t, team, username }: { tournament: Tournament; t
     }
   }
 
+  async function regenerateCode() {
+    setMenu(null);
+    if (window.confirm(`Make a new code for ${team.name}? The current one (${team.joinCode}) stops working: share the new one with your teammates.`)) {
+      await action.run('code', () => tournamentsService.regenerateCode(t.id), (next) => `New team code: ${next.teams.find((x) => x.id === next.myTeamId)?.joinCode}.`);
+    }
+  }
+
   async function deleteTeam() {
     setMenu(null);
     if (window.confirm(`Delete ${team.name}?\n\nEvery player in it leaves the tournament, and the team cannot be brought back.`)) {
@@ -315,6 +323,9 @@ function TeamCard({ tournament: t, team, username }: { tournament: Tournament; t
                     <button type="button" role="menuitem" disabled={!open || !teammates.length} onClick={() => setMenu('remove')}>
                       Remove someone
                       {open && !teammates.length && <small>No teammate yet</small>}
+                    </button>
+                    <button type="button" role="menuitem" disabled={!open} onClick={regenerateCode}>
+                      Regenerate the code
                     </button>
                     <button type="button" role="menuitem" className={styles.danger} disabled={!open} onClick={deleteTeam}>
                       Delete the team

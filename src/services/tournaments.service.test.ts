@@ -50,7 +50,7 @@ describe('tournaments (sample data)', () => {
     await expect(service.tournamentsService.leaveTeam('summoner-showdown')).rejects.toThrow('give the lead to a teammate first');
   });
 
-  it('lets the leader hand the lead over, take a player off, and delete the team', async () => {
+  it('lets the leader hand the lead over, get a new team PIN, and delete the team', async () => {
     // No sample team is led by the gamer with teammates in it: join Sidi Snipers, then put the gamer first (its leader).
     await service.tournamentsService.joinTeam('summoner-showdown', '246810');
     const id = 'summoner-showdown';
@@ -64,7 +64,12 @@ describe('tournaments (sample data)', () => {
     await expect(service.tournamentsService.changeLeader(id, 'sidi.3')).rejects.toThrow('Only the team leader');
 
     await service.tournamentsService.leaveTeam(id);
-    await service.tournamentsService.createTeam(id, 'Wolves');
+    const wolves = await service.tournamentsService.createTeam(id, 'Wolves');
+    const oldCode = wolves.teams.find((x) => x.id === wolves.myTeamId)!.joinCode!;
+    t = await service.tournamentsService.regenerateCode(id);
+    const newCode = t.teams.find((x) => x.id === t.myTeamId)!.joinCode!;
+    expect(newCode).toMatch(/^\d{6}$/);
+    expect(newCode).not.toBe(oldCode);
     await expect(service.tournamentsService.changeLeader(id, 'nobody')).rejects.toThrow('nobody is not in your team');
     t = await service.tournamentsService.deleteTeam(id);
     expect(t.myTeamId).toBeNull();

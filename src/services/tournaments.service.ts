@@ -368,6 +368,14 @@ export const tournamentsService = {
       return withTeam(t, { ...mine, members: mine.members.filter((m) => m !== member) });
     }),
 
+  /** The leader gets a new team PIN: the old one no longer lets anyone join. */
+  regenerateCode: (id: string) =>
+    update(id, (t) => {
+      const mine = myLedTeam(t);
+      if (!mine.joinCode) throw new Error('A solo entry has no team PIN.');
+      return withTeam(t, { ...mine, joinCode: newCode(t) });
+    }),
+
   /** The leader deletes the team: every player in it is out of the tournament. */
   deleteTeam: (id: string) =>
     update(id, (t) => {
