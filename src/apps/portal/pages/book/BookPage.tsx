@@ -4,7 +4,9 @@ import { Link } from 'react-router';
 import type { Reservation } from '../../../../core/api-types';
 import { useAuth } from '../../../../providers/AuthProvider';
 import { useAction } from '../../../../hooks/useAction';
-import { useActivePlans, useBranchStations, useBranches, useMyBookings, useMyWallet } from '../../../../hooks/queries';
+import { useActivePlans, useBranchStations, useBranches, useMyBookings, useMyMemberships, useMySubscriptions, useMyWallet, usePricing } from '../../../../hooks/queries';
+import { bookingPrice } from '../../../../domain/pricing';
+import { groupThousands } from '../../../../lib/format';
 import { bookingLengthText, canCheckIn, isCancellable, slotRange, stationOf, type Slot } from '../../../../domain/bookings';
 import { dayDateTime, dayFromValue, localDateInput } from '../../../../lib/dates';
 import { describeError } from '../../../../lib/errors';
@@ -47,6 +49,15 @@ export function BookPage() {
   const list = stations.data ?? [];
   const seat = list.find((s) => s.id === seatId) ?? null;
   const upcoming = (bookings.data ?? []).filter((r) => r.status === 'CONFIRMED' || r.status === 'PENDING' || r.status === 'ACTIVE');
+
+  // Shown once the prices and the gamer's tier and passes are known, so a discount is never missed.
+  const pricing = usePricing();
+  const memberships = useMyMemberships();
+  const subscriptions = useMySubscriptions();
+  const price =
+    pricing.data && memberships.data && subscriptions.data
+      ? bookingPrice({ pricing: pricing.data, isNow, start, minutes, memberships: memberships.data, subscriptions: subscriptions.data })
+      : null;
 
   async function reserve() {
     if (!seat) return;
@@ -187,6 +198,13 @@ export function BookPage() {
           <div className={styles.reserveConfirm}>
             <p>
               <b>{seat.name}</b> · {isNow ? 'now' : `${dayFromValue(day)} ${time}`} · {bookingLengthText(minutes)}
+              {price && (
+                <>
+                  <br />
+                  {price.coins === 0 ? <b>Free</b> : <><b>{groupThousands(price.coins)}</b> coins</>}
+                  {price.discountPercent > 0 && price.coins > 0 && ` (−${price.discountPercent} %)`}
+                </>
+              )}
             </p>
             <Button size="lg" className={styles.reserveButton} onClick={reserve} disabled={action.busy === 'book'}>
               {isNow ? 'Play now' : 'Book'}
