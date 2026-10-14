@@ -599,6 +599,23 @@
   left: calc(-11 * var(--u));
 }
 
+/* Where the stubs of a pair meet: a vertical line, half the gap between the two matches long (--half). */
+.joint {
+  position: absolute;
+  right: calc(-11 * var(--u));
+  width: 0;
+  height: var(--half);
+  border-left: calc(1 * var(--u)) solid rgba(54, 40, 34, 0.45);
+}
+
+.jointDown {
+  top: calc(28 * var(--u));
+}
+
+.jointUp {
+  top: calc(28 * var(--u) - var(--half));
+}
+
 .mine {
   border: calc(2 * var(--u)) solid var(--bd-gold);
 }
@@ -630,8 +647,15 @@
 }
 
 .tbd {
+  /* Room for the italic's last letter, which leans past the box (a team name is cut at the box's edge). */
+  padding-right: 0.2em;
   color: rgba(54, 40, 34, 0.5);
   font-style: italic;
+}
+
+/* "TBD" spells out "To be decided" on hover, without the browser's dotted underline. */
+.tbd abbr {
+  text-decoration: none;
 }
 
 .score {

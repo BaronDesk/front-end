@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router';
 
 import type { Tournament, TournamentMatch, TournamentTeam } from '../../../../core/api-types';
@@ -20,7 +20,7 @@ import { PlayerHeader, TournamentCard } from './TournamentParts';
 import { JOIN_SHIFT, teamPanelPath } from './teamPanelPath';
 import styles from './TournamentPage.module.css';
 
-/** One side of a match: the team (or "To be decided") and its score; the winner stands out. */
+/** One side of a match: the team (or TBD, to be decided) and its score; the winner stands out. */
 function Side({ tournament, match, side }: { tournament: Tournament; match: TournamentMatch; side: 'A' | 'B' }) {
   const id = side === 'A' ? match.teamAId : match.teamBId;
   const score = side === 'A' ? match.scoreA : match.scoreB;
@@ -29,7 +29,7 @@ function Side({ tournament, match, side }: { tournament: Tournament; match: Tour
   const lost = !!match.winnerTeamId && !won;
   return (
     <div className={cx(styles.side, won && styles.won, lost && styles.lost)}>
-      <span className={cx(styles.team, !team && styles.tbd)}>{team ? team.name : 'To be decided'}</span>
+      <span className={cx(styles.team, !team && styles.tbd)}>{team ? team.name : <abbr title="To be decided">TBD</abbr>}</span>
       <span className={styles.score}>{score ?? ''}</span>
     </div>
   );
@@ -46,13 +46,18 @@ function matchNote(match: TournamentMatch): string {
 function Bracket({ tournament }: { tournament: Tournament }) {
   const rounds = matchesByRound(tournament);
   const firstRound = Math.max(rounds[0]?.length ?? 1, 1);
+  // Every round is as tall as the first, its matches evenly spread: two neighbours are `height / count` apart.
+  const height = firstRound * 86;
   return (
     <div className={styles.bracket} role="region" aria-label="Bracket" tabIndex={0}>
       {rounds.map((matches, i) => (
         <div key={i} className={styles.round}>
           <p className={styles.roundName}>{roundName(i + 1, rounds.length)}</p>
-          <div className={cx(styles.roundMatches, i > 0 && styles.later, i < rounds.length - 1 && styles.earlier)} style={{ height: `calc(${firstRound * 86} * var(--u))` }}>
-            {matches.map((m) => {
+          <div
+            className={cx(styles.roundMatches, i > 0 && styles.later, i < rounds.length - 1 && styles.earlier)}
+            style={{ height: `calc(${height} * var(--u))`, '--half': `calc(${height / Math.max(matches.length, 1) / 2} * var(--u))` } as CSSProperties}
+          >
+            {matches.map((m, j) => {
               const mine = !!tournament.myTeamId && (m.teamAId === tournament.myTeamId || m.teamBId === tournament.myTeamId);
               return (
                 <div key={m.id} className={styles.matchWrap}>
@@ -61,6 +66,8 @@ function Bracket({ tournament }: { tournament: Tournament }) {
                     <Side tournament={tournament} match={m} side="B" />
                   </div>
                   <p className={cx(styles.note, m.status === 'IN_PROGRESS' && styles.noteLive)}>{matchNote(m)}</p>
+                  {/* The pair's vertical line: down from the upper match, up from the lower one, meeting at the next round's match. */}
+                  {i < rounds.length - 1 && <span className={cx(styles.joint, j % 2 ? styles.jointUp : styles.jointDown)} />}
                 </div>
               );
             })}

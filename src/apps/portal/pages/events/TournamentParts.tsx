@@ -120,7 +120,7 @@ export function NextMatchCard({ tournament }: { tournament: Tournament }) {
       <span className={styles.nextLabel}>Your Next Match : {next.round}</span>
       <span className={styles.nextDot} />
       <span className={styles.nextTeamA}>{next.team?.name ?? 'Your team'}</span>
-      <span className={styles.nextTeamB}>{next.opponent?.name ?? 'To be decided'}</span>
+      <span className={styles.nextTeamB}>{next.opponent?.name ?? 'TBD'}</span>
       <span className={styles.nextStrip}>
         <span className={styles.nextWhen}>{next.match.scheduledAt ? matchDate(next.match.scheduledAt) : 'Time to be set'}</span>
         <span className={styles.nextPc}>{next.machineName}</span>
