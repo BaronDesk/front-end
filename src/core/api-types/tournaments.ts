@@ -1,7 +1,8 @@
 /**
  * Tournaments, as the gamer app reads them. Not on the backend yet: the
- * shapes follow the planned schema (planning TODO §S1) and the app shows
- * sample data (services/tournaments.service.ts) until GET /tournaments exists.
+ * shapes follow the planned schema (planning TODO §S1), plus a cover, a prize
+ * pool and a team PIN, and the app shows sample data
+ * (services/tournaments.service.ts) until GET /tournaments exists.
  */
 
 /** DRAFT is never shown to gamers. */
@@ -16,6 +17,8 @@ export interface TournamentTeam {
   seed: number | null;
   /** The players' usernames, captain first. */
   members: string[];
+  /** The PIN teammates type to join the team (Join Team); only its members see it. */
+  joinCode: string | null;
 }
 
 export interface TournamentMatch {
@@ -46,6 +49,8 @@ export interface Tournament {
   teamSize: number;
   maxTeams: number;
   entryFeeCoins: number;
+  /** What the winners share (not in the planned schema yet). */
+  prizePoolCoins: number;
   matchMinutes: number;
   registrationClosesAt: string;
   startsAt: string;

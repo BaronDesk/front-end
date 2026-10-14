@@ -1,50 +1,25 @@
-/* TournamentPage: one tournament, its bracket and teams (not layered: it wins over the components'). */
+/* TournamentPage: one tournament, signing up or the gamer's team, the teams and the bracket (not layered: it wins over the components'). */
 
 .root {
-  padding: calc(18 * var(--u)) 0 calc(28 * var(--u));
-}
-
-.back,
-.backLink {
-  color: var(--bd-brown);
-  font-family: 'Nexa', sans-serif;
-  font-weight: 400;
-  font-size: calc(14 * var(--u));
-  text-decoration: none;
-}
-
-.back {
-  display: inline-block;
-  margin-left: calc(23 * var(--u));
+  padding-bottom: calc(28 * var(--u));
 }
 
 .backLink {
   display: inline-block;
   margin-top: calc(14 * var(--u));
+  color: var(--bd-brown);
+  font-family: 'Nexa', sans-serif;
+  font-weight: 400;
+  font-size: calc(14 * var(--u));
   text-decoration: underline;
 }
 
-.cover {
-  height: calc(196 * var(--u));
-  margin: calc(12 * var(--u)) calc(21 * var(--u)) 0;
-  border-radius: calc(20 * var(--u));
-}
-
-.status {
-  position: absolute;
-  left: calc(12 * var(--u));
-  top: calc(12 * var(--u));
-}
-
-.name {
-  margin: calc(14 * var(--u)) calc(27 * var(--u)) 0;
-  font-weight: var(--bd-regular);
-  font-size: calc(28 * var(--u));
-  line-height: 1.1;
+.card {
+  margin-left: calc(29 * var(--u));
 }
 
 .champion {
-  margin: calc(6 * var(--u)) calc(27 * var(--u)) 0;
+  margin: calc(10 * var(--u)) calc(29 * var(--u)) 0;
   font-family: 'Nexa', sans-serif;
   font-weight: 300;
   font-size: calc(15 * var(--u));
@@ -55,44 +30,11 @@
   font-weight: 700;
 }
 
-/* The facts, two per row. */
-.facts {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: calc(12 * var(--u)) calc(14 * var(--u));
-  margin: calc(16 * var(--u)) calc(21 * var(--u)) 0;
-  padding: calc(14 * var(--u)) calc(16 * var(--u));
-  border-radius: calc(18 * var(--u));
-  background: linear-gradient(180deg, rgba(54, 40, 34, 0.22) 0%, rgba(194, 141, 57, 0.13) 100%);
-  font-family: 'Nexa', sans-serif;
-}
-
-.facts dt {
-  color: rgba(54, 40, 34, 0.69);
-  font-weight: 300;
-  font-size: calc(11 * var(--u));
-}
-
-.facts dd {
-  margin: calc(3 * var(--u)) 0 0;
-  font-weight: 400;
-  font-size: calc(14 * var(--u));
-}
-
-.signup {
-  margin: calc(16 * var(--u)) calc(21 * var(--u)) 0;
-  font-family: 'Nexa', sans-serif;
-  font-weight: 300;
-  font-size: calc(12 * var(--u));
-  text-align: center;
-}
-
-.signupButton {
-  width: 100%;
-}
-
-.signup p {
-  margin: calc(8 * var(--u)) 0 0;
+.sectionTitle {
+  margin: calc(28 * var(--u)) calc(23 * var(--u)) calc(10 * var(--u));
+  font-weight: var(--bd-regular);
+  font-size: calc(20 * var(--u));
+  line-height: normal;
 }
 
 .empty {
@@ -100,6 +42,489 @@
   font-family: 'Nexa', sans-serif;
   font-weight: 300;
   font-size: calc(14 * var(--u));
+}
+
+/* ---------- Sign up: Create Team / Join Team and the panel that grows out of the chosen one ---------- */
+
+.signup {
+  /* One pace for every move of the sign-up: unfolding, folding, switching Create ↔ Join. */
+  --move: 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  position: relative;
+  height: calc(44 * var(--u));
+  margin-top: calc(20 * var(--u));
+  transition: height var(--move);
+}
+
+.signupOpen {
+  height: calc(194 * var(--u));
+}
+
+/*
+ * The panel's shape, joined to the chosen button by a little neck that slides
+ * from one button to the other. Opening uncovers it from the top down, so it
+ * unfolds out of the button.
+ */
+.panelShape {
+  position: absolute;
+  left: calc(23 * var(--u));
+  top: 0;
+  width: calc(309 * var(--u));
+  height: calc(194 * var(--u));
+  overflow: visible;
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path var(--move);
+  pointer-events: none;
+}
+
+.signupOpen .panelShape {
+  clip-path: inset(0);
+}
+
+/* Empty under Create Team, filled under Join Team (its strength follows the slide). */
+.panelFill {
+  fill: var(--bd-brown);
+}
+
+/* The edge: a 2-unit line clipped to the shape, so 1 unit shows, inside it (as in the design). */
+.panelEdge {
+  fill: none;
+  stroke: var(--bd-brown);
+  stroke-width: 2;
+}
+
+.choice,
+.choice:hover,
+.choice:active {
+  position: absolute;
+  top: 0;
+  width: calc(129 * var(--u));
+  height: calc(44 * var(--u));
+  padding: 0;
+  border: calc(1 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(18 * var(--u));
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: var(--bd-medium);
+  font-size: calc(14 * var(--u));
+  cursor: pointer;
+  transition:
+    border-color var(--move),
+    background-color var(--move);
+}
+
+.create,
+.create:hover,
+.create:active {
+  left: calc(43 * var(--u));
+  background: transparent;
+  color: var(--bd-brown);
+}
+
+.join,
+.join:hover,
+.join:active {
+  left: calc(187 * var(--u));
+  background: var(--bd-brown);
+  color: var(--bd-cream);
+}
+
+/*
+ * Create Team open: the panel's edge draws the button's, so the button's own
+ * fades, once the opening has slid under it. Join Team keeps its fill: it is
+ * the panel's colour.
+ */
+.create.choiceOpen,
+.create.choiceOpen:hover {
+  border-color: transparent;
+  transition-delay: 250ms;
+}
+
+.choice:focus-visible,
+.confirm:focus-visible {
+  outline: calc(2 * var(--u)) solid var(--bd-gold);
+  outline-offset: calc(2 * var(--u));
+}
+
+/* The panel's body, under the tab: it slides in a little after the shape starts to unfold. */
+.panel {
+  position: absolute;
+  left: calc(23 * var(--u));
+  top: calc(56 * var(--u));
+  width: calc(309 * var(--u));
+  height: calc(138 * var(--u));
+  margin: 0;
+  opacity: 0;
+  transform: translateY(calc(-10 * var(--u)));
+  transition:
+    opacity 200ms ease,
+    transform var(--move);
+}
+
+.panelShown {
+  opacity: 1;
+  transform: none;
+  transition-delay: 90ms;
+}
+
+/* The words and boxes change colour with the panel (Create: dark on light, Join: light on dark). */
+.terms,
+.terms a,
+.terms input,
+.confirm {
+  transition:
+    color var(--move),
+    background-color var(--move),
+    border-color var(--move),
+    box-shadow var(--move);
+}
+
+.field {
+  position: absolute;
+  left: calc(20 * var(--u));
+  top: calc(23 * var(--u));
+  width: calc(212 * var(--u));
+  height: calc(40 * var(--u));
+  margin: 0;
+  padding: 0 calc(14 * var(--u));
+  border: 0;
+  border-radius: calc(18 * var(--u));
+  background: var(--bd-cream);
+  color: var(--bd-brown);
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: var(--bd-medium);
+  font-size: calc(14 * var(--u));
+  outline: none;
+  /* A new field for each panel (Team Name, Pin Code): it fades in as they switch. */
+  animation: field-in 260ms ease;
+}
+
+@keyframes field-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.field::placeholder {
+  color: rgba(74, 57, 50, 0.38);
+}
+
+.field:focus-visible {
+  box-shadow: 0 0 0 calc(2 * var(--u)) var(--bd-gold);
+}
+
+/* Solo play: the name the gamer signs up under, not to type. */
+.fieldFixed {
+  display: flex;
+  align-items: center;
+}
+
+.terms {
+  position: absolute;
+  left: calc(24 * var(--u));
+  top: calc(73 * var(--u));
+  display: flex;
+  align-items: center;
+  gap: calc(5 * var(--u));
+  color: rgba(74, 57, 50, 0.38);
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: var(--bd-medium);
+  font-size: calc(9 * var(--u));
+  cursor: pointer;
+}
+
+.terms a {
+  color: rgba(54, 40, 34, 0.7);
+  text-decoration: none;
+}
+
+.terms input {
+  flex: none;
+  width: calc(15 * var(--u));
+  height: calc(15 * var(--u));
+  margin: 0;
+  border: calc(1 * var(--u)) solid rgba(54, 40, 34, 0.7);
+  border-radius: calc(3 * var(--u));
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+
+.terms input:checked {
+  background: var(--bd-brown);
+  box-shadow: inset 0 0 0 calc(3 * var(--u)) var(--bd-cream);
+}
+
+.terms input:focus-visible {
+  outline: calc(2 * var(--u)) solid var(--bd-gold);
+  outline-offset: calc(1 * var(--u));
+}
+
+.confirm,
+.confirm:hover,
+.confirm:active {
+  position: absolute;
+  left: calc(20 * var(--u));
+  top: calc(98 * var(--u));
+  width: calc(66 * var(--u));
+  height: calc(22 * var(--u));
+  padding: 0;
+  border: calc(1 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(18 * var(--u));
+  background: var(--bd-brown);
+  color: var(--bd-cream);
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: var(--bd-medium);
+  font-size: calc(10 * var(--u));
+  cursor: pointer;
+}
+
+/* Join's panel is filled: light words, an outlined Confirm. */
+.panelDark .terms {
+  color: rgba(239, 229, 210, 0.5);
+}
+
+.panelDark .terms a {
+  color: var(--bd-cream);
+}
+
+.panelDark .terms input {
+  border-color: rgba(239, 229, 210, 0.5);
+}
+
+.panelDark .terms input:checked {
+  background: var(--bd-cream);
+  box-shadow: inset 0 0 0 calc(3 * var(--u)) var(--bd-brown);
+}
+
+.panelDark .confirm,
+.panelDark .confirm:hover {
+  border-color: var(--bd-cream);
+  background: transparent;
+}
+
+.signupNote {
+  margin: calc(10 * var(--u)) calc(29 * var(--u)) 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signup,
+  .signup * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ---------- The gamer's team ---------- */
+
+.teamCard {
+  margin-top: calc(24 * var(--u));
+  border: calc(1 * var(--u)) solid var(--bd-brown);
+  background: linear-gradient(201.77deg, rgba(194, 141, 57, 0.1) 29.165%, rgba(54, 40, 34, 0.1) 117.28%);
+}
+
+.teamHead {
+  position: relative;
+  height: calc(42 * var(--u));
+  border-bottom: calc(1 * var(--u)) solid var(--bd-black);
+}
+
+.teamName {
+  position: absolute;
+  left: calc(13 * var(--u));
+  top: calc(11 * var(--u));
+  max-width: calc(176 * var(--u));
+  margin: 0;
+  overflow: hidden;
+  font-weight: var(--bd-extrabold);
+  font-size: calc(20 * var(--u));
+  line-height: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* How full the team is: a segment per player place, the taken ones in gold. */
+.teamBar {
+  position: absolute;
+  left: calc(195 * var(--u));
+  top: calc(16 * var(--u));
+  display: flex;
+  width: calc(51 * var(--u));
+  height: calc(9 * var(--u));
+  overflow: hidden;
+  border: calc(1 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(4.5 * var(--u));
+}
+
+.teamBar span {
+  flex: 1;
+}
+
+.teamBar span + span {
+  border-left: calc(1 * var(--u)) solid var(--bd-brown);
+}
+
+.teamBar .teamBarOn {
+  background: var(--bd-gold);
+}
+
+.teamPin {
+  position: absolute;
+  left: calc(270 * var(--u));
+  top: calc(13 * var(--u));
+  font-weight: var(--bd-regular);
+  font-size: calc(14 * var(--u));
+  letter-spacing: 0.02em;
+}
+
+.teamMenuButton,
+.teamMenuButton:hover,
+.teamMenuButton:active {
+  position: absolute;
+  left: calc(334 * var(--u));
+  top: calc(5 * var(--u));
+  display: grid;
+  place-items: center;
+  width: calc(24 * var(--u));
+  height: calc(30 * var(--u));
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.teamMenu {
+  position: absolute;
+  z-index: 5;
+  right: calc(10 * var(--u));
+  top: calc(36 * var(--u));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: calc(1 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(10 * var(--u));
+  background: var(--bd-cream);
+  box-shadow: 0 calc(6 * var(--u)) calc(16 * var(--u)) rgba(54, 40, 34, 0.18);
+}
+
+.teamMenu button,
+.teamMenu button:hover {
+  padding: calc(9 * var(--u)) calc(16 * var(--u));
+  border: 0;
+  background: none;
+  color: var(--bd-brown);
+  font-family: 'Neue Kaine', sans-serif;
+  font-weight: var(--bd-medium);
+  font-size: calc(13 * var(--u));
+  text-align: left;
+  cursor: pointer;
+}
+
+.teamMenu button + button {
+  border-top: calc(1 * var(--u)) solid rgba(54, 40, 34, 0.15);
+}
+
+.teamMenu {
+  min-width: calc(190 * var(--u));
+}
+
+.teamMenu button:disabled {
+  color: rgba(54, 40, 34, 0.4);
+  cursor: default;
+}
+
+/* Why an item can't be used yet, under it. */
+.teamMenu small {
+  display: block;
+  margin-top: calc(2 * var(--u));
+  font-weight: var(--bd-regular);
+  font-size: calc(10 * var(--u));
+}
+
+/* Leaving, deleting, removing: in the brand red. */
+.teamMenu .danger,
+.teamMenu .danger:hover {
+  color: var(--bd-red);
+}
+
+.teamMenuTitle {
+  margin: 0;
+  padding: calc(9 * var(--u)) calc(16 * var(--u)) calc(6 * var(--u));
+  border-bottom: calc(1 * var(--u)) solid rgba(54, 40, 34, 0.15);
+  color: rgba(54, 40, 34, 0.69);
+  font-weight: var(--bd-medium);
+  font-size: calc(11 * var(--u));
+}
+
+.teamMenu .teamMenuBack,
+.teamMenu .teamMenuBack:hover {
+  color: rgba(54, 40, 34, 0.69);
+  font-size: calc(12 * var(--u));
+}
+
+.teamMenu button:focus-visible {
+  outline: calc(2 * var(--u)) solid var(--bd-gold);
+  outline-offset: calc(-2 * var(--u));
+}
+
+/* A cell per player place: the crown or the bin, the picture, the name. */
+.teamCells {
+  display: grid;
+  height: calc(116 * var(--u));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.teamCells li {
+  position: relative;
+}
+
+.teamCells li + li {
+  border-left: calc(1 * var(--u)) solid var(--bd-black);
+}
+
+.crown {
+  position: absolute;
+  left: 50%;
+  top: calc(10 * var(--u));
+  transform: translateX(-50%);
+}
+
+.remove,
+.remove:hover,
+.remove:active {
+  position: absolute;
+  left: 50%;
+  top: calc(5 * var(--u));
+  display: grid;
+  place-items: center;
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
+  padding: 0;
+  border: 0;
+  background: none;
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+
+.memberAvatar {
+  position: absolute !important;
+  left: 50%;
+  top: calc(32 * var(--u));
+  transform: translateX(-50%);
+}
+
+.memberName {
+  position: absolute;
+  left: calc(2 * var(--u));
+  right: calc(2 * var(--u));
+  top: calc(91 * var(--u));
+  overflow: hidden;
+  font-weight: var(--bd-medium);
+  font-size: calc(10 * var(--u));
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ---------- Bracket ---------- */
@@ -249,7 +674,7 @@
   list-style: none;
 }
 
-.teamCard {
+.teamRow {
   display: grid;
   grid-template-columns: calc(26 * var(--u)) 1fr;
   align-items: center;
@@ -287,7 +712,7 @@
   background: rgba(54, 40, 34, 0.25);
 }
 
-.teamName {
+.teamRowName {
   display: flex;
   align-items: center;
   gap: calc(8 * var(--u));

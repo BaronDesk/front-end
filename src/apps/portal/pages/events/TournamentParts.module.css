@@ -1,11 +1,40 @@
-/* The tournament pieces shared by the list and the detail page: status chip, cover, next match. */
+/*
+ * The tournament pieces shared by the list and a tournament's page: the card,
+ * its status tag and the next-match card. Placed as in the design (303 wide
+ * cards); a child's place is counted inside the card's 1 px border.
+ */
 
-/* ---------- Status chip ---------- */
+/* ---------- Header: picture, badges, coins (as on Bookings) ---------- */
+
+.head {
+  position: relative;
+  height: calc(80 * var(--u));
+}
+
+.avatar {
+  position: absolute;
+  left: calc(27 * var(--u));
+  top: calc(18 * var(--u));
+}
+
+.badges {
+  position: absolute;
+  left: calc(82 * var(--u));
+  top: calc(27.5 * var(--u));
+  height: calc(24 * var(--u));
+}
+
+.coins {
+  position: absolute;
+  right: calc(18 * var(--u));
+  top: calc(21 * var(--u));
+}
+
+/* ---------- Status tag (on the cover's corner) ---------- */
 
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: calc(5 * var(--u));
   height: calc(22 * var(--u));
   padding: 0 calc(10 * var(--u));
   border-radius: calc(11 * var(--u));
@@ -32,40 +61,39 @@
   color: var(--bd-cream);
 }
 
-/* Live: a small pulsing dot before the word. */
-.IN_PROGRESS::before {
-  content: '';
-  width: calc(6 * var(--u));
-  height: calc(6 * var(--u));
-  border-radius: 50%;
-  background: currentColor;
-  animation: live 1.4s ease-in-out infinite;
-}
-
-@keyframes live {
-  50% {
-    opacity: 0.25;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .IN_PROGRESS::before {
-    animation: none;
-  }
-}
-
 .COMPLETED,
 .CANCELLED {
   background: var(--bd-brown);
   color: var(--bd-on-dark);
 }
 
-/* ---------- Cover ---------- */
+/* ---------- Tournament card ---------- */
+
+.card {
+  position: relative;
+  width: calc(303 * var(--u));
+  height: calc(282 * var(--u));
+  overflow: hidden;
+  border: calc(1 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(15 * var(--u));
+  /* The design's brown, lit with gold at the top (measured on its export). */
+  background: linear-gradient(167.7deg, #664b2b 0%, #382922 100%);
+  color: var(--bd-cream);
+}
+
+.cardActions {
+  height: calc(328 * var(--u));
+}
 
 .cover {
-  position: relative;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: calc(129 * var(--u));
   overflow: hidden;
-  background: linear-gradient(135deg, var(--bd-brown) 0%, var(--bd-red) 100%);
+  border-bottom: calc(1 * var(--u)) solid var(--bd-brown);
+  background: linear-gradient(131.44deg, var(--bd-gold) 39.588%, #5c431b 81.63%);
 }
 
 .cover img {
@@ -73,84 +101,306 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 30%;
+  object-position: 50% 28%;
 }
 
-/* No image: the game's name, large, on the brand colors. */
+/* No picture: the game's name on the cover. */
 .coverName {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
   padding: calc(16 * var(--u));
-  color: var(--bd-cream);
   font-weight: var(--bd-semibold);
-  font-size: calc(26 * var(--u));
+  font-size: calc(24 * var(--u));
   text-align: center;
+}
+
+.status {
+  position: absolute;
+  left: calc(11 * var(--u));
+  top: calc(11 * var(--u));
+}
+
+.name {
+  position: absolute;
+  left: calc(11 * var(--u));
+  top: calc(136 * var(--u));
+  max-width: calc(279 * var(--u));
+  margin: 0;
+  overflow: hidden;
+  font-family: 'Hyano', sans-serif;
+  font-weight: 800;
+  font-size: calc(20 * var(--u));
+  line-height: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tags {
+  position: absolute;
+  left: calc(11 * var(--u));
+  top: calc(169 * var(--u));
+  display: flex;
+  gap: calc(5 * var(--u));
+  max-width: calc(281 * var(--u));
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+}
+
+.tags li {
+  flex: none;
+  height: calc(15 * var(--u));
+  padding: 0 calc(4 * var(--u));
+  border: calc(0.5 * var(--u)) solid var(--bd-cream);
+  border-radius: calc(2 * var(--u));
+  background: linear-gradient(171.43deg, rgba(194, 141, 57, 0.2) 47.233%, rgba(92, 67, 27, 0.2) 261.58%);
+  color: #fff;
+  font-weight: var(--bd-regular);
+  font-size: calc(8 * var(--u));
+  line-height: calc(14 * var(--u));
+  white-space: nowrap;
+}
+
+/* The start, between two faint lines. */
+.when {
+  position: absolute;
+  left: calc(5 * var(--u));
+  top: calc(199 * var(--u));
+  display: flex;
+  align-items: center;
+  width: calc(292 * var(--u));
+  height: calc(25.5 * var(--u));
+  padding: 0 calc(7 * var(--u)) 0 calc(8 * var(--u));
+  border-top: calc(0.5 * var(--u)) solid rgba(239, 229, 210, 0.16);
+  border-bottom: calc(0.5 * var(--u)) solid rgba(239, 229, 210, 0.16);
+}
+
+.date {
+  margin-left: calc(4.6 * var(--u));
+  color: rgba(239, 229, 210, 0.7);
+  font-weight: var(--bd-regular);
+  font-size: calc(9 * var(--u));
+}
+
+.startsIn {
+  margin-left: auto;
+  font-weight: var(--bd-medium);
+  font-size: calc(9 * var(--u));
+}
+
+/* Prize Pool, Teams, Fees. */
+.stats {
+  position: absolute;
+  left: calc(11 * var(--u));
+  top: calc(234 * var(--u));
+  display: flex;
+  gap: calc(10 * var(--u));
+}
+
+.stat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: calc(75 * var(--u));
+  height: calc(32 * var(--u));
+  padding: calc(4 * var(--u)) calc(5 * var(--u)) 0;
+}
+
+/* The box: its tint at 40 %, the figures at full strength. */
+.stat::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: calc(0.5 * var(--u)) solid var(--bd-cream);
+  border-radius: calc(4 * var(--u));
+  background: linear-gradient(-17.57deg, var(--bd-brown) 2.1263%, var(--bd-gold) 253.47%);
+  opacity: 0.4;
+}
+
+.statTeams {
+  min-width: calc(64 * var(--u));
+}
+
+.statLabel,
+.statValue {
+  position: relative;
+}
+
+.statLabel {
+  color: rgba(239, 229, 210, 0.7);
+  font-weight: var(--bd-light);
+  font-size: calc(8 * var(--u));
+  line-height: calc(10 * var(--u));
+}
+
+.statValue {
+  display: flex;
+  align-items: center;
+  font-weight: var(--bd-semibold);
+  font-size: calc(14 * var(--u));
+  line-height: calc(16 * var(--u));
+  white-space: nowrap;
+}
+
+.statOf {
+  color: rgba(239, 229, 210, 0.5);
+  font-size: calc(12 * var(--u));
+}
+
+.statCoin {
+  width: calc(16 * var(--u));
+  height: calc(16 * var(--u));
+  margin-left: calc(1 * var(--u));
+}
+
+.actions {
+  position: absolute;
+  left: calc(11 * var(--u));
+  right: calc(11 * var(--u));
+  top: calc(283 * var(--u));
+  display: flex;
+}
+
+.main {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  height: calc(26 * var(--u));
+  border: calc(0.7 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(25 * var(--u));
+  background: var(--bd-cream);
+  color: var(--bd-brown);
+  font-weight: var(--bd-bold);
+  font-size: calc(10 * var(--u));
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.main:focus-visible {
+  outline: calc(2 * var(--u)) solid var(--bd-gold);
+  outline-offset: calc(2 * var(--u));
 }
 
 /* ---------- Next match ---------- */
 
 .next {
-  margin: calc(14 * var(--u)) calc(21 * var(--u)) 0;
-  padding: calc(14 * var(--u)) calc(16 * var(--u));
-  border-radius: calc(18 * var(--u));
-  background: var(--bd-brown);
-  color: var(--bd-on-dark);
-  font-family: 'Nexa', sans-serif;
-  font-weight: 300;
+  position: relative;
+  display: block;
+  width: calc(303 * var(--u));
+  height: calc(133 * var(--u));
+  overflow: hidden;
+  border: calc(1 * var(--u)) solid var(--bd-brown);
+  border-radius: calc(10 * var(--u));
+  background:
+    linear-gradient(96.69deg, rgba(194, 141, 57, 0.38) 1.8037%, rgb(64, 48, 41) 49.954%, rgb(54, 40, 34) 49.954%, rgba(54, 40, 34, 0.85) 98.104%),
+    var(--bd-brown);
+  color: var(--bd-cream);
+  text-decoration: none;
 }
 
-.next p {
-  margin: 0;
+.next:focus-visible {
+  outline: calc(2 * var(--u)) solid var(--bd-gold);
+  outline-offset: calc(2 * var(--u));
+}
+
+.next > * {
+  position: absolute;
+}
+
+/* The game's poster, a faint texture behind. */
+.nextPoster {
+  left: -1px;
+  top: calc(-144 * var(--u));
+  width: calc(304 * var(--u));
+  height: calc(406 * var(--u));
+  object-fit: cover;
+  opacity: 0.05;
 }
 
 .nextLabel {
-  color: var(--bd-gold);
-  font-weight: 700;
-  font-size: calc(11 * var(--u));
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.nextRound {
-  margin-top: calc(6 * var(--u)) !important;
-  font-family: 'Neue Kaine', sans-serif;
-  font-weight: var(--bd-regular);
-  font-size: calc(22 * var(--u));
-}
-
-.nextTeams {
-  margin-top: calc(2 * var(--u)) !important;
-  font-size: calc(14 * var(--u));
-}
-
-.nextTeams b {
-  font-weight: 700;
-}
-
-.nextFacts {
-  display: flex;
-  justify-content: space-between;
-  gap: calc(10 * var(--u));
-  margin: calc(12 * var(--u)) 0 0;
-  padding-top: calc(10 * var(--u));
-  border-top: calc(1 * var(--u)) solid rgba(232, 222, 203, 0.25);
-}
-
-.nextFacts dt {
-  font-size: calc(11 * var(--u));
-  opacity: 0.7;
-}
-
-.nextFacts dd {
-  margin: calc(3 * var(--u)) 0 0;
+  left: calc(12 * var(--u));
+  top: calc(7 * var(--u));
+  font-family: 'Hyano', sans-serif;
   font-weight: 400;
+  font-size: calc(10 * var(--u));
+}
+
+/* On and off, like a live light. */
+.nextDot {
+  left: calc(291 * var(--u));
+  top: calc(12 * var(--u));
+  width: calc(5 * var(--u));
+  height: calc(5 * var(--u));
+  border-radius: 50%;
+  background: var(--bd-cream);
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.15;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nextDot {
+    animation: none;
+  }
+}
+
+/* A team's words one per line: "Baron / Wolves". */
+.nextTeamA,
+.nextTeamB {
+  top: calc(45 * var(--u));
+  width: min-content;
+  max-width: calc(140 * var(--u));
+  font-family: 'Nexa', sans-serif;
+  font-weight: 700;
+  font-size: calc(20 * var(--u));
+  line-height: 0.9;
+}
+
+.nextTeamA {
+  left: calc(12 * var(--u));
+}
+
+.nextTeamB {
+  right: calc(10 * var(--u));
+  text-align: right;
+}
+
+.nextStrip {
+  left: calc(-1 * var(--u));
+  right: calc(-1 * var(--u));
+  bottom: calc(-1 * var(--u));
+  height: calc(39 * var(--u));
+  border: calc(1 * var(--u)) solid #25150f;
+  border-radius: 0 0 calc(10 * var(--u)) calc(10 * var(--u));
+  background: linear-gradient(143.11deg, var(--bd-brown) 7.318%, var(--bd-black) 148.42%);
+  font-family: 'Nexa', sans-serif;
   font-size: calc(14 * var(--u));
+}
+
+.nextStrip > * {
+  position: absolute;
+  top: calc(13 * var(--u));
+}
+
+.nextWhen {
+  left: calc(10 * var(--u));
+  font-weight: 300;
+}
+
+.nextPc {
+  left: calc(137 * var(--u));
+  font-weight: 300;
 }
 
 .nextPin {
-  color: var(--bd-gold);
-  font-weight: 700 !important;
-  letter-spacing: 0.08em;
+  right: calc(10 * var(--u));
+  top: calc(12 * var(--u)) !important;
+  font-weight: 700;
 }
