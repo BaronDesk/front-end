@@ -211,9 +211,10 @@ function SignUp({ tournament: t, username }: { tournament: Tournament; username:
 
 /**
  * The gamer's team: its name, how full it is, the PIN teammates join with,
- * and its menu (⋮) while sign-up is open: a player can leave the team; the
- * leader can give the lead to a teammate, remove someone, or delete the team
- * (after a warning). Solo play: leave the tournament. Below, a cell per
+ * and its menu (⋮): a player can leave the team; the leader can give the
+ * lead to a teammate, remove someone, or delete the team (after a warning).
+ * Solo play: leave the tournament. Once sign-up closes the team is locked:
+ * the menu still opens, its choices greyed out, and says so. Below, a cell per
  * player place: the members in the middle, the leader crowned; the leader
  * can also take a player off with the bin over them.
  */
@@ -294,53 +295,52 @@ function TeamCard({ tournament: t, team, username }: { tournament: Tournament; t
               {team.joinCode}
             </span>
           )}
-          {open && (
-            <div ref={menuArea}>
-              <button type="button" className={styles.teamMenuButton} aria-label="Team options" aria-haspopup="menu" aria-expanded={!!menu} onClick={() => setMenu(menu ? null : 'main')}>
-                <Art src={threeDots} w={ART.threeDots[0]} h={ART.threeDots[1]} />
-              </button>
-              {menu === 'main' && (
-                <div className={styles.teamMenu} role="menu" aria-label="Team options">
-                  {solo ? (
-                    <button type="button" role="menuitem" className={styles.danger} onClick={leaveSolo}>
-                      Leave the tournament
-                    </button>
-                  ) : iLead ? (
-                    <>
-                      <button type="button" role="menuitem" disabled={!teammates.length} onClick={() => setMenu('leader')}>
-                        Change the team leader
-                        {!teammates.length && <small>No teammate yet</small>}
-                      </button>
-                      <button type="button" role="menuitem" disabled={!teammates.length} onClick={() => setMenu('remove')}>
-                        Remove someone
-                        {!teammates.length && <small>No teammate yet</small>}
-                      </button>
-                      <button type="button" role="menuitem" className={styles.danger} onClick={deleteTeam}>
-                        Delete the team
-                      </button>
-                    </>
-                  ) : (
-                    <button type="button" role="menuitem" className={styles.danger} onClick={leave}>
-                      Leave the team
-                    </button>
-                  )}
-                </div>
-              )}
-              {(menu === 'leader' || menu === 'remove') && (
-                <div className={styles.teamMenu} role="menu" aria-label={menu === 'leader' ? 'New team leader' : 'Remove a player'}>
-                  <p className={styles.teamMenuTitle}>{menu === 'leader' ? 'Who leads the team now?' : 'Who leaves the team?'}</p>
-                  {teammates.map((member) => (
-                    <button key={member} type="button" role="menuitem" className={menu === 'remove' ? styles.danger : undefined} onClick={() => (menu === 'leader' ? makeLeader(member) : remove(member))}>
-                      {member}
-                    </button>
-                  ))}
-                  <button type="button" role="menuitem" className={styles.teamMenuBack} onClick={() => setMenu('main')}>
-                    ‹ Back
+          <div ref={menuArea}>
+            <button type="button" className={styles.teamMenuButton} aria-label="Team options" aria-haspopup="menu" aria-expanded={!!menu} onClick={() => setMenu(menu ? null : 'main')}>
+              <Art src={threeDots} w={ART.threeDots[0]} h={ART.threeDots[1]} />
+            </button>
+            {menu === 'main' && (
+              <div className={styles.teamMenu} role="menu" aria-label="Team options">
+                {!open && <p className={styles.teamMenuTitle}>Teams are locked once sign-up closes.</p>}
+                {solo ? (
+                  <button type="button" role="menuitem" className={styles.danger} disabled={!open} onClick={leaveSolo}>
+                    Leave the tournament
                   </button>
-                </div>
-              )}
-            </div>
-          )}
+                ) : iLead ? (
+                  <>
+                    <button type="button" role="menuitem" disabled={!open || !teammates.length} onClick={() => setMenu('leader')}>
+                      Change the team leader
+                      {open && !teammates.length && <small>No teammate yet</small>}
+                    </button>
+                    <button type="button" role="menuitem" disabled={!open || !teammates.length} onClick={() => setMenu('remove')}>
+                      Remove someone
+                      {open && !teammates.length && <small>No teammate yet</small>}
+                    </button>
+                    <button type="button" role="menuitem" className={styles.danger} disabled={!open} onClick={deleteTeam}>
+                      Delete the team
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" role="menuitem" className={styles.danger} disabled={!open} onClick={leave}>
+                    Leave the team
+                  </button>
+                )}
+              </div>
+            )}
+            {(menu === 'leader' || menu === 'remove') && (
+              <div className={styles.teamMenu} role="menu" aria-label={menu === 'leader' ? 'New team leader' : 'Remove a player'}>
+                <p className={styles.teamMenuTitle}>{menu === 'leader' ? 'Who leads the team now?' : 'Who leaves the team?'}</p>
+                {teammates.map((member) => (
+                  <button key={member} type="button" role="menuitem" className={menu === 'remove' ? styles.danger : undefined} onClick={() => (menu === 'leader' ? makeLeader(member) : remove(member))}>
+                    {member}
+                  </button>
+                ))}
+                <button type="button" role="menuitem" className={styles.teamMenuBack} onClick={() => setMenu('main')}>
+                  ‹ Back
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <ul className={styles.teamCells} style={{ gridTemplateColumns: `repeat(${t.teamSize}, 1fr)` }}>
           {teamCells(t.teamSize, team.members).map((member, i) => (
