@@ -529,12 +529,17 @@
 
 /* ---------- Bracket ---------- */
 
+/* It still scrolls sideways (a swipe, a trackpad, the arrow keys), with no bar showing. */
 .bracket {
   display: flex;
   gap: calc(22 * var(--u));
   overflow-x: auto;
   padding: 0 calc(21 * var(--u)) calc(6 * var(--u));
-  scrollbar-width: thin;
+  scrollbar-width: none;
+}
+
+.bracket::-webkit-scrollbar {
+  display: none;
 }
 
 .bracket:focus-visible {
