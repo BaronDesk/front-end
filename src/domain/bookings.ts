@@ -78,8 +78,12 @@ export const BOOKING_LENGTHS = [30, 60, 90, 120, 180];
 /** Bookings are known 7 days ahead: today and the next 6. */
 export const BOOKING_DAYS_AHEAD = 6;
 
-/** A length on a pill: "30 min", "1.5 h". */
+/** The "Max" length of Play now: play until the coins run out (the minutes are worked out per seat, domain/pricing.ts). */
+export const UNTIL_BALANCE = 0;
+
+/** A length on a pill: "30 min", "1.5 h", "Max". */
 export function lengthShortText(minutes: number): string {
+  if (minutes === UNTIL_BALANCE) return 'Max';
   return minutes < 60 ? `${minutes} min` : `${minutes / 60} h`;
 }
 

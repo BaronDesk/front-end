@@ -257,3 +257,8 @@
 .notice {
   margin-top: calc(12 * var(--u));
 }
+
+.rate {
+  font-size: calc(12 * var(--u));
+  opacity: 0.75;
+}

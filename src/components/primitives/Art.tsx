@@ -44,4 +44,8 @@ export const ART = {
   logout: [22, 22],
   profileBg: [360, 696],
   walletFront: [271, 122.073],
+  calendarLight: [10.375, 9.875],
+  threeDots: [2, 10],
+  crown: [18.002, 14.5001],
+  trash: [7.00013, 9.00019],
 } as const;

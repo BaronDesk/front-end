@@ -1,3 +1,5 @@
+import { useMemo, useSyncExternalStore } from 'react';
+
 import type {
   Branch,
   BranchStation,
@@ -11,6 +13,7 @@ import type {
   Reservation,
   Subscription,
   SubscriptionPlan,
+  Tournament,
   Wallet,
   WalletEntry,
 } from '../core/api-types';
@@ -18,6 +21,8 @@ import { catalogService } from '../services/catalog.service';
 import { plansService } from '../services/plans.service';
 import { reservationsService } from '../services/reservations.service';
 import { sessionsService, type SessionHistoryRow } from '../services/sessions.service';
+import { ME, tournamentsService } from '../services/tournaments.service';
+import { useAuth } from '../providers/AuthProvider';
 import { walletService } from '../services/wallet.service';
 import { useApiQuery } from './useApiQuery';
 
@@ -59,3 +64,25 @@ export const useExtendOptions = (reservationId: string | null) =>
   useApiQuery<ExtendOptions>(reservationId ? reservationsService.paths.extendOptions(reservationId) : null);
 export const useCurrentSession = () => useApiQuery<CurrentSession | null>(sessionsService.paths.current);
 export const useSessionHistory = () => useApiQuery<SessionHistoryRow[]>(sessionsService.paths.history);
+
+// Tournaments
+/**
+ * The tournaments: sample data until the backend has them (not a request
+ * yet), redrawn when a team is created or joined. Each game's poster comes
+ * from the catalog, matched by name, so a tournament without its own cover
+ * shows it; the samples' stand-in for the gamer becomes their username.
+ */
+export function useTournaments(): { data: Tournament[] } {
+  const games = useGames();
+  const { user } = useAuth();
+  const list = useSyncExternalStore(tournamentsService.subscribe, tournamentsService.list);
+  const data = useMemo(() => {
+    const me = (name: string) => (name === ME ? (user?.username ?? 'You') : name);
+    return list.map((t) => ({
+      ...t,
+      game: { ...t.game, iconUrl: t.game.iconUrl ?? games.data?.find((g) => g.name === t.game.name)?.iconUrl ?? null },
+      teams: t.teams.map((team) => ({ ...team, name: me(team.name), members: team.members.map(me) })),
+    }));
+  }, [list, games.data, user?.username]);
+  return { data };
+}

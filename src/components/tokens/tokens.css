@@ -41,6 +41,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Hyano';
+  src: url('./fonts/Hyano-Variable.ttf') format('truetype');
+  /* One variable font: Light 300, Regular 400, Extrabold 800. */
+  font-weight: 300 800;
+  font-display: swap;
+}
+
 @layer base {
   /* Every rule below is scoped to the design (.bd-app), so a desk page (styled by the desk theme) is untouched. */
   *,
@@ -65,6 +73,8 @@
     --bd-light: 400;
     --bd-regular: 483;
     --bd-semibold: 650;
+    --bd-bold: 733;
+    --bd-extrabold: 817;
     /* Neue Kaine Medium: buttons, fields and figures. */
     --bd-medium: 567;
 
