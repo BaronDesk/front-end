@@ -18,6 +18,7 @@ export const DESK_MENU: MenuItem[] = [
   { path: '/plans', label: 'Plans', minRole: 'MANAGER' },
   { path: '/ranks', label: 'Ranks', minRole: 'MANAGER' },
   { path: '/games', label: 'Games', minRole: 'MANAGER' },
+  { path: '/tournaments', label: 'Tournaments', minRole: 'MANAGER' },
   { path: '/hq', label: 'HQ overview', minRole: 'ADMIN' },
   { path: '/audit', label: 'Audit log', minRole: 'ADMIN' },
 ];

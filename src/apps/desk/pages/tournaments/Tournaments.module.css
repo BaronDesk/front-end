@@ -1,0 +1,117 @@
+/* The desk's tournament pages: the gamer app's cards, bracket and teams, at desk size, around the desk's forms and tables. */
+
+/* The app's design unit at the desk: the phone's parts drawn a little larger than on a 360 px phone. */
+.phone {
+  --u: 1.1px;
+}
+
+/* ---------- List ---------- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 6px 0 18px;
+}
+
+/* The app's filter chips. */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter,
+.filter:hover,
+.filter:active {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--bd-brown);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--bd-brown);
+  font-family: 'Nexa', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.filterOn,
+.filterOn:hover {
+  background: var(--bd-brown);
+  color: var(--bd-cream);
+}
+
+.formWrap {
+  max-width: 640px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, calc(303 * var(--u)));
+  gap: 24px;
+}
+
+/* ---------- One tournament ---------- */
+
+.back {
+  margin: 0 0 4px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: calc(303 * 1.1px) minmax(0, 1fr);
+  align-items: start;
+  gap: 28px;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.side fieldset {
+  margin-top: 16px;
+}
+
+.champion {
+  margin: 12px 0 0;
+  font-size: 15px;
+}
+
+.champion b {
+  color: var(--bd-red);
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.main {
+  min-width: 0;
+}
+
+.main h2:first-child {
+  margin-top: 0;
+}
+
+.score {
+  width: 64px;
+  text-align: center;
+}
+
+/* The app's team list, edge to edge in the column, with the desk's Remove at the end of each row. */
+.teams {
+  margin: 0;
+}
+
+.remove {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+}

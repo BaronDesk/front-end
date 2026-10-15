@@ -1,13 +1,12 @@
-import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router';
 
-import type { Tournament, TournamentMatch, TournamentTeam } from '../../../../core/api-types';
+import type { Tournament, TournamentTeam } from '../../../../core/api-types';
 import { useAuth } from '../../../../providers/AuthProvider';
 import { useAction } from '../../../../hooks/useAction';
 import { useTournaments } from '../../../../hooks/queries';
 import { tournamentsService } from '../../../../services/tournaments.service';
-import { champion, matchesByRound, roundName, teamCells, teamOf } from '../../../../domain/tournaments';
-import { weekdayDateTime } from '../../../../lib/dates';
+import { champion, teamCells, teamOf } from '../../../../domain/tournaments';
 import threeDots from '../../../../components/assets/three-dots.svg';
 import crown from '../../../../components/assets/crown.svg';
 import trash from '../../../../components/assets/trash.svg';
@@ -15,68 +14,13 @@ import { ART, Art } from '../../../../components/primitives/Art';
 import { Avatar } from '../../../../components/primitives/Avatar';
 import { ActionNote } from '../../../../components/primitives/Notice';
 import { EmptyScreen } from '../../../../components/composites/EmptyScreen';
+import { TournamentBracket } from '../../../../components/composites/TournamentBracket';
+import { TournamentCard } from '../../../../components/composites/TournamentCard';
+import { TournamentTeams } from '../../../../components/composites/TournamentTeams';
 import { cx } from '../../../../lib/cx';
-import { PlayerHeader, TournamentCard } from './TournamentParts';
+import { PlayerHeader } from './TournamentParts';
 import { JOIN_SHIFT, teamPanelPath } from './teamPanelPath';
 import styles from './TournamentPage.module.css';
-
-/** One side of a match: the team (or TBD, to be decided) and its score; the winner stands out. */
-function Side({ tournament, match, side }: { tournament: Tournament; match: TournamentMatch; side: 'A' | 'B' }) {
-  const id = side === 'A' ? match.teamAId : match.teamBId;
-  const score = side === 'A' ? match.scoreA : match.scoreB;
-  const team = teamOf(tournament, id);
-  const won = !!id && match.winnerTeamId === id;
-  const lost = !!match.winnerTeamId && !won;
-  return (
-    <div className={cx(styles.side, won && styles.won, lost && styles.lost)}>
-      <span className={cx(styles.team, !team && styles.tbd)}>{team ? team.name : <abbr title="To be decided">TBD</abbr>}</span>
-      <span className={styles.score}>{score ?? ''}</span>
-    </div>
-  );
-}
-
-/** Under a match still to play: Live, or when it is (a played one shows its score). */
-function matchNote(match: TournamentMatch): string {
-  if (match.status === 'IN_PROGRESS') return 'Live';
-  if (match.status === 'COMPLETED' || match.status === 'BYE') return '';
-  return match.scheduledAt ? weekdayDateTime(match.scheduledAt) : 'Time to be set';
-}
-
-/** The single-elimination bracket: a column per round, the final last; it scrolls sideways on a phone. */
-function Bracket({ tournament }: { tournament: Tournament }) {
-  const rounds = matchesByRound(tournament);
-  const firstRound = Math.max(rounds[0]?.length ?? 1, 1);
-  // Every round is as tall as the first, its matches evenly spread: two neighbours are `height / count` apart.
-  const height = firstRound * 86;
-  return (
-    <div className={styles.bracket} role="region" aria-label="Bracket" tabIndex={0}>
-      {rounds.map((matches, i) => (
-        <div key={i} className={styles.round}>
-          <p className={styles.roundName}>{roundName(i + 1, rounds.length)}</p>
-          <div
-            className={cx(styles.roundMatches, i > 0 && styles.later, i < rounds.length - 1 && styles.earlier)}
-            style={{ height: `calc(${height} * var(--u))`, '--half': `calc(${height / Math.max(matches.length, 1) / 2} * var(--u))` } as CSSProperties}
-          >
-            {matches.map((m, j) => {
-              const mine = !!tournament.myTeamId && (m.teamAId === tournament.myTeamId || m.teamBId === tournament.myTeamId);
-              return (
-                <div key={m.id} className={styles.matchWrap}>
-                  <div className={cx(styles.match, mine && styles.mine, m.status === 'IN_PROGRESS' && styles.live)}>
-                    <Side tournament={tournament} match={m} side="A" />
-                    <Side tournament={tournament} match={m} side="B" />
-                  </div>
-                  <p className={cx(styles.note, m.status === 'IN_PROGRESS' && styles.noteLive)}>{matchNote(m)}</p>
-                  {/* The pair's vertical line: down from the upper match, up from the lower one, meeting at the next round's match. */}
-                  {i < rounds.length - 1 && <span className={cx(styles.joint, j % 2 ? styles.jointUp : styles.jointDown)} />}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 /** How long the panel's opening takes to slide between Create Team and Join Team. */
 const SLIDE_MS = 380;
@@ -428,27 +372,10 @@ export function TournamentPage() {
       {mine ? <TeamCard tournament={t} team={mine} username={username} /> : t.status === 'REGISTRATION_OPEN' && <SignUp tournament={t} username={username} />}
 
       <h2 className={styles.sectionTitle}>{solo ? 'Current Players' : 'Current Teams'}</h2>
-      <ol className={styles.teams}>
-        {t.teams.map((team, i) => (
-          <li key={team.id} className={cx(styles.teamRow, team.id === t.myTeamId && styles.teamMine)}>
-            <span className={styles.seed}>{team.seed ?? i + 1}</span>
-            <span className={styles.teamRowName}>
-              {team.name}
-              {team.id === t.myTeamId && <span className={styles.yourTeam}>{solo ? 'You' : 'Your team'}</span>}
-            </span>
-            {!solo && <span className={styles.members}>{team.members.join(', ')}</span>}
-          </li>
-        ))}
-        {Array.from({ length: Math.max(t.maxTeams - t.teams.length, 0) }, (_, i) => (
-          <li key={`free-${i}`} className={cx(styles.teamRow, styles.teamFree)}>
-            <span className={styles.seed}>{t.teams.length + i + 1}</span>
-            <span className={styles.teamRowName}>Free place</span>
-          </li>
-        ))}
-      </ol>
+      <TournamentTeams tournament={t} />
 
       <h2 className={styles.sectionTitle}>Brackets</h2>
-      {t.matches.length ? <Bracket tournament={t} /> : <p className={styles.empty}>The bracket is drawn when sign-up closes.</p>}
+      {t.matches.length ? <TournamentBracket tournament={t} /> : <p className={styles.empty}>The bracket is drawn when sign-up closes.</p>}
     </div>
   );
 }

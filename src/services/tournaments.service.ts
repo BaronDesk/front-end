@@ -1,4 +1,5 @@
-import type { MatchStatus, Tournament, TournamentMatch, TournamentTeam } from '../core/api-types';
+import type { MatchStatus, Tournament, TournamentInput, TournamentMatch, TournamentTeam } from '../core/api-types';
+import { adminSteps, drawBracket, reportResult } from '../domain/tournaments';
 
 /*
  * Sample tournaments, shown until the backend has GET /tournaments. Dates
@@ -382,7 +383,92 @@ export const tournamentsService = {
       const mine = myLedTeam(t);
       return { ...t, teams: t.teams.filter((x) => x.id !== mine.id), myTeamId: null };
     }),
+
+  // ---------- The desk (managers and HQ) ----------
+
+  /** A new tournament, open for sign-up at once. */
+  createTournament(input: TournamentInput): Promise<Tournament> {
+    try {
+      checkInput(input, 0, 1);
+    } catch (err) {
+      return Promise.reject(err);
+    }
+    const t: Tournament = {
+      ...input,
+      id: `${input.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${Math.random().toString(36).slice(2, 6)}`,
+      name: input.name.trim(),
+      game: { ...input.game, iconUrl: null },
+      format: 'SINGLE_ELIMINATION',
+      status: 'REGISTRATION_OPEN',
+      teams: [],
+      matches: [],
+      myTeamId: null,
+      myNextMatch: null,
+    };
+    state = [t, ...current()];
+    listeners.forEach((l) => l());
+    return Promise.resolve(t);
+  },
+
+  /** Its details, while nothing is drawn yet (the places can't drop below the teams already in). */
+  updateTournament: (id: string, input: TournamentInput) =>
+    update(id, (t) => {
+      if (t.matches.length || (t.status !== 'REGISTRATION_OPEN' && t.status !== 'REGISTRATION_CLOSED')) {
+        throw new Error('A tournament can only be edited before its bracket is drawn.');
+      }
+      checkInput(input, t.teams.length, Math.max(1, ...t.teams.map((x) => x.members.length)));
+      return { ...t, ...input, name: input.name.trim(), game: { ...input.game, iconUrl: t.game.id === input.game.id ? t.game.iconUrl : null } };
+    }),
+
+  /** The next stage: close or reopen sign-up, start the matches, or cancel. */
+  setStage: (id: string, step: 'close' | 'reopen' | 'start' | 'cancel') =>
+    update(id, (t) => {
+      if (!adminSteps(t).includes(step)) throw new Error('This tournament cannot do that now.');
+      const status = ({ close: 'REGISTRATION_CLOSED', reopen: 'REGISTRATION_OPEN', start: 'IN_PROGRESS', cancel: 'CANCELLED' } as const)[step];
+      return { ...t, status };
+    }),
+
+  /** The bracket, once sign-up is closed: seeds in sign-up order, byes to the top seeds. */
+  drawBracket: (id: string) =>
+    update(id, (t) => {
+      if (!adminSteps(t).includes('draw')) throw new Error('Close sign-up before drawing the bracket.');
+      return { ...t, ...drawBracket(t) };
+    }),
+
+  /** A played match's score; when the final is played, the tournament is over. */
+  reportResult: (id: string, matchId: string, scoreA: number, scoreB: number) =>
+    update(id, (t) => {
+      if (t.status !== 'IN_PROGRESS') throw new Error('Start the tournament before entering results.');
+      const matches = reportResult(t.matches, matchId, scoreA, scoreB);
+      const final = matches.reduce((last, m) => (m.round > last.round ? m : last), matches[0]);
+      return { ...t, matches, status: final.status === 'COMPLETED' ? 'COMPLETED' : t.status };
+    }),
+
+  /** Takes a team (or a solo player) out, before the bracket is drawn. */
+  removeTeam: (id: string, teamId: string) =>
+    update(id, (t) => {
+      if (t.matches.length) throw new Error('The bracket is drawn: teams can no longer change.');
+      return { ...t, teams: t.teams.filter((x) => x.id !== teamId), myTeamId: t.myTeamId === teamId ? null : t.myTeamId };
+    }),
+
+  /** Deletes the tournament for good; answers its id. */
+  deleteTournament(id: string): Promise<string> {
+    state = current().filter((t) => t.id !== id);
+    listeners.forEach((l) => l());
+    return Promise.resolve(id);
+  },
 };
+
+/** Refuses a tournament the desk can't run: no name, sign-up ending after the start, fewer places than teams in. */
+function checkInput(input: TournamentInput, teamsIn: number, largestTeam: number) {
+  if (input.name.trim().length < 2 || input.name.trim().length > 60) throw new Error('A tournament name has 2 to 60 characters.');
+  if (Date.parse(input.registrationClosesAt) > Date.parse(input.startsAt)) throw new Error('Sign-up must close before the tournament starts.');
+  if (input.maxTeams < 2) throw new Error('A tournament needs at least 2 places.');
+  if (input.maxTeams < teamsIn) throw new Error(`${teamsIn} teams are already in: keep at least ${teamsIn} places.`);
+  if (input.teamSize < largestTeam) throw new Error(`A team already has ${largestTeam} players: keep the team size at ${largestTeam} or more.`);
+  if ([input.entryFeeCoins, input.prizePoolCoins].some((c) => !Number.isInteger(c) || c < 0)) throw new Error('Coins are whole numbers, 0 or more.');
+  if (!Number.isInteger(input.matchMinutes) || input.matchMinutes < 5) throw new Error('A match lasts at least 5 minutes.');
+}
 
 /** The caller's team, while sign-up is open (teams change only then). */
 function myTeam(t: Tournament): TournamentTeam {

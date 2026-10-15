@@ -76,3 +76,51 @@ describe('tournaments (sample data)', () => {
     expect(t.teams.some((x) => x.name === 'Wolves')).toBe(false);
   });
 });
+
+describe('tournaments at the desk (sample data)', () => {
+  const input = {
+    name: 'Desk Cup',
+    coverUrl: null,
+    game: { id: 'g', name: 'Brawlhalla' },
+    branch: { id: 'b', name: 'CENTRE El Manar' },
+    teamSize: 1,
+    maxTeams: 4,
+    entryFeeCoins: 0,
+    prizePoolCoins: 5000,
+    matchMinutes: 20,
+    registrationClosesAt: '2026-10-20T10:00:00.000Z',
+    startsAt: '2026-10-20T16:00:00.000Z',
+  };
+
+  it('creates a tournament open for sign-up, and refuses one that starts before sign-up closes', async () => {
+    const t = await service.tournamentsService.createTournament(input);
+    expect(t).toMatchObject({ name: 'Desk Cup', status: 'REGISTRATION_OPEN', teams: [], format: 'SINGLE_ELIMINATION' });
+    expect(service.tournamentsService.list()[0].id).toBe(t.id);
+    await expect(service.tournamentsService.createTournament({ ...input, startsAt: '2026-10-19T10:00:00.000Z' })).rejects.toThrow('Sign-up must close before');
+  });
+
+  it('runs it: close sign-up, draw, start, results until the final ends it', async () => {
+    const id = 'baron-brawl-cup'; // 5 players signed up
+    await expect(service.tournamentsService.drawBracket(id)).rejects.toThrow('Close sign-up before');
+    await service.tournamentsService.setStage(id, 'close');
+    let t = await service.tournamentsService.drawBracket(id);
+    expect(t.matches).toHaveLength(7);
+    await expect(service.tournamentsService.updateTournament(id, { ...input, maxTeams: 8 })).rejects.toThrow('before its bracket is drawn');
+    await expect(service.tournamentsService.removeTeam(id, t.teams[0].id)).rejects.toThrow('can no longer change');
+    await expect(service.tournamentsService.reportResult(id, t.matches[0].id, 1, 0)).rejects.toThrow('Start the tournament');
+    await service.tournamentsService.setStage(id, 'start');
+    const toPlay = () => get(id).matches.filter((m) => m.teamAId && m.teamBId && m.status === 'READY');
+    while (toPlay().length) t = await service.tournamentsService.reportResult(id, toPlay()[0].id, 2, 1);
+    expect(t.status).toBe('COMPLETED');
+  });
+
+  it('edits before the draw (never fewer places than teams in), removes a team, and deletes', async () => {
+    const id = 'summoner-showdown'; // 10 teams in
+    await expect(service.tournamentsService.updateTournament(id, { ...input, teamSize: 5, maxTeams: 8 })).rejects.toThrow('10 teams are already in');
+    const t = await service.tournamentsService.updateTournament(id, { ...input, name: 'Showdown', teamSize: 5, maxTeams: 12 });
+    expect(t).toMatchObject({ name: 'Showdown', maxTeams: 12 });
+    expect((await service.tournamentsService.removeTeam(id, t.teams[0].id)).teams).toHaveLength(9);
+    await service.tournamentsService.deleteTournament(id);
+    expect(get(id)).toBeUndefined();
+  });
+});

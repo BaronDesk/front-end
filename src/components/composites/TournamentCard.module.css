@@ -1,0 +1,257 @@
+/* TournamentCard: a tournament's card (cover, status tag, tags, start, figures, its button), placed as in the design (303 wide). */
+
+@layer components {
+  /* ---------- Status tag (on the cover's corner) ---------- */
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    height: calc(22 * var(--u));
+    padding: 0 calc(10 * var(--u));
+    border-radius: calc(11 * var(--u));
+    font-family: 'Nexa', sans-serif;
+    font-weight: 700;
+    font-size: calc(11 * var(--u));
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .REGISTRATION_OPEN {
+    background: var(--bd-gold);
+    color: var(--bd-black);
+  }
+
+  .REGISTRATION_CLOSED {
+    background: var(--bd-cream);
+    color: var(--bd-brown);
+  }
+
+  .IN_PROGRESS {
+    background: var(--bd-red);
+    color: var(--bd-cream);
+  }
+
+  .COMPLETED,
+  .CANCELLED {
+    background: var(--bd-brown);
+    color: var(--bd-on-dark);
+  }
+
+  /* ---------- Tournament card ---------- */
+
+  .card {
+    position: relative;
+    width: calc(303 * var(--u));
+    height: calc(282 * var(--u));
+    overflow: hidden;
+    border: calc(1 * var(--u)) solid var(--bd-brown);
+    border-radius: calc(15 * var(--u));
+    /* The design's brown, lit with gold at the top (measured on its export). */
+    background: linear-gradient(167.7deg, #664b2b 0%, #382922 100%);
+    color: var(--bd-cream);
+  }
+
+  .cardActions {
+    height: calc(328 * var(--u));
+  }
+
+  .cover {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: calc(129 * var(--u));
+    overflow: hidden;
+    border-bottom: calc(1 * var(--u)) solid var(--bd-brown);
+    background: linear-gradient(131.44deg, var(--bd-gold) 39.588%, #5c431b 81.63%);
+  }
+
+  .cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 28%;
+  }
+
+  /* No picture: the game's name on the cover. */
+  .coverName {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: calc(16 * var(--u));
+    font-weight: var(--bd-semibold);
+    font-size: calc(24 * var(--u));
+    text-align: center;
+  }
+
+  .status {
+    position: absolute;
+    left: calc(11 * var(--u));
+    top: calc(11 * var(--u));
+  }
+
+  .name {
+    position: absolute;
+    left: calc(11 * var(--u));
+    top: calc(136 * var(--u));
+    max-width: calc(279 * var(--u));
+    margin: 0;
+    overflow: hidden;
+    font-family: 'Hyano', sans-serif;
+    font-weight: 800;
+    font-size: calc(20 * var(--u));
+    line-height: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tags {
+    position: absolute;
+    left: calc(11 * var(--u));
+    top: calc(169 * var(--u));
+    display: flex;
+    gap: calc(5 * var(--u));
+    max-width: calc(281 * var(--u));
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    list-style: none;
+  }
+
+  .tags li {
+    flex: none;
+    height: calc(15 * var(--u));
+    padding: 0 calc(4 * var(--u));
+    border: calc(0.5 * var(--u)) solid var(--bd-cream);
+    border-radius: calc(2 * var(--u));
+    background: linear-gradient(171.43deg, rgba(194, 141, 57, 0.2) 47.233%, rgba(92, 67, 27, 0.2) 261.58%);
+    color: #fff;
+    font-weight: var(--bd-regular);
+    font-size: calc(8 * var(--u));
+    line-height: calc(14 * var(--u));
+    white-space: nowrap;
+  }
+
+  /* The start, between two faint lines. */
+  .when {
+    position: absolute;
+    left: calc(5 * var(--u));
+    top: calc(199 * var(--u));
+    display: flex;
+    align-items: center;
+    width: calc(292 * var(--u));
+    height: calc(25.5 * var(--u));
+    padding: 0 calc(7 * var(--u)) 0 calc(8 * var(--u));
+    border-top: calc(0.5 * var(--u)) solid rgba(239, 229, 210, 0.16);
+    border-bottom: calc(0.5 * var(--u)) solid rgba(239, 229, 210, 0.16);
+  }
+
+  .date {
+    margin-left: calc(4.6 * var(--u));
+    color: rgba(239, 229, 210, 0.7);
+    font-weight: var(--bd-regular);
+    font-size: calc(9 * var(--u));
+  }
+
+  .startsIn {
+    margin-left: auto;
+    font-weight: var(--bd-medium);
+    font-size: calc(9 * var(--u));
+  }
+
+  /* Prize Pool, Teams, Fees. */
+  .stats {
+    position: absolute;
+    left: calc(11 * var(--u));
+    top: calc(234 * var(--u));
+    display: flex;
+    gap: calc(10 * var(--u));
+  }
+
+  .stat {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: calc(75 * var(--u));
+    height: calc(32 * var(--u));
+    padding: calc(4 * var(--u)) calc(5 * var(--u)) 0;
+  }
+
+  /* The box: its tint at 40 %, the figures at full strength. */
+  .stat::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: calc(0.5 * var(--u)) solid var(--bd-cream);
+    border-radius: calc(4 * var(--u));
+    background: linear-gradient(-17.57deg, var(--bd-brown) 2.1263%, var(--bd-gold) 253.47%);
+    opacity: 0.4;
+  }
+
+  .statTeams {
+    min-width: calc(64 * var(--u));
+  }
+
+  .statLabel,
+  .statValue {
+    position: relative;
+  }
+
+  .statLabel {
+    color: rgba(239, 229, 210, 0.7);
+    font-weight: var(--bd-light);
+    font-size: calc(8 * var(--u));
+    line-height: calc(10 * var(--u));
+  }
+
+  .statValue {
+    display: flex;
+    align-items: center;
+    font-weight: var(--bd-semibold);
+    font-size: calc(14 * var(--u));
+    line-height: calc(16 * var(--u));
+    white-space: nowrap;
+  }
+
+  .statOf {
+    color: rgba(239, 229, 210, 0.5);
+    font-size: calc(12 * var(--u));
+  }
+
+  .statCoin {
+    width: calc(16 * var(--u));
+    height: calc(16 * var(--u));
+    margin-left: calc(1 * var(--u));
+  }
+
+  .actions {
+    position: absolute;
+    left: calc(11 * var(--u));
+    right: calc(11 * var(--u));
+    top: calc(283 * var(--u));
+    display: flex;
+  }
+
+  .main {
+    display: grid;
+    flex: 1;
+    place-items: center;
+    height: calc(26 * var(--u));
+    border: calc(0.7 * var(--u)) solid var(--bd-brown);
+    border-radius: calc(25 * var(--u));
+    background: var(--bd-cream);
+    color: var(--bd-brown);
+    font-weight: var(--bd-bold);
+    font-size: calc(10 * var(--u));
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .main:focus-visible {
+    outline: calc(2 * var(--u)) solid var(--bd-gold);
+    outline-offset: calc(2 * var(--u));
+  }
+}

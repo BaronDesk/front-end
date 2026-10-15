@@ -154,3 +154,96 @@ export function nextMatchOf(t: Tournament) {
     pin: t.myNextMatch.pin,
   };
 }
+
+// ---------- Running a tournament (the desk) ----------
+
+/** The usual seed order of a bracket of `size` places, top to bottom: 1, 8, 4, 5, 2, 7, 3, 6 for 8 (seed 1 meets seed 2 only in the final). */
+export function seedOrder(size: number): number[] {
+  let order = [1];
+  while (order.length < size) {
+    const n = order.length * 2;
+    order = order.flatMap((s) => [s, n + 1 - s]);
+  }
+  return order;
+}
+
+/**
+ * A single-elimination bracket for these teams, in seed order (the first
+ * team is seed 1): the places are rounded up to a power of two, and the top
+ * seeds get the byes (straight to round 2). Round 1 starts at `startsAt`,
+ * each later round `matchMinutes` after the one before.
+ */
+export function drawBracket(t: Pick<Tournament, 'id' | 'teams' | 'startsAt' | 'matchMinutes'>): { teams: TournamentTeam[]; matches: TournamentMatch[] } {
+  if (t.teams.length < 2) throw new Error('A bracket needs at least 2 teams.');
+  const teams = t.teams.map((team, i) => ({ ...team, seed: i + 1 }));
+  const size = 2 ** Math.ceil(Math.log2(teams.length));
+  const rounds = Math.log2(size);
+  const at = (round: number) => new Date(Date.parse(t.startsAt) + (round - 1) * t.matchMinutes * 60_000).toISOString();
+  const order = seedOrder(size);
+  let matches: TournamentMatch[] = [];
+  for (let round = 1; round <= rounds; round++) {
+    for (let position = 1; position <= size / 2 ** round; position++) {
+      const a = round === 1 ? teams[order[2 * position - 2] - 1] : undefined;
+      const b = round === 1 ? teams[order[2 * position - 1] - 1] : undefined;
+      matches.push({
+        id: `${t.id}-m${round}-${position}`,
+        round,
+        position,
+        teamAId: a?.id ?? null,
+        teamBId: b?.id ?? null,
+        winnerTeamId: null,
+        scoreA: null,
+        scoreB: null,
+        status: round === 1 ? 'READY' : 'PENDING',
+        scheduledAt: at(round),
+      });
+    }
+  }
+  // A team with no opponent (a bye) goes straight to the next round.
+  for (const m of matches.filter((x) => x.round === 1 && (!x.teamAId || !x.teamBId))) {
+    matches = advance(matches, { ...m, status: 'BYE', winnerTeamId: m.teamAId ?? m.teamBId });
+  }
+  return { teams, matches };
+}
+
+/** `done` (played or a bye) in the bracket, and its winner moved into its next match (which is ready once both sides are known). */
+function advance(matches: TournamentMatch[], done: TournamentMatch): TournamentMatch[] {
+  const nextPos = Math.ceil(done.position / 2);
+  return matches.map((m): TournamentMatch => {
+    if (m.id === done.id) return done;
+    if (m.round !== done.round + 1 || m.position !== nextPos) return m;
+    const placed = done.position % 2 ? { ...m, teamAId: done.winnerTeamId } : { ...m, teamBId: done.winnerTeamId };
+    return { ...placed, status: placed.teamAId && placed.teamBId ? 'READY' : 'PENDING' };
+  });
+}
+
+/** The matches whose result can be entered: both sides known, not played yet. */
+export function matchesToPlay(t: Pick<Tournament, 'matches'>): TournamentMatch[] {
+  return t.matches
+    .filter((m) => m.teamAId && m.teamBId && (m.status === 'READY' || m.status === 'IN_PROGRESS'))
+    .sort((a, b) => a.round - b.round || a.position - b.position);
+}
+
+/** A played match's score: the higher one wins and moves on (single elimination has no draws). */
+export function reportResult(matches: TournamentMatch[], matchId: string, scoreA: number, scoreB: number): TournamentMatch[] {
+  const match = matches.find((m) => m.id === matchId);
+  if (!match || !match.teamAId || !match.teamBId) throw new Error('This match is not ready to be played.');
+  if (match.status === 'COMPLETED') throw new Error('This match already has a result.');
+  if (![scoreA, scoreB].every((s) => Number.isInteger(s) && s >= 0)) throw new Error('Scores are whole numbers, 0 or more.');
+  if (scoreA === scoreB) throw new Error('A match needs a winner: the scores cannot be equal.');
+  return advance(matches, { ...match, scoreA, scoreB, status: 'COMPLETED', winnerTeamId: scoreA > scoreB ? match.teamAId : match.teamBId });
+}
+
+/** What the desk can do next with a tournament, in its order of life: sign-up → bracket → play → over. */
+export function adminSteps(t: Pick<Tournament, 'status' | 'teams' | 'matches'>): ('close' | 'reopen' | 'draw' | 'start' | 'cancel')[] {
+  switch (t.status) {
+    case 'REGISTRATION_OPEN':
+      return ['close', 'cancel'];
+    case 'REGISTRATION_CLOSED':
+      return t.matches.length ? ['start', 'cancel'] : ['draw', 'reopen', 'cancel'];
+    case 'IN_PROGRESS':
+      return ['cancel'];
+    default:
+      return [];
+  }
+}

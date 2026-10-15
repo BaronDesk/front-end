@@ -2,18 +2,23 @@ import { describe, expect, it } from 'vitest';
 
 import type { Tournament, TournamentMatch } from '../core/api-types';
 import {
+  adminSteps,
   branchTag,
   cardAction,
   cardDate,
   champion,
   coverOf,
+  drawBracket,
   filterTournaments,
   matchDate,
   matchesByRound,
+  matchesToPlay,
   matchRoundName,
   nextMatchOf,
+  reportResult,
   roundCount,
   roundName,
+  seedOrder,
   startsInText,
   teamCells,
   teamSizeText,
@@ -117,5 +122,59 @@ describe('tournaments', () => {
     expect(filterTournaments(list, 'all')).toHaveLength(3);
     expect(filterTournaments(list, 'live').map((t) => t.id)).toEqual(['live']);
     expect(filterTournaments(list, 'finished').map((t) => t.id)).toEqual(['done']);
+  });
+});
+
+describe('running a tournament', () => {
+  const five = (over: Partial<Tournament> = {}) =>
+    cup({
+      teams: ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id, name: id.toUpperCase(), seed: null, members: [id], joinCode: null })),
+      matches: [],
+      maxTeams: 8,
+      startsAt: '2026-10-20T16:00:00.000Z',
+      matchMinutes: 30,
+      ...over,
+    });
+
+  it('seeds a bracket so the top two seeds can only meet in the final', () => {
+    expect(seedOrder(8)).toEqual([1, 8, 4, 5, 2, 7, 3, 6]);
+    expect(seedOrder(4)).toEqual([1, 4, 2, 3]);
+  });
+
+  it('rounds the places up to a power of two and gives the top seeds the byes, straight into round 2', () => {
+    const { teams, matches } = drawBracket(five());
+    expect(teams.map((t) => t.seed)).toEqual([1, 2, 3, 4, 5]);
+    expect(matches.filter((m) => m.round === 1)).toHaveLength(4);
+    expect(matches.filter((m) => m.round === 1 && m.status === 'BYE').map((m) => m.winnerTeamId)).toEqual(['a', 'b', 'c']);
+    // seeds 4 and 5 play; seed 1 waits for their winner, seeds 2 and 3 meet in round 2
+    expect(matchesToPlay({ matches }).map((m) => [m.teamAId, m.teamBId])).toEqual([['d', 'e'], ['b', 'c']]);
+    const final = matches.find((m) => m.round === 3)!;
+    expect(final.scheduledAt).toBe('2026-10-20T17:00:00.000Z');
+    expect(() => drawBracket(five({ teams: five().teams.slice(0, 1) }))).toThrow('at least 2 teams');
+  });
+
+  it('moves each winner on until the final crowns a champion, and refuses a draw or a second result', () => {
+    let matches = drawBracket(five()).matches;
+    const play = (a: string, b: string, sa: number, sb: number) => {
+      const m = matchesToPlay({ matches }).find((x) => x.teamAId === a && x.teamBId === b)!;
+      matches = reportResult(matches, m.id, sa, sb);
+      return m.id;
+    };
+    const first = play('d', 'e', 1, 2);
+    expect(() => reportResult(matches, first, 3, 0)).toThrow('already has a result');
+    play('a', 'e', 2, 0);
+    play('b', 'c', 0, 2);
+    const final = matchesToPlay({ matches })[0];
+    expect([final.teamAId, final.teamBId]).toEqual(['a', 'c']);
+    expect(() => reportResult(matches, final.id, 1, 1)).toThrow('cannot be equal');
+    matches = reportResult(matches, final.id, 3, 1);
+    expect(champion(five({ matches }))?.name).toBe('A');
+  });
+
+  it('lists what the desk can do next at each stage', () => {
+    expect(adminSteps(five({ status: 'REGISTRATION_OPEN' }))).toEqual(['close', 'cancel']);
+    expect(adminSteps(five({ status: 'REGISTRATION_CLOSED' }))).toEqual(['draw', 'reopen', 'cancel']);
+    expect(adminSteps(five({ status: 'REGISTRATION_CLOSED', matches: drawBracket(five()).matches }))).toEqual(['start', 'cancel']);
+    expect(adminSteps(five({ status: 'COMPLETED' }))).toEqual([]);
   });
 });

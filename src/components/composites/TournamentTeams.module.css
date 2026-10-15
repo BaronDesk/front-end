@@ -1,0 +1,81 @@
+/* TournamentTeams: the teams (or players) signed up, with their seed, and the free places. */
+
+@layer components {
+  /* ---------- Teams ---------- */
+
+  .teams {
+    display: flex;
+    flex-direction: column;
+    gap: calc(8 * var(--u));
+    margin: 0 calc(21 * var(--u));
+    padding: 0;
+    list-style: none;
+  }
+
+  .teamRow {
+    display: grid;
+    grid-template-columns: calc(26 * var(--u)) 1fr;
+    align-items: center;
+    column-gap: calc(10 * var(--u));
+    padding: calc(10 * var(--u)) calc(14 * var(--u));
+    border-radius: calc(14 * var(--u));
+    background: linear-gradient(180deg, rgba(54, 40, 34, 0.16) 0%, rgba(194, 141, 57, 0.1) 100%);
+    font-family: 'Nexa', sans-serif;
+    font-weight: 300;
+  }
+
+  .teamMine {
+    box-shadow: inset 0 0 0 calc(2 * var(--u)) var(--bd-gold);
+  }
+
+  /* What the page adds to a row (the desk's Remove), at its right end. */
+  .extra {
+    margin-left: auto;
+  }
+
+  .teamFree {
+    background: none;
+    border: calc(1 * var(--u)) dashed rgba(54, 40, 34, 0.35);
+    color: rgba(54, 40, 34, 0.55);
+  }
+
+  .seed {
+    display: grid;
+    place-items: center;
+    width: calc(26 * var(--u));
+    height: calc(26 * var(--u));
+    border-radius: 50%;
+    background: var(--bd-brown);
+    color: var(--bd-cream);
+    font-weight: 700;
+    font-size: calc(11 * var(--u));
+  }
+
+  .teamFree .seed {
+    background: rgba(54, 40, 34, 0.25);
+  }
+
+  .teamRowName {
+    display: flex;
+    align-items: center;
+    gap: calc(8 * var(--u));
+    font-weight: 400;
+    font-size: calc(15 * var(--u));
+  }
+
+  .yourTeam {
+    padding: calc(2 * var(--u)) calc(7 * var(--u));
+    border-radius: calc(8 * var(--u));
+    background: var(--bd-gold);
+    color: var(--bd-black);
+    font-weight: 700;
+    font-size: calc(10 * var(--u));
+  }
+
+  .members {
+    grid-column: 2;
+    margin-top: calc(2 * var(--u));
+    color: rgba(54, 40, 34, 0.69);
+    font-size: calc(11 * var(--u));
+  }
+}

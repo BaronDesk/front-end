@@ -68,21 +68,26 @@ export const useSessionHistory = () => useApiQuery<SessionHistoryRow[]>(sessions
 // Tournaments
 /**
  * The tournaments: sample data until the backend has them (not a request
- * yet), redrawn when a team is created or joined. Each game's poster comes
- * from the catalog, matched by name, so a tournament without its own cover
- * shows it; the samples' stand-in for the gamer becomes their username.
+ * yet), redrawn when anything changes. Each game's poster comes from the
+ * catalog, matched by name, so a tournament without its own cover shows it;
+ * each sample branch is matched by name to the real one, so branch filters
+ * work. The samples' stand-in for the gamer becomes their username; on the
+ * desk (`staff`), a sample gamer's, and nobody's team is "mine".
  */
-export function useTournaments(): { data: Tournament[] } {
+export function useTournaments({ staff = false }: { staff?: boolean } = {}): { data: Tournament[] } {
   const games = useGames();
+  const branches = useBranches();
   const { user } = useAuth();
   const list = useSyncExternalStore(tournamentsService.subscribe, tournamentsService.list);
   const data = useMemo(() => {
-    const me = (name: string) => (name === ME ? (user?.username ?? 'You') : name);
+    const me = (name: string) => (name !== ME ? name : staff ? 'gamer.gold' : (user?.username ?? 'You'));
     return list.map((t) => ({
       ...t,
       game: { ...t.game, iconUrl: t.game.iconUrl ?? games.data?.find((g) => g.name === t.game.name)?.iconUrl ?? null },
+      branch: branches.data?.find((b) => b.id === t.branch.id || b.name === t.branch.name) ?? t.branch,
       teams: t.teams.map((team) => ({ ...team, name: me(team.name), members: team.members.map(me) })),
+      ...(staff && { myTeamId: null, myNextMatch: null }),
     }));
-  }, [list, games.data, user?.username]);
+  }, [list, games.data, branches.data, user?.username, staff]);
   return { data };
 }

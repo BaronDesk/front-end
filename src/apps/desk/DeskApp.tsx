@@ -21,6 +21,8 @@ import { SessionBillPage } from './pages/sessions/SessionBillPage';
 import { EnrollmentPage } from './pages/stations/EnrollmentPage';
 import { StationDetailPage } from './pages/stations/StationDetailPage';
 import { StationsPage } from './pages/stations/StationsPage';
+import { TournamentManagePage } from './pages/tournaments/TournamentManagePage';
+import { TournamentsPage } from './pages/tournaments/TournamentsPage';
 import { UsersPage } from './pages/users/UsersPage';
 import { WalletPage } from './pages/wallet/WalletPage';
 
@@ -34,6 +36,7 @@ const PAGES: Record<string, ReactNode> = {
   '/plans': <PlansPage />,
   '/ranks': <RanksPage />,
   '/games': <GamesPage />,
+  '/tournaments': <TournamentsPage />,
   '/bookings': <BookingsPage />,
   '/hq': <HqPage />,
   '/audit': <AuditPage />,
@@ -70,6 +73,14 @@ export function DeskApp() {
                   );
                 })}
                 <Route path="/stations/:id" element={<StationDetailPage />} />
+                <Route
+                  path="/tournaments/:id"
+                  element={
+                    <RequireRole min="MANAGER">
+                      <TournamentManagePage />
+                    </RequireRole>
+                  }
+                />
                 {/* The sessions list is part of Bookings; each session's bill has its own page. */}
                 <Route path="/sessions" element={<Navigate to="/bookings" replace />} />
                 <Route path="/sessions/:id" element={<SessionBillPage />} />

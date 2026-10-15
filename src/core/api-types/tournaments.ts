@@ -61,3 +61,18 @@ export interface Tournament {
   /** The caller's next match, once seats are given: the PC and its PIN. */
   myNextMatch: { matchId: string; machineName: string; pin: string } | null;
 }
+
+/** What the desk sets when it creates or edits a tournament (single elimination). */
+export interface TournamentInput {
+  name: string;
+  coverUrl: string | null;
+  game: { id: string; name: string };
+  branch: { id: string; name: string };
+  teamSize: number;
+  maxTeams: number;
+  entryFeeCoins: number;
+  prizePoolCoins: number;
+  matchMinutes: number;
+  registrationClosesAt: string;
+  startsAt: string;
+}

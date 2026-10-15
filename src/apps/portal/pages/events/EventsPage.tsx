@@ -7,7 +7,9 @@ import { u } from '../../../../components/primitives/Art';
 import { PageTitle } from '../../../../components/primitives/PageTitle';
 import { useRing } from '../../../../components/composites/useRing';
 import { cx } from '../../../../lib/cx';
-import { NextMatchCard, PlayerHeader, TournamentCard } from './TournamentParts';
+import { TournamentCard } from '../../../../components/composites/TournamentCard';
+import { cardAction } from '../../../../domain/tournaments';
+import { NextMatchCard, PlayerHeader } from './TournamentParts';
 import styles from './EventsPage.module.css';
 
 /** A card and the gap after it, in design px (303 + 14): the next card peeks in on each side. */
@@ -34,9 +36,10 @@ function TournamentCarousel({ tournaments }: { tournaments: Tournament[] }) {
     >
       {ring.slots.map((k) => {
         const away = k !== ring.center;
+        const t = tournaments[ring.index(k)];
         return (
           <div key={k} className={styles.slide} style={{ transform: `translateX(${u((k - ring.pos) * STEP)})` }} aria-hidden={away} inert={away}>
-            <TournamentCard tournament={tournaments[ring.index(k)]} actions />
+            <TournamentCard tournament={t} action={{ to: `/events/${t.id}`, label: cardAction(t) }} />
           </div>
         );
       })}
