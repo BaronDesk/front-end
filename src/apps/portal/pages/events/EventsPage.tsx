@@ -48,10 +48,10 @@ function TournamentCarousel({ tournaments }: { tournaments: Tournament[] }) {
 }
 
 /**
- * Events: the branch tournaments. The gamer's next match first (PC and PIN,
- * a blinking dot), the filter chips, then the tournaments as large cards to
- * slide through. A card's buttons open the tournament or its bracket. Sample
- * data until the backend has tournaments.
+ * Events: the branch tournaments. The gamer's next match first (PC and PIN),
+ * the filter chips, then the tournaments as large cards to slide through. A
+ * card's button opens the tournament. Sample data until the backend has
+ * tournaments.
  */
 export function EventsPage() {
   const tournaments = useTournaments().data;

@@ -25,7 +25,7 @@ export function PlayerHeader() {
   );
 }
 
-/** The caller's next match: the round, both teams, when, the PC and its PIN. The dot blinks: it is on. */
+/** The caller's next match: the round, both teams, when, the PC and its PIN. */
 export function NextMatchCard({ tournament }: { tournament: Tournament }) {
   const next = nextMatchOf(tournament);
   if (!next) return null;
@@ -34,7 +34,6 @@ export function NextMatchCard({ tournament }: { tournament: Tournament }) {
     <Link to={`/events/${tournament.id}`} className={styles.next} aria-label={`Your next match: ${next.round}, ${next.team?.name ?? 'your team'} against ${next.opponent?.name ?? 'to be decided'}`}>
       {poster && <img className={styles.nextPoster} src={poster} alt="" />}
       <span className={styles.nextLabel}>Your Next Match : {next.round}</span>
-      <span className={styles.nextDot} />
       <span className={styles.nextTeamA}>{next.team?.name ?? 'Your team'}</span>
       <span className={styles.nextTeamB}>{next.opponent?.name ?? 'TBD'}</span>
       <span className={styles.nextStrip}>

@@ -74,29 +74,6 @@
   font-size: calc(10 * var(--u));
 }
 
-/* On and off, like a live light. */
-.nextDot {
-  left: calc(291 * var(--u));
-  top: calc(12 * var(--u));
-  width: calc(5 * var(--u));
-  height: calc(5 * var(--u));
-  border-radius: 50%;
-  background: var(--bd-cream);
-  animation: blink 1.4s ease-in-out infinite;
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0.15;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .nextDot {
-    animation: none;
-  }
-}
-
 /* A team's words one per line: "Baron / Wolves". */
 .nextTeamA,
 .nextTeamB {
